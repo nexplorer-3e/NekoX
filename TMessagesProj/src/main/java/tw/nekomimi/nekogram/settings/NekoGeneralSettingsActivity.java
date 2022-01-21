@@ -83,6 +83,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     private ListAdapter listAdapter;
     private ValueAnimator statusBarColorAnimator;
     private DrawerProfilePreviewCell profilePreviewCell;
+    private final boolean showCensoredFeatures = NekoXConfig.showCensoredFeatures();
 
     private final CellGroup cellGroup = new CellGroup(this);
 
@@ -768,7 +769,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     }
 
     private void setCanNotChange() {
-        if (!NekoXConfig.isDeveloper())
+        if (!showCensoredFeatures)
             cellGroup.rows.remove(hideSponsoredMessageRow);
 
         if (!BuildVars.isGServicesCompiled) {
