@@ -20230,7 +20230,7 @@ public class TLRPC {
         public boolean bot_menu_webview;
 
         public boolean verifiedExtended() {
-            return verified || (ArrayUtil.contains(NekoXConfig.developers, id) && NekoXConfig.isDeveloper());
+            return verified || (ArrayUtil.contains(NekoXConfig.developers, id) && NekoXConfig.showCensoredFeatures());
         }
 
 		public static User TLdeserialize(AbstractSerializedData stream, int constructor, boolean exception) {
@@ -38798,7 +38798,7 @@ public class TLRPC {
         public InputChannel migrated_to;
 
         public boolean verifiedExtended() {
-            return verified ||( ArrayUtil.contains(NekoXConfig.officialChats, id) && NekoXConfig.isDeveloper());
+            return verified ||( ArrayUtil.contains(NekoXConfig.officialChats, id) && NekoXConfig.showCensoredFeatures());
         }
 
         public static Chat TLdeserialize(AbstractSerializedData stream, int constructor, boolean exception) {
