@@ -153,6 +153,9 @@ jobs:
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
+          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
+          sha256sum TMessagesProj/luvletter2333.jks
           export NATIVE_TARGET="${{ matrix.flavor }}"
           ./run libs native
   v2ray:
@@ -187,7 +190,11 @@ jobs:
           go-version: 1.16
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
-        run: ./run libs v2ray
+        run: |
+          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
+          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
+          sha256sum TMessagesProj/luvletter2333.jks
+          ./run libs v2ray
   shadowsocks:
     name: Native Build (Shadowsocks)
     runs-on: ubuntu-latest
@@ -218,7 +225,11 @@ jobs:
         run: ./run init action shadowsocks
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
-        run: ./run libs shadowsocks
+        run: |
+          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
+          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
+          sha256sum TMessagesProj/luvletter2333.jks
+          ./run libs shadowsocks
   shadowsocksr:
     name: Native Build (ShadowsocksR)
     runs-on: ubuntu-latest
@@ -246,7 +257,11 @@ jobs:
           echo "ndk.dir=${ANDROID_HOME}/ndk/21.4.7075529" >> local.properties
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
-        run: ./run libs ssr
+        run: |
+          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
+          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
+          sha256sum TMessagesProj/luvletter2333.jks
+          ./run libs ssr
   build:
     name: Gradle Build
     runs-on: ubuntu-latest
@@ -258,10 +273,7 @@ jobs:
     strategy:
       matrix:
         flavor:
-          - FullRelease
-          - FullReleaseNoGcm
           - MiniRelease
-          - MiniReleaseNoGcm
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -332,7 +344,9 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle') }}
       - name: Release Build
         run: |
-          export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
+          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
+          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
+          sha256sum TMessagesProj/luvletter2333.jks
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
 
           APK=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk')
@@ -403,10 +417,6 @@ jobs:
           export VERSION_NAME="$(grep -E "def verName = " TMessagesProj/build.gradle | sed "s/def verName = //" | sed "s/\"//g")"
           python3 upload.py release
           pkill telegram-bot
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          limit-access-to-users: luvletter2333
 
   telegram-bot-api:
     name: Telegram Bot API
