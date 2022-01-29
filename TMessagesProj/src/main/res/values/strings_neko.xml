@@ -148,4 +148,6 @@
     <string name="mapDriftingFixForGoogleMaps">Fix Google Maps drifting in China</string>
     <string name="useOSMDroidMap">Use OSMDroid Map</string>
     <string name="useTelegramTranslateInChat">Use Telegram Translate in Chat</string>
+    <string name="MutualContact">Mutual contact</string>
+    <string name="MutualContactDescription">This contact is a mutual contact.</string>
 </resources>
