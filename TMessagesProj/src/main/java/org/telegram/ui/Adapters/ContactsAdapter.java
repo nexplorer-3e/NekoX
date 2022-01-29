@@ -353,7 +353,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
         View view;
         switch (viewType) {
             case 0:
-                view = new UserCell(mContext, 58, 1, false);
+                view = new UserCell(mContext, 58, 1, false, false, true);
                 break;
             case 1:
                 view = new TextCell(mContext);
@@ -481,6 +481,10 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                     sectionCell.setText(LocaleController.getString("SortedByLastSeen", R.string.SortedByLastSeen));
                 }
                 break;
+        }
+
+        if (mutualView != null) {
+            mutualView.setVisibility(currentUser != null && currentUser.mutual_contact ? VISIBLE : GONE);
         }
     }
 
