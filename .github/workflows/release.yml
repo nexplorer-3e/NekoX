@@ -343,9 +343,34 @@ jobs:
           APK=$(dirname $APK)
           echo "APK=$APK" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v2
+        if: github.event.inputs.upload != 'y'
         with:
           name: ${{ matrix.flavor }}
           path: ${{ env.APK }}
+      - uses: actions/upload-artifact@v2
+        if: github.event.inputs.upload != 'y'
+        name: Upload apk (arm64-v8a)
+        with:
+          name: NekoX-${{ matrix.flavor }}-arm64-v8a
+          path: ${{ env.APK_FILE }}
+      - uses: actions/upload-artifact@v2
+        if: github.event.inputs.upload != 'y'
+        name: Upload apk (armeabi-v7a)
+        with:
+          name: NekoX-${{ matrix.flavor }}-armeabi-v7a
+          path: ${{ env.APK_FILE_ARMV7 }}
+      - uses: actions/upload-artifact@v2
+        if: github.event.inputs.upload != 'y'
+        name: Upload apk (x86_64)
+        with:
+          name: NekoX-${{ matrix.flavor }}-x86_64
+          path: ${{ env.APK_FILE_X64 }}
+      - uses: actions/upload-artifact@v2
+        if: github.event.inputs.artifacts == 'y'
+        name: Upload apk (x86)
+        with:
+          name: NekoX-${{ matrix.flavor }}-x86
+          path: ${{ env.APK_FILE_X86 }}
   publish:
     name: Publish Release
     if: github.event.inputs.publish != 'y'

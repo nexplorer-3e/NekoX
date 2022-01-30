@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       artifacts:
-        description: 'y, if need artifacts'
+        description: 'y, if drop artifacts'
         required: false
       upload:
         description: 'push to dev channel'
@@ -325,25 +325,25 @@ jobs:
           echo "APK_FILE_X86=$(find TMessagesProj/build/outputs/apk -name '*x86-*.apk')" >> $GITHUB_ENV
           echo "APK_FILE_X64=$(find TMessagesProj/build/outputs/apk -name '*x86_64*.apk')" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts == 'y'
+        if: github.event.inputs.artifacts != 'y'
         name: Upload apk (arm64-v8a)
         with:
           name: NekoX-${{ matrix.flavor }}-arm64-v8a
           path: ${{ env.APK_FILE }}
       - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts == 'y'
+        if: github.event.inputs.artifacts != 'y'
         name: Upload apk (armeabi-v7a)
         with:
           name: NekoX-${{ matrix.flavor }}-armeabi-v7a
           path: ${{ env.APK_FILE_ARMV7 }}
       - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts == 'y'
+        if: github.event.inputs.artifacts != 'y'
         name: Upload apk (x86_64)
         with:
           name: NekoX-${{ matrix.flavor }}-x86_64
           path: ${{ env.APK_FILE_X64 }}
       - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts == 'y'
+        if: github.event.inputs.artifacts != 'y'
         name: Upload apk (x86)
         with:
           name: NekoX-${{ matrix.flavor }}-x86
