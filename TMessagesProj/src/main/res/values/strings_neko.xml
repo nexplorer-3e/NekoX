@@ -140,5 +140,6 @@
     <string name="ReactionsDisabled">Disable</string>
     <string name="customSavePath">Custom Save Path</string>
     <string name="customSavePathHint">Leave blank to save directly</string>
-
+    <string name="MutualContact">Mutual contact</string>
+    <string name="MutualContactDescription">This contact is a mutual contact.</string>
 </resources>
