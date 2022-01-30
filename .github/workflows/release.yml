@@ -337,7 +337,9 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle') }}
       - name: Release Build
         run: |
-          export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
+          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
+          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
+          sha256sum TMessagesProj/luvletter2333.jks
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
 
           APK=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk')
