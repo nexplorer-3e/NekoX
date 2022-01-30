@@ -3,7 +3,7 @@ name: Debug build
 on:
   push:
     branches:
-      - kr2ne
+      - hrh2ne
     paths-ignore:
       - '**.md'
       - '.github/**'
