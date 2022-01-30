@@ -5,9 +5,6 @@ on:
       tag:
         description: 'Release Tag'
         required: true
-      play:
-        description: 'Play: If want ignore'
-        required: false
       upload:
         description: 'Upload: If want ignore'
         required: false
