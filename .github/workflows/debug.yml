@@ -299,16 +299,6 @@ jobs:
           path: |
             TMessagesProj/libs/ssr-libev-release.aar
           key: ${{ hashFiles('shadowsocksr_status') }}
-      - name: Configure Gradle
-        run: |
-          sed -i -e "s/16384/6144/g" gradle.properties
-          echo "sdk.dir=${ANDROID_HOME}" >> local.properties
-          echo "ndk.dir=${ANDROID_HOME}/ndk-bundle" >> local.properties
-      - name: Gradle cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.gradle
-          key: gradle-${{ hashFiles('**/*.gradle') }}
       - name: Debug Build
         run: |
           export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
@@ -375,16 +365,6 @@ jobs:
           path: |
             TMessagesProj/libs/libv2ray.aar
           key: ${{ hashFiles('bin/libs/v2ray/*', 'v2ray_status') }}
-      - name: Configure Gradle
-        run: |
-          sed -i -e "s/16384/6144/g" gradle.properties
-          echo "sdk.dir=${ANDROID_HOME}" >> local.properties
-          echo "ndk.dir=${ANDROID_HOME}/ndk-bundle" >> local.properties
-      - name: Gradle cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.gradle
-          key: gradle-${{ hashFiles('**/*.gradle') }}
       - name: Download Telegram Bot API Binary
         uses: actions/download-artifact@master
         with:

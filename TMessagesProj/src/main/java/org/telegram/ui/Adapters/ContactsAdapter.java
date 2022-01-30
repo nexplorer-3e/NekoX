@@ -482,10 +482,6 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                 }
                 break;
         }
-
-        if (mutualView != null) {
-            mutualView.setVisibility(currentUser != null && currentUser.mutual_contact ? VISIBLE : GONE);
-        }
     }
 
     @Override
