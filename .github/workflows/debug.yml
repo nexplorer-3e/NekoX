@@ -3,7 +3,7 @@ name: Debug build
 on:
   push:
     branches:
-      - hrh2ne
+      - luvletter
     paths-ignore:
       - '**.md'
       - '.github/**'
