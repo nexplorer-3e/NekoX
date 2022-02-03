@@ -73,6 +73,7 @@ import org.telegram.ui.Components.AlertsCreator;
 import org.telegram.ui.Components.BackgroundGradientDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.EmojiTextView;
 import org.telegram.ui.Components.HintView;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.voip.AcceptDeclineView;
@@ -558,7 +559,7 @@ public class VoIPFragment implements VoIPService.StateListener, NotificationCent
         callingUserTextureView = new VoIPTextureView(context, false, true, false, false);
         callingUserTextureView.renderer.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
         callingUserTextureView.renderer.setEnableHardwareScaler(true);
-        callingUserTextureView.scaleType = VoIPTextureView.SCALE_TYPE_FIT;
+        callingUserTextureView.scaleType = VoIPTextureView.SCALE_TYPE_NONE;
    //     callingUserTextureView.attachBackgroundRenderer();
 
         frameLayout.addView(callingUserPhotoView);
@@ -713,7 +714,7 @@ public class VoIPFragment implements VoIPService.StateListener, NotificationCent
         callingUserPhotoViewMini.setRoundRadius(AndroidUtilities.dp(135) / 2);
         callingUserPhotoViewMini.setVisibility(View.GONE);
 
-        callingUserTitle = new TextView(context);
+        callingUserTitle = new EmojiTextView(context);
         callingUserTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24);
         callingUserTitle.setText(ContactsController.formatName(callingUser.first_name, callingUser.last_name));
         callingUserTitle.setShadowLayer(AndroidUtilities.dp(3), 0, AndroidUtilities.dp(.666666667f), 0x4C000000);

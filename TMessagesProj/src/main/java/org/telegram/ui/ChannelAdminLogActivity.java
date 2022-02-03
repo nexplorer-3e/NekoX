@@ -62,13 +62,13 @@ import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
-import org.telegram.messenger.ImageLocation;
-import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
+import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
@@ -84,7 +84,6 @@ import org.telegram.ui.ActionBar.ActionBarMenuItem;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BackDrawable;
 import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
@@ -118,6 +117,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import kotlin.Unit;
+import tw.nekomimi.nekogram.ui.BottomBuilder;
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.utils.AlertUtil;
+import tw.nekomimi.nekogram.utils.ProxyUtil;
 
 public class ChannelAdminLogActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
@@ -1011,7 +1016,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
 
         bottomOverlayImage = new ImageView(context);
         bottomOverlayImage.setImageResource(R.drawable.log_info);
-        bottomOverlayImage.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_fieldOverlayText), PorterDuff.Mode.MULTIPLY));
+        bottomOverlayImage.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_fieldOverlayText), PorterDuff.Mode.SRC_IN));
         bottomOverlayImage.setScaleType(ImageView.ScaleType.CENTER);
         bottomOverlayChat.addView(bottomOverlayImage, LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.TOP, 3, 0, 0, 0));
         bottomOverlayImage.setContentDescription(LocaleController.getString("BotHelp", R.string.BotHelp));
@@ -1047,7 +1052,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
         /*searchUpButton = new ImageView(context);
         searchUpButton.setScaleType(ImageView.ScaleType.CENTER);
         searchUpButton.setImageResource(R.drawable.msg_go_up);
-        searchUpButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_searchPanelIcons), PorterDuff.Mode.MULTIPLY));
+        searchUpButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_searchPanelIcons), PorterDuff.Mode.SRC_IN));
         searchContainer.addView(searchUpButton, LayoutHelper.createFrame(48, 48));
         searchUpButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1059,7 +1064,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
         searchDownButton = new ImageView(context);
         searchDownButton.setScaleType(ImageView.ScaleType.CENTER);
         searchDownButton.setImageResource(R.drawable.msg_go_down);
-        searchDownButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_searchPanelIcons), PorterDuff.Mode.MULTIPLY));
+        searchDownButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_searchPanelIcons), PorterDuff.Mode.SRC_IN));
         searchContainer.addView(searchDownButton, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.TOP, 48, 0, 0, 0));
         searchDownButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1070,8 +1075,8 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
 
         searchCalendarButton = new ImageView(context);
         searchCalendarButton.setScaleType(ImageView.ScaleType.CENTER);
-        searchCalendarButton.setImageResource(R.drawable.msg_calendar);
-        searchCalendarButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_searchPanelIcons), PorterDuff.Mode.MULTIPLY));
+        searchCalendarButton.setImageResource(R.drawable.baseline_date_range_24);
+        searchCalendarButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_searchPanelIcons), PorterDuff.Mode.SRC_IN));
         searchContainer.addView(searchCalendarButton, LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.TOP));
         searchCalendarButton.setOnClickListener(view -> {
             if (getParentActivity() == null) {
@@ -1433,11 +1438,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
                                 selectedObject = null;
                                 return;
                             }
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-                            builder.setTitle(LocaleController.getString("AppName", R.string.AppName));
-                            builder.setMessage(LocaleController.getString("IncorrectTheme", R.string.IncorrectTheme));
-                            builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
-                            showDialog(builder.create());
+                            AlertUtil.showToast(LocaleController.getString("IncorrectTheme", R.string.IncorrectTheme));
                         }
                     } else {
                         if (LocaleController.getInstance().applyLanguageFile(locFile, currentAccount)) {
@@ -1447,11 +1448,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
                                 selectedObject = null;
                                 return;
                             }
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-                            builder.setTitle(LocaleController.getString("AppName", R.string.AppName));
-                            builder.setMessage(LocaleController.getString("IncorrectLocalization", R.string.IncorrectLocalization));
-                            builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
-                            showDialog(builder.create());
+                            AlertUtil.showToast(LocaleController.getString("IncorrectLocalization", R.string.IncorrectLocalization));
                         }
                     }
                 }
@@ -1686,7 +1683,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
             int checkLoadCount;
             if (scroll) {
                 checkLoadCount = 25;
-            } else  {
+            } else {
                 checkLoadCount = 5;
             }
             if (firstVisibleItem <= checkLoadCount && !loading && !endReached) {
@@ -1968,7 +1965,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
     }
 
     public void showOpenUrlAlert(final String url, boolean ask) {
-        if (Browser.isInternalUrl(url, null) || !ask) {
+        if (Browser.isInternalUrl(url, null) || !ask || NekoConfig.skipOpenLinkConfirm.Bool()) {
             Browser.openUrl(getParentActivity(), url, true);
         } else {
             AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
@@ -2159,11 +2156,9 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
                         MessageObject messageObject = cell.getMessageObject();
                         if (url instanceof URLSpanMono) {
                             ((URLSpanMono) url).copyToClipboard();
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                                Toast.makeText(getParentActivity(), LocaleController.getString("TextCopied", R.string.TextCopied), Toast.LENGTH_SHORT).show();
-                            }
+                            Toast.makeText(getParentActivity(), LocaleController.getString("TextCopied", R.string.TextCopied), Toast.LENGTH_SHORT).show();
                         } else if (url instanceof URLSpanUserMention) {
-                            long peerId = Utilities.parseInt(((URLSpanUserMention) url).getURL());
+                            long peerId = Utilities.parseLong(((URLSpanUserMention) url).getURL());
                             if (peerId > 0) {
                                 TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(peerId);
                                 if (user != null) {
@@ -2187,21 +2182,29 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
                         } else {
                             final String urlFinal = ((URLSpan) url).getURL();
                             if (longPress) {
-                                BottomSheet.Builder builder = new BottomSheet.Builder(getParentActivity());
-                                builder.setTitle(urlFinal);
-                                builder.setItems(new CharSequence[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy)}, (dialog, which) -> {
-                                    if (which == 0) {
-                                        Browser.openUrl(getParentActivity(), urlFinal, true);
-                                    } else if (which == 1) {
-                                        String url1 = urlFinal;
-                                        if (url1.startsWith("mailto:")) {
-                                            url1 = url1.substring(7);
-                                        } else if (url1.startsWith("tel:")) {
-                                            url1 = url1.substring(4);
-                                        }
-                                        AndroidUtilities.addToClipboard(url1);
-                                    }
-                                });
+                                BottomBuilder builder = new BottomBuilder(getParentActivity());
+                                builder.addTitle(urlFinal);
+                                builder.addItems(
+                                        new String[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy), LocaleController.getString("ShareQRCode", R.string.ShareQRCode)},
+                                        new int[]{R.drawable.baseline_open_in_browser_24, R.drawable.baseline_content_copy_24, R.drawable.wallet_qr}, (which, text, __) -> {
+                                            if (which == 0 || which == 2) {
+                                                if (which == 0) {
+                                                    Browser.openUrl(getParentActivity(), urlFinal);
+                                                } else {
+                                                    ProxyUtil.showQrDialog(getParentActivity(), urlFinal);
+                                                }
+                                            } else if (which == 1) {
+                                                String url1 = urlFinal;
+                                                if (url1.startsWith("mailto:")) {
+                                                    url1 = url1.substring(7);
+                                                } else if (url1.startsWith("tel:")) {
+                                                    url1 = url1.substring(4);
+                                                }
+                                                AndroidUtilities.addToClipboard(url1);
+                                                AlertUtil.showToast(LocaleController.getString("LinkCopied", R.string.LinkCopied));
+                                            }
+                                            return Unit.INSTANCE;
+                                        });
                                 showDialog(builder.create());
                             } else {
                                 if (url instanceof URLSpanReplacement) {

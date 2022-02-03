@@ -38,12 +38,16 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.jetbrains.annotations.NotNull;
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
@@ -55,6 +59,7 @@ import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.ActionBarMenuItem;
 import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
 import org.telegram.ui.ActionBar.ActionBarPopupWindow;
+import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
@@ -70,14 +75,21 @@ import org.telegram.ui.Components.SizeNotifierFrameLayout;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import kotlin.Unit;
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.transtale.TranslateDb;
+import tw.nekomimi.nekogram.transtale.Translator;
+import tw.nekomimi.nekogram.transtale.TranslatorKt;
+import tw.nekomimi.nekogram.utils.AlertUtil;
 
 public class PhotoAlbumPickerActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
     public interface PhotoAlbumPickerActivityDelegate {
         void didSelectPhotos(ArrayList<SendMessagesHelper.SendingMediaInfo> photos, boolean notify, int scheduleDate);
+
         void startPhotoSelectActivity();
     }
 
@@ -188,7 +200,7 @@ public class PhotoAlbumPickerActivity extends BaseFragment implements Notificati
         }
         ActionBarMenuItem menuItem = menu.addItem(0, R.drawable.ic_ab_other);
         menuItem.setContentDescription(LocaleController.getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
-        menuItem.addSubItem(1, R.drawable.msg_openin, LocaleController.getString("OpenInExternalApp", R.string.OpenInExternalApp));
+        menuItem.addSubItem(1, R.drawable.baseline_open_in_browser_24, LocaleController.getString("OpenInExternalApp", R.string.OpenInExternalApp));
 
         sizeNotifierFrameLayout = new SizeNotifierFrameLayout(context) {
 
@@ -401,7 +413,7 @@ public class PhotoAlbumPickerActivity extends BaseFragment implements Notificati
         writeButtonDrawable = Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(56), Theme.getColor(Theme.key_dialogFloatingButton), Theme.getColor(Build.VERSION.SDK_INT >= 21 ? Theme.key_dialogFloatingButtonPressed : Theme.key_dialogFloatingButton));
         if (Build.VERSION.SDK_INT < 21) {
             Drawable shadowDrawable = context.getResources().getDrawable(R.drawable.floating_shadow_profile).mutate();
-            shadowDrawable.setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.MULTIPLY));
+            shadowDrawable.setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.SRC_IN));
             CombinedDrawable combinedDrawable = new CombinedDrawable(shadowDrawable, writeButtonDrawable, 0, 0);
             combinedDrawable.setIconSize(AndroidUtilities.dp(56), AndroidUtilities.dp(56));
             writeButtonDrawable = combinedDrawable;
@@ -409,7 +421,7 @@ public class PhotoAlbumPickerActivity extends BaseFragment implements Notificati
         writeButton.setBackgroundDrawable(writeButtonDrawable);
         writeButton.setImageResource(R.drawable.attach_send);
         writeButton.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        writeButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogFloatingIcon), PorterDuff.Mode.MULTIPLY));
+        writeButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogFloatingIcon), PorterDuff.Mode.SRC_IN));
         writeButton.setScaleType(ImageView.ScaleType.CENTER);
         if (Build.VERSION.SDK_INT >= 21) {
             writeButton.setOutlineProvider(new ViewOutlineProvider() {
@@ -467,37 +479,64 @@ public class PhotoAlbumPickerActivity extends BaseFragment implements Notificati
                 sendPopupLayout.setShownFromBotton(false);
 
                 itemCells = new ActionBarMenuSubItem[2];
-                for (int a = 0; a < 2; a++) {
+                for (int a = 0; a < 3; a++) {
                     if (a == 0 && !chatActivity.canScheduleMessage() || a == 1 && UserObject.isUserSelf(user)) {
                         continue;
                     }
                     int num = a;
                     itemCells[a] = new ActionBarMenuSubItem(getParentActivity(), a == 0, a ==  1);
                     if (num == 0) {
+                        itemCells[a].setTextAndIcon(LocaleController.getString("Translate", R.string.Translate), R.drawable.ic_translate);
+                    } else if (num == 1) {
                         if (UserObject.isUserSelf(user)) {
-                            itemCells[a].setTextAndIcon(LocaleController.getString("SetReminder", R.string.SetReminder), R.drawable.msg_schedule);
+                            itemCells[a].setTextAndIcon(LocaleController.getString("SetReminder", R.string.SetReminder), R.drawable.baseline_date_range_24);
                         } else {
-                            itemCells[a].setTextAndIcon(LocaleController.getString("ScheduleMessage", R.string.ScheduleMessage), R.drawable.msg_schedule);
+                            itemCells[a].setTextAndIcon(LocaleController.getString("ScheduleMessage", R.string.ScheduleMessage), R.drawable.baseline_date_range_24);
                         }
-                    } else {
-                        itemCells[a].setTextAndIcon(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.input_notify_off);
+                    } else if (num == 2) {
+                        itemCells[a].setTextAndIcon(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.baseline_notifications_off_24);
                     }
                     itemCells[a].setMinimumWidth(AndroidUtilities.dp(196));
 
                     sendPopupLayout.addView(itemCells[a], LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+
+                    long chatId;
+                    if (chat != null) {
+                        chatId = chat.id;
+                    } else if (user != null) {
+                        chatId = user.id;
+                    } else {
+                        chatId = -1;
+                    }
                     itemCells[a].setOnClickListener(v -> {
                         if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
                             sendPopupWindow.dismiss();
                         }
                         if (num == 0) {
+                            translateComment(TranslateDb.getChatLanguage(chatId, TranslatorKt.getCode2Locale(NekoConfig.translateInputLang.String())));
+                        } else if (num == 1) {
                             AlertsCreator.createScheduleDatePickerDialog(getParentActivity(), chatActivity.getDialogId(), (notify, scheduleDate) -> {
                                 sendSelectedPhotos(selectedPhotos, selectedPhotosOrder, notify, scheduleDate);
                                 finishFragment();
                             });
-                        } else {
+                        } else if (num == 2) {
                             sendSelectedPhotos(selectedPhotos, selectedPhotosOrder, true, 0);
                             finishFragment();
                         }
+                    });
+                    itemCells[a].setOnLongClickListener(v -> {
+                        if (num == 0) {
+                            Translator.showTargetLangSelect(itemCells[num], true, (locale) -> {
+                                if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                                    sendPopupWindow.dismiss();
+                                }
+                                translateComment(locale);
+                                TranslateDb.saveChatLanguage(chatId, locale);
+                                return Unit.INSTANCE;
+                            });
+                            return true;
+                        }
+                        return false;
                     });
                 }
                 sendPopupLayout.setupRadialSelectors(Theme.getColor(Theme.key_dialogButtonSelector));
@@ -518,7 +557,9 @@ public class PhotoAlbumPickerActivity extends BaseFragment implements Notificati
             view.getLocationInWindow(location);
             sendPopupWindow.showAtLocation(view, Gravity.LEFT | Gravity.TOP, location[0] + view.getMeasuredWidth() - sendPopupLayout.getMeasuredWidth() + AndroidUtilities.dp(8), location[1] - sendPopupLayout.getMeasuredHeight() - AndroidUtilities.dp(2));
             sendPopupWindow.dimBehind();
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+            if (!NekoConfig.disableVibration.Bool()) {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+            }
 
             return false;
         });
@@ -564,6 +605,55 @@ public class PhotoAlbumPickerActivity extends BaseFragment implements Notificati
         }
 
         return fragmentView;
+    }
+
+    private void translateComment(Locale target) {
+
+        TranslateDb db = TranslateDb.forLocale(target);
+        String origin = commentTextView.getText().toString();
+
+        if (db.contains(origin)) {
+
+            String translated = db.query(origin);
+            commentTextView.getEditText().setText(translated);
+
+            return;
+
+        }
+
+        Translator.translate(target, origin, new Translator.Companion.TranslateCallBack() {
+
+            final AtomicBoolean cancel = new AtomicBoolean();
+            AlertDialog status = AlertUtil.showProgress(getParentActivity());
+
+            {
+
+                status.setOnCancelListener((__) -> {
+                    cancel.set(true);
+                });
+
+                status.show();
+
+            }
+
+            @Override
+            public void onSuccess(@NotNull String translation) {
+                status.dismiss();
+                commentTextView.getEditText().setText(translation);
+            }
+
+            @Override
+            public void onFailed(boolean unsupported, @NotNull String message) {
+                status.dismiss();
+                AlertUtil.showTransFailedDialog(getParentActivity(), unsupported, message, () -> {
+                    status = AlertUtil.showProgress(getParentActivity());
+                    status.show();
+                    Translator.translate(origin, this);
+                });
+            }
+
+        });
+
     }
 
     @Override

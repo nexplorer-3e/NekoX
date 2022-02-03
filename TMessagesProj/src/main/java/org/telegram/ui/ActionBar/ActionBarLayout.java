@@ -24,6 +24,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -38,6 +39,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.annotation.Keep;
+
 import androidx.core.graphics.ColorUtils;
 import androidx.core.math.MathUtils;
 
@@ -53,6 +55,9 @@ import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.utils.VibrateUtil;
 
 public class ActionBarLayout extends FrameLayout {
 
@@ -242,7 +247,7 @@ public class ActionBarLayout extends FrameLayout {
         }
     }
 
-    private static Drawable headerShadowDrawable;
+    public static Drawable headerShadowDrawable;
     private static Drawable layerShadowDrawable;
     private static Paint scrimPaint;
 
@@ -332,7 +337,7 @@ public class ActionBarLayout extends FrameLayout {
 
         if (layerShadowDrawable == null) {
             layerShadowDrawable = getResources().getDrawable(R.drawable.layer_shadow);
-            headerShadowDrawable = getResources().getDrawable(R.drawable.header_shadow).mutate();
+            headerShadowDrawable = NekoConfig.disableAppBarShadow.Bool() ? null : getResources().getDrawable(R.drawable.header_shadow).mutate();
             scrimPaint = new Paint();
         }
     }
@@ -659,6 +664,9 @@ public class ActionBarLayout extends FrameLayout {
         View fragmentView = lastFragment.fragmentView;
         if (fragmentView == null) {
             fragmentView = lastFragment.createView(parentActivity);
+            if (NekoConfig.disableVibration.Bool()) {
+                VibrateUtil.disableHapticFeedback(fragmentView);
+            }
         }
         ViewGroup parent = (ViewGroup) fragmentView.getParent();
         if (parent != null) {
@@ -1055,6 +1063,7 @@ public class ActionBarLayout extends FrameLayout {
     }
 
     public boolean presentFragment(final BaseFragment fragment, final boolean removeLast, boolean forceWithoutAnimation, boolean check, final boolean preview, View menu) {
+        Log.i("UI", "presenting Fragment  " + fragment);
         if (fragment == null || checkTransitionAnimation() || delegate != null && check && !delegate.needPresentFragment(fragment, removeLast, forceWithoutAnimation, this) || !fragment.onFragmentCreate()) {
             return false;
         }
@@ -1071,6 +1080,9 @@ public class ActionBarLayout extends FrameLayout {
         View fragmentView = fragment.fragmentView;
         if (fragmentView == null) {
             fragmentView = fragment.createView(parentActivity);
+            if (NekoConfig.disableVibration.Bool()) {
+                VibrateUtil.disableHapticFeedback(fragmentView);
+            }
         } else {
             ViewGroup parent = (ViewGroup) fragmentView.getParent();
             if (parent != null) {
@@ -1419,7 +1431,9 @@ public class ActionBarLayout extends FrameLayout {
                 }
             });
             animatorSet.start();
-            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            if (!NekoConfig.disableVibration.Bool()) {
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            }
 
             fragment.setInPreviewMode(false);
         }
@@ -1464,6 +1478,9 @@ public class ActionBarLayout extends FrameLayout {
             View fragmentView = previousFragment.fragmentView;
             if (fragmentView == null) {
                 fragmentView = previousFragment.createView(parentActivity);
+                if (NekoConfig.disableVibration.Bool()) {
+                    VibrateUtil.disableHapticFeedback(fragmentView);
+                }
             }
 
             if (!inPreviewMode) {
@@ -1623,11 +1640,11 @@ public class ActionBarLayout extends FrameLayout {
         }
     }
 
-    public void showFragment(int i) {
+    public void showLastFragment() {
         if (fragmentsStack.isEmpty()) {
             return;
         }
-        for (int a = 0; a < i; a++) {
+        for (int a = 0; a < fragmentsStack.size() - 1; a++) {
             BaseFragment previousFragment = fragmentsStack.get(a);
             if (previousFragment.actionBar != null && previousFragment.actionBar.shouldAddToContainer()) {
                 ViewGroup parent = (ViewGroup) previousFragment.actionBar.getParent();
@@ -1644,11 +1661,14 @@ public class ActionBarLayout extends FrameLayout {
                 }
             }
         }
-        BaseFragment previousFragment = fragmentsStack.get(i);
+        BaseFragment previousFragment = fragmentsStack.get(fragmentsStack.size() - 1);
         previousFragment.setParentLayout(this);
         View fragmentView = previousFragment.fragmentView;
         if (fragmentView == null) {
             fragmentView = previousFragment.createView(parentActivity);
+            if (NekoConfig.disableVibration.Bool()) {
+                VibrateUtil.disableHapticFeedback(fragmentView);
+            }
         } else {
             ViewGroup parent = (ViewGroup) fragmentView.getParent();
             if (parent != null) {
@@ -1673,13 +1693,6 @@ public class ActionBarLayout extends FrameLayout {
         if (!previousFragment.hasOwnBackground && fragmentView.getBackground() == null) {
             fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         }
-    }
-
-    public void showLastFragment() {
-        if (fragmentsStack.isEmpty()) {
-            return;
-        }
-        showFragment(fragmentsStack.size() - 1);
     }
 
     private void removeFragmentFromStackInternal(BaseFragment fragment) {

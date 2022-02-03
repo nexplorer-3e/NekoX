@@ -21,6 +21,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
@@ -126,7 +129,7 @@ public class AdminLogFilterAlert extends BottomSheet {
         allAdminsRow = rowCount;
 
         shadowDrawable = context.getResources().getDrawable(R.drawable.sheet_shadow_round).mutate();
-        shadowDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogBackground), PorterDuff.Mode.MULTIPLY));
+        shadowDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogBackground), PorterDuff.Mode.SRC_IN));
 
         containerView = new FrameLayout(context) {
 
@@ -230,9 +233,9 @@ public class AdminLogFilterAlert extends BottomSheet {
                     if (isChecked) {
                         currentFilter = new TLRPC.TL_channelAdminLogEventsFilter();
                         currentFilter.join = currentFilter.leave = currentFilter.invite = currentFilter.ban =
-                        currentFilter.unban = currentFilter.kick = currentFilter.unkick = currentFilter.promote =
-                        currentFilter.demote = currentFilter.info = currentFilter.settings = currentFilter.pinned =
-                        currentFilter.edit = currentFilter.delete = currentFilter.group_call = currentFilter.invites = false;
+                                currentFilter.unban = currentFilter.kick = currentFilter.unkick = currentFilter.promote =
+                                        currentFilter.demote = currentFilter.info = currentFilter.settings = currentFilter.pinned =
+                                                currentFilter.edit = currentFilter.delete = currentFilter.group_call = currentFilter.invites = false;
                     } else {
                         currentFilter = null;
                     }
@@ -265,9 +268,9 @@ public class AdminLogFilterAlert extends BottomSheet {
                     if (currentFilter == null) {
                         currentFilter = new TLRPC.TL_channelAdminLogEventsFilter();
                         currentFilter.join = currentFilter.leave = currentFilter.invite = currentFilter.ban =
-                        currentFilter.unban = currentFilter.kick = currentFilter.unkick = currentFilter.promote =
-                        currentFilter.demote = currentFilter.info = currentFilter.settings = currentFilter.pinned =
-                        currentFilter.edit = currentFilter.delete = currentFilter.group_call = currentFilter.invites = true;
+                                currentFilter.unban = currentFilter.kick = currentFilter.unkick = currentFilter.promote =
+                                        currentFilter.demote = currentFilter.info = currentFilter.settings = currentFilter.pinned =
+                                                currentFilter.edit = currentFilter.delete = currentFilter.group_call = currentFilter.invites = true;
                         RecyclerView.ViewHolder holder = listView.findViewHolderForAdapterPosition(0);
                         if (holder != null) {
                             ((CheckBoxCell) holder.itemView).setChecked(false, true);

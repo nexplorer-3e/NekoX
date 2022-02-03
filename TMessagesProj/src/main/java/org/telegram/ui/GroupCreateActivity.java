@@ -57,18 +57,18 @@ import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.R;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.messenger.MessagesController;
-import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.R;
+import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BackDrawable;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Adapters.SearchAdapterHelper;
 import org.telegram.ui.Cells.CheckBoxCell;
@@ -79,18 +79,20 @@ import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.CombinedDrawable;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.FlickerLoadingView;
-import org.telegram.ui.Components.PermanentLinkBottomSheet;
-import org.telegram.ui.Components.StickerEmptyView;
-import org.telegram.ui.Components.VerticalPositionAutoAnimator;
 import org.telegram.ui.Components.GroupCreateDividerItemDecoration;
 import org.telegram.ui.Components.GroupCreateSpan;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.PermanentLinkBottomSheet;
 import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Components.StickerEmptyView;
 import org.telegram.ui.Components.TypefaceSpan;
+import org.telegram.ui.Components.VerticalPositionAutoAnimator;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+
+import tw.nekomimi.nekogram.NekoConfig;
 
 public class GroupCreateActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, View.OnClickListener {
 
@@ -354,7 +356,7 @@ public class GroupCreateActivity extends BaseFragment implements NotificationCen
         addToGroup = args.getBoolean("addToGroup", false);
         chatAddType = args.getInt("chatAddType", 0);
         chatId = args.getLong("chatId");
-        channelId = args.getLong("channelId");
+        channelId = args.getInt("channelId");
         if (isAlwaysShare || isNeverShare || addToGroup) {
             maxCount = 0;
         } else {
@@ -779,13 +781,13 @@ public class GroupCreateActivity extends BaseFragment implements NotificationCen
         Drawable drawable = Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(56), Theme.getColor(Theme.key_chats_actionBackground), Theme.getColor(Theme.key_chats_actionPressedBackground));
         if (Build.VERSION.SDK_INT < 21) {
             Drawable shadowDrawable = context.getResources().getDrawable(R.drawable.floating_shadow).mutate();
-            shadowDrawable.setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.MULTIPLY));
+            shadowDrawable.setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.SRC_IN));
             CombinedDrawable combinedDrawable = new CombinedDrawable(shadowDrawable, drawable, 0, 0);
             combinedDrawable.setIconSize(AndroidUtilities.dp(56), AndroidUtilities.dp(56));
             drawable = combinedDrawable;
         }
         floatingButton.setBackgroundDrawable(drawable);
-        floatingButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_actionIcon), PorterDuff.Mode.MULTIPLY));
+        floatingButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_actionIcon), PorterDuff.Mode.SRC_IN));
         if (isNeverShare || isAlwaysShare || addToGroup) {
             floatingButton.setImageResource(R.drawable.floating_check);
         } else {
@@ -808,12 +810,6 @@ public class GroupCreateActivity extends BaseFragment implements NotificationCen
         }
         frameLayout.addView(floatingButton);
         floatingButton.setOnClickListener(v -> onDonePressed(true));
-        if (chatType != ChatObject.CHAT_TYPE_CHANNEL) {
-            floatingButton.setVisibility(View.INVISIBLE);
-            floatingButton.setScaleX(0.0f);
-            floatingButton.setScaleY(0.0f);
-            floatingButton.setAlpha(0.0f);
-        }
         floatingButton.setContentDescription(LocaleController.getString("Next", R.string.Next));
 
         updateHint();
@@ -961,9 +957,6 @@ public class GroupCreateActivity extends BaseFragment implements NotificationCen
     }
 
     private boolean onDonePressed(boolean alert) {
-        if (selectedContacts.size() == 0 && chatType != ChatObject.CHAT_TYPE_CHANNEL) {
-            return false;
-        }
         if (alert && addToGroup) {
             if (getParentActivity() == null) {
                 return false;
@@ -1036,9 +1029,6 @@ public class GroupCreateActivity extends BaseFragment implements NotificationCen
                 args2.putLong("chat_id", chatId);
                 presentFragment(new ChatActivity(args2), true);
             } else {
-                if (!doneButtonVisible || selectedContacts.size() == 0) {
-                    return false;
-                }
                 if (addToGroup) {
                     onAddToGroupDone(0);
                 } else {
@@ -1091,38 +1081,6 @@ public class GroupCreateActivity extends BaseFragment implements NotificationCen
                     String str = LocaleController.getPluralString("MembersCountSelected", selectedContacts.size());
                     actionBar.setSubtitle(String.format(str, selectedContacts.size(), maxCount));
                 }
-            }
-        }
-        if (chatType != ChatObject.CHAT_TYPE_CHANNEL) {
-            if (doneButtonVisible && allSpans.isEmpty()) {
-                if (currentDoneButtonAnimation != null) {
-                    currentDoneButtonAnimation.cancel();
-                }
-                currentDoneButtonAnimation = new AnimatorSet();
-                currentDoneButtonAnimation.playTogether(ObjectAnimator.ofFloat(floatingButton, View.SCALE_X, 0.0f),
-                        ObjectAnimator.ofFloat(floatingButton, View.SCALE_Y, 0.0f),
-                        ObjectAnimator.ofFloat(floatingButton, View.ALPHA, 0.0f));
-                currentDoneButtonAnimation.addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        floatingButton.setVisibility(View.INVISIBLE);
-                    }
-                });
-                currentDoneButtonAnimation.setDuration(180);
-                currentDoneButtonAnimation.start();
-                doneButtonVisible = false;
-            } else if (!doneButtonVisible && !allSpans.isEmpty()) {
-                if (currentDoneButtonAnimation != null) {
-                    currentDoneButtonAnimation.cancel();
-                }
-                currentDoneButtonAnimation = new AnimatorSet();
-                floatingButton.setVisibility(View.VISIBLE);
-                currentDoneButtonAnimation.playTogether(ObjectAnimator.ofFloat(floatingButton, View.SCALE_X, 1.0f),
-                        ObjectAnimator.ofFloat(floatingButton, View.SCALE_Y, 1.0f),
-                        ObjectAnimator.ofFloat(floatingButton, View.ALPHA, 1.0f));
-                currentDoneButtonAnimation.setDuration(180);
-                currentDoneButtonAnimation.start();
-                doneButtonVisible = true;
             }
         }
     }
@@ -1232,7 +1190,7 @@ public class GroupCreateActivity extends BaseFragment implements NotificationCen
                 firstName = chat.title;
                 lastName = "";
             }
-            if (LocaleController.nameDisplayOrder == 1) {
+            if (NekoConfig.nameOrder.Int() == 1) {
                 if (!TextUtils.isEmpty(firstName)) {
                     return firstName.substring(0, 1).toUpperCase();
                 } else if (!TextUtils.isEmpty(lastName)) {

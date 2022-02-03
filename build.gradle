@@ -3,12 +3,51 @@ buildscript {
     repositories {
         mavenCentral()
         google()
+        maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.0.3'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30'
         classpath 'com.google.gms:google-services:4.3.10'
+        classpath 'com.google.firebase:firebase-crashlytics-gradle:2.8.0'
+        classpath 'gradle.plugin.org.mozilla.rust-android-gradle:plugin:0.9.0'
+        //noinspection GradleDependency
+        classpath "com.github.triplet.gradle:play-publisher:3.6.0"
+        classpath 'cn.hutool:hutool-core:5.7.13'
     }
 }
-repositories {
-    google()
+
+static String detectNdkVersion() {
+
+    def version = "21.4.7075529"
+
+    def androidHome = System.getenv("ANDROID_HOME")
+
+    if (androidHome == null) return version
+    if (new File(androidHome, "ndk/$version").isDirectory()) return version
+
+    def versionFile = new File(androidHome, "ndk-bundle/source.properties")
+
+    if (!versionFile.isFile()) return version
+
+    def versionProperties = new Properties()
+
+    versionProperties.load(versionFile.newDataInputStream())
+
+    return versionProperties.getProperty("Pkg.Revision", version)
+
+}
+
+ext {
+
+    ndkVersion = detectNdkVersion()
+
+}
+
+allprojects {
+    repositories {
+        // The order in which you list these repositories matter.
+        mavenCentral()
+        google()
+    }
 }

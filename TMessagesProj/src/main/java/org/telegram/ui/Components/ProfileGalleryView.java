@@ -112,9 +112,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
     }
 
     public interface Callback {
-        void onDown(boolean left);
-
-        void onRelease();
+        void onClick();
 
         void onPhotosLoaded();
 
@@ -331,110 +329,6 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
         }
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent ev) {
-        if (adapter == null) {
-            return false;
-        }
-        if (parentListView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE && !isScrollingListView && isSwipingViewPager) {
-            isSwipingViewPager = false;
-            final MotionEvent cancelEvent = MotionEvent.obtain(ev);
-            cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
-            super.onTouchEvent(cancelEvent);
-            cancelEvent.recycle();
-            return false;
-        }
-        final int action = ev.getAction();
-
-        if (pinchToZoomHelper != null && getCurrentItemView() != null) {
-            if (action != MotionEvent.ACTION_DOWN && isDownReleased && !pinchToZoomHelper.isInOverlayMode()) {
-                pinchToZoomHelper.checkPinchToZoom(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0), this, getCurrentItemView().getImageReceiver(), null);
-            } else if (pinchToZoomHelper.checkPinchToZoom(ev, this, getCurrentItemView().getImageReceiver(), null)) {
-                if (!isDownReleased) {
-                    isDownReleased = true;
-                    callback.onRelease();
-                }
-                return true;
-            }
-        }
-
-
-        if (action == MotionEvent.ACTION_DOWN) {
-            isScrollingListView = true;
-            isSwipingViewPager = true;
-            scrolledByUser = true;
-            downPoint.set(ev.getX(), ev.getY());
-            if (adapter.getCount() > 1) {
-                callback.onDown(ev.getX() < getWidth() / 3f);
-            }
-            isDownReleased = false;
-        } else if (action == MotionEvent.ACTION_UP) {
-            if (!isDownReleased) {
-                final int itemsCount = adapter.getCount();
-                int currentItem = getCurrentItem();
-                if (itemsCount > 1) {
-                    if (ev.getX() > getWidth() / 3f) {
-                        final int extraCount = adapter.getExtraCount();
-                        if (++currentItem >= itemsCount - extraCount) {
-                            currentItem = extraCount;
-                        }
-                    } else {
-                        final int extraCount = adapter.getExtraCount();
-                        if (--currentItem < extraCount) {
-                            currentItem = itemsCount - extraCount - 1;
-                        }
-                    }
-                    callback.onRelease();
-                    setCurrentItem(currentItem, false);
-                }
-            }
-        } else if (action == MotionEvent.ACTION_MOVE) {
-            final float dx = ev.getX() - downPoint.x;
-            final float dy = ev.getY() - downPoint.y;
-            boolean move = Math.abs(dy) >= touchSlop || Math.abs(dx) >= touchSlop;
-            if (move) {
-                isDownReleased = true;
-                callback.onRelease();
-            }
-            if (isSwipingViewPager && isScrollingListView) {
-                if (move) {
-                    if (Math.abs(dy) > Math.abs(dx)) {
-                        isSwipingViewPager = false;
-                        final MotionEvent cancelEvent = MotionEvent.obtain(ev);
-                        cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
-                        super.onTouchEvent(cancelEvent);
-                        cancelEvent.recycle();
-                    } else {
-                        isScrollingListView = false;
-                        final MotionEvent cancelEvent = MotionEvent.obtain(ev);
-                        cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
-                        parentListView.onTouchEvent(cancelEvent);
-                        cancelEvent.recycle();
-                    }
-                }
-            } else if (isSwipingViewPager && !canScrollHorizontally(-1) && dx > touchSlop) {
-                return false;
-            }
-        }
-
-        boolean result = false;
-
-        if (isScrollingListView) {
-            result = parentListView.onTouchEvent(ev);
-        }
-
-        if (isSwipingViewPager) {
-            result |= super.onTouchEvent(ev);
-        }
-
-        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-            isScrollingListView = false;
-            isSwipingViewPager = false;
-        }
-
-        return result;
-    }
-
     public void setChatInfo(TLRPC.ChatFull chatFull) {
         chatInfo = chatFull;
         if (!photos.isEmpty() && photos.get(0) == null && chatInfo != null && FileLoader.isSamePhoto(imagesLocations.get(0).location, chatInfo.chat_photo)) {
@@ -608,7 +502,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
     }
 
     public int getRealCount() {
-        int size = photos.size();
+        int size = photos.size() > 0 ? 1 : 0;
         if (hasActiveVideo) {
             size++;
         }
@@ -1034,6 +928,10 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
             item.imageView.getImageReceiver().setCrossfadeAlpha((byte) 2);
 
             item.imageView.setRoundRadius(roundTopRadius, roundTopRadius, roundBottomRadius, roundBottomRadius);
+
+            item.imageView.setOnClickListener(__ -> {
+                callback.onClick();;
+            });
 
             return item;
         }

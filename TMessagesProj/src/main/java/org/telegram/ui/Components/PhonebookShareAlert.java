@@ -170,7 +170,7 @@ public class PhonebookShareAlert extends BottomSheet {
 
             imageView = new ImageView(context);
             imageView.setScaleType(ImageView.ScaleType.CENTER);
-            imageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.MULTIPLY));
+            imageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.SRC_IN));
             addView(imageView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 20, 20, LocaleController.isRTL ? 20 : 0, 0));
 
             if (!isImport) {
@@ -506,9 +506,7 @@ public class PhonebookShareAlert extends BottomSheet {
                                         android.content.ClipboardManager clipboard = (android.content.ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
                                         android.content.ClipData clip = android.content.ClipData.newPlainText("label", item.getValue(false));
                                         clipboard.setPrimaryClip(clip);
-                                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                                            Toast.makeText(this.parentFragment.getParentActivity(), LocaleController.getString("TextCopied", R.string.TextCopied), Toast.LENGTH_SHORT).show();
-                                        }
+                                        Toast.makeText(this.parentFragment.getParentActivity(), LocaleController.getString("TextCopied", R.string.TextCopied), Toast.LENGTH_SHORT).show();
                                     } catch (Exception e) {
                                         FileLog.e(e);
                                     }
@@ -564,9 +562,7 @@ public class PhonebookShareAlert extends BottomSheet {
                                 layout.textView.setText(LocaleController.getString("TextCopied", R.string.TextCopied));
                                 layout.imageView.setImageResource(R.drawable.menu_info);
                             }
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                                Bulletin.make((FrameLayout) containerView, layout, Bulletin.DURATION_SHORT).show();
-                            }
+                            Bulletin.make((FrameLayout) containerView, layout, Bulletin.DURATION_SHORT).show();
                         }
                     }
                     return true;
@@ -1056,19 +1052,19 @@ public class PhonebookShareAlert extends BottomSheet {
                 int icon;
                 if (position >= phoneStartRow && position < phoneEndRow) {
                     item = phones.get(position - phoneStartRow);
-                    icon = R.drawable.menu_calls;
+                    icon = R.drawable.baseline_call_24;
                 } else {
                     item = other.get(position - vcardStartRow);
                     if (item.type == 1) {
-                        icon = R.drawable.menu_mail;
+                        icon = R.drawable.baseline_alternate_email_24;
                     } else if (item.type == 2) {
-                        icon = R.drawable.menu_location;
+                        icon = R.drawable.baseline_location_on_24;
                     } else if (item.type == 3) {
-                        icon = R.drawable.msg_link;
+                        icon = R.drawable.baseline_link_24;
                     } else if (item.type == 4) {
                         icon = R.drawable.profile_info;
                     } else if (item.type == 5) {
-                        icon = R.drawable.menu_date;
+                        icon = R.drawable.baseline_date_range_24;
                     } else if (item.type == 6) {
                         if ("ORG".equalsIgnoreCase(item.getRawType(true))) {
                             icon = R.drawable.menu_work;

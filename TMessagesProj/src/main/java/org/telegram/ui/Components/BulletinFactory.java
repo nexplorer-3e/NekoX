@@ -1,6 +1,7 @@
 package org.telegram.ui.Components;
 
 import android.content.Context;
+import android.view.ViewGroup;
 import android.os.Build;
 import android.widget.FrameLayout;
 
@@ -20,7 +21,7 @@ public final class BulletinFactory {
         return new BulletinFactory(fragment);
     }
 
-    public static BulletinFactory of(FrameLayout containerLayout, Theme.ResourcesProvider resourcesProvider) {
+    public static BulletinFactory of(ViewGroup containerLayout, Theme.ResourcesProvider resourcesProvider) {
         return new BulletinFactory(containerLayout, resourcesProvider);
     }
 
@@ -101,8 +102,8 @@ public final class BulletinFactory {
         }
     }
 
-    private final BaseFragment fragment;
-    private final FrameLayout containerLayout;
+    private BaseFragment fragment;
+    private ViewGroup containerLayout;
     private final Theme.ResourcesProvider resourcesProvider;
 
     private BulletinFactory(BaseFragment fragment) {
@@ -111,7 +112,7 @@ public final class BulletinFactory {
         this.resourcesProvider = fragment == null ? null : fragment.getResourceProvider();
     }
 
-    private BulletinFactory(FrameLayout containerLayout, Theme.ResourcesProvider resourcesProvider) {
+    private BulletinFactory(ViewGroup containerLayout, Theme.ResourcesProvider resourcesProvider) {
         this.containerLayout = containerLayout;
         this.fragment = null;
         this.resourcesProvider = resourcesProvider;
@@ -189,9 +190,6 @@ public final class BulletinFactory {
 
     @CheckResult
     public Bulletin createCopyBulletin(String message) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            return new Bulletin.EmptyBulletin();
-        }
         final Bulletin.LottieLayout layout = new Bulletin.LottieLayout(getContext(), null);
         layout.setAnimation(R.raw.copy, 36, 36, "NULL ROTATION", "Back", "Front");
         layout.textView.setText(message);
@@ -369,7 +367,7 @@ public final class BulletinFactory {
     }
 
     @CheckResult
-    public static Bulletin createCopyLinkBulletin(FrameLayout containerView) {
+    public static Bulletin createCopyLinkBulletin(ViewGroup containerView) {
         return of(containerView, null).createCopyLinkBulletin();
     }
 

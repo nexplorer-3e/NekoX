@@ -11,6 +11,7 @@ package org.telegram.ui;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.SparseIntArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -22,6 +23,8 @@ import org.telegram.tgnet.TLRPC;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.ui.ActionBar.ActionBarMenu;
+import org.telegram.ui.ActionBar.ActionBarMenuItem;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
@@ -69,6 +72,8 @@ public class PrivacyUsersActivity extends BaseFragment implements NotificationCe
     public static final int TYPE_PRIVACY = 0;
     public static final int TYPE_BLOCKED = 1;
     public static final int TYPE_FILTER = 2;
+
+    private int unblock_all = 1;
 
     public interface PrivacyActivityDelegate {
         void didUpdateUserList(ArrayList<Long> ids, boolean added);
@@ -140,9 +145,33 @@ public class PrivacyUsersActivity extends BaseFragment implements NotificationCe
             public void onItemClick(int id) {
                 if (id == -1) {
                     finishFragment();
+                } else if (id == unblock_all) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+                    builder.setTitle(LocaleController.getString("UnblockAll", R.string.UnblockAll));
+                    if (getMessagesController().totalBlockedCount != 0) {
+                        builder.setMessage(LocaleController.getString("UnblockAllWarn", R.string.UnblockAllWarn));
+                        builder.setPositiveButton(LocaleController.getString("UnblockAll", R.string.UnblockAll), (dialog, which) -> {
+                            new Thread(() -> getMessagesController().unblockAllUsers()).start();
+                        });
+                        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+                    } else {
+                        builder.setMessage(LocaleController.getString("BlockedListEmpty",R.string.BlockedListEmpty));
+                        builder.setPositiveButton(LocaleController.getString("OK",R.string.OK),null);
+                    }
+                    showDialog(builder.create());
                 }
             }
         });
+
+        if (blockedUsersActivity) {
+
+            ActionBarMenu menu = actionBar.createMenu();
+
+            ActionBarMenuItem otherItem = menu.addItem(0, R.drawable.ic_ab_other);
+            otherItem.setContentDescription(LocaleController.getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
+            otherItem.addSubItem(unblock_all, LocaleController.getString("UnblockAll", R.string.UnblockAll));
+
+        }
 
         fragmentView = new FrameLayout(context);
         FrameLayout frameLayout = (FrameLayout) fragmentView;
@@ -471,9 +500,9 @@ public class PrivacyUsersActivity extends BaseFragment implements NotificationCe
                     ManageChatTextCell actionCell = (ManageChatTextCell) holder.itemView;
                     actionCell.setColors(Theme.key_windowBackgroundWhiteBlueIcon, Theme.key_windowBackgroundWhiteBlueButton);
                     if (currentType == TYPE_BLOCKED) {
-                        actionCell.setText(LocaleController.getString("BlockUser", R.string.BlockUser), null, R.drawable.actions_addmember2, false);
+                        actionCell.setText(LocaleController.getString("BlockUser", R.string.BlockUser), null, R.drawable.baseline_person_add_24, false);
                     } else {
-                        actionCell.setText(LocaleController.getString("PrivacyAddAnException", R.string.PrivacyAddAnException), null, R.drawable.actions_addmember2, false);
+                        actionCell.setText(LocaleController.getString("PrivacyAddAnException", R.string.PrivacyAddAnException), null, R.drawable.baseline_person_add_24, false);
                     }
                     break;
                 case 3:

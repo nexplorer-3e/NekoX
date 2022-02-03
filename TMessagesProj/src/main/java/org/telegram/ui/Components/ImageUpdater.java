@@ -18,7 +18,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import androidx.exifinterface.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,38 +25,43 @@ import android.provider.MediaStore;
 import android.view.View;
 
 import androidx.core.content.FileProvider;
+import androidx.exifinterface.media.ExifInterface;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildConfig;
+import org.telegram.messenger.FileLoader;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.VideoEditedInfo;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.messenger.FileLoader;
-import org.telegram.messenger.FileLog;
-import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.UserConfig;
+import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
-import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.PhotoAlbumPickerActivity;
 import org.telegram.ui.PhotoCropActivity;
-import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.PhotoPickerActivity;
 import org.telegram.ui.PhotoViewer;
+import org.telegram.ui.ProfileActivity;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import kotlin.Unit;
+import tw.nekomimi.nekogram.ui.BottomBuilder;
 
 public class ImageUpdater implements NotificationCenter.NotificationCenterDelegate, PhotoCropActivity.PhotoEditActivityDelegate {
 
@@ -77,7 +81,7 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
     private File picturePath = null;
     private String finalPath;
     private boolean clearAfterUpdate;
-    private boolean useAttachMenu = true;
+    private boolean useAttachMenu;
     private boolean openWithFrontfaceCamera;
 
     private boolean searchAvailable = true;
@@ -143,67 +147,58 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
         if (parentFragment == null || parentFragment.getParentActivity() == null) {
             return;
         }
+
         if (useAttachMenu) {
             openAttachMenu(onDismiss);
             return;
         }
-        BottomSheet.Builder builder = new BottomSheet.Builder(parentFragment.getParentActivity());
-        builder.setTitle(LocaleController.getString("ChoosePhoto", R.string.ChoosePhoto), true);
 
-        ArrayList<CharSequence> items = new ArrayList<>();
-        ArrayList<Integer> icons = new ArrayList<>();
-        ArrayList<Integer> ids = new ArrayList<>();
+        BottomBuilder builder = new BottomBuilder(parentFragment.getParentActivity());
 
-        items.add(LocaleController.getString("ChooseTakePhoto", R.string.ChooseTakePhoto));
-        icons.add(R.drawable.menu_camera);
-        ids.add(0);
+        if (hasAvatar && parentFragment instanceof ProfileActivity) {
 
-        if (canSelectVideo) {
-            items.add(LocaleController.getString("ChooseRecordVideo", R.string.ChooseRecordVideo));
-            icons.add(R.drawable.msg_video);
-            ids.add(4);
+            builder.addItem(LocaleController.getString("Open", R.string.Open), R.drawable.baseline_visibility_24, __ -> {
+
+                TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(UserConfig.getInstance(currentAccount).getClientUserId());
+                if (user != null && user.photo != null && user.photo.photo_big != null) {
+                    PhotoViewer.getInstance().setParentActivity(parentFragment.getParentActivity());
+                    if (user.photo.dc_id != 0) {
+                        user.photo.photo_big.dc_id = user.photo.dc_id;
+                    }
+                    PhotoViewer.getInstance().openPhoto(user.photo.photo_big, ((ProfileActivity) parentFragment).provider);
+                }
+
+                return Unit.INSTANCE;
+            });
+
         }
 
-        items.add(LocaleController.getString("ChooseFromGallery", R.string.ChooseFromGallery));
-        icons.add(R.drawable.profile_photos);
-        ids.add(1);
+        builder.addItem(LocaleController.getString("UploadImage", R.string.UploadImage), R.drawable.baseline_image_24, __ -> {
+            openAttachMenu(onDismiss);
+            return Unit.INSTANCE;
+        });
 
         if (searchAvailable) {
-            items.add(LocaleController.getString("ChooseFromSearch", R.string.ChooseFromSearch));
-            icons.add(R.drawable.menu_search);
-            ids.add(2);
-        }
-        if (hasAvatar) {
-            items.add(LocaleController.getString("DeletePhoto", R.string.DeletePhoto));
-            icons.add(R.drawable.chats_delete);
-            ids.add(3);
-        }
 
-        int[] iconsRes = new int[icons.size()];
-        for (int i = 0, N = icons.size(); i < N; i++) {
-            iconsRes[i] = icons.get(i);
-        }
-
-        builder.setItems(items.toArray(new CharSequence[0]), iconsRes, (dialogInterface, i) -> {
-            int id = ids.get(i);
-            if (id == 0) {
-                openCamera();
-            } else if (id == 1) {
-                openGallery();
-            } else if (id == 2) {
+            builder.addItem(LocaleController.getString("ChooseFromSearch", R.string.ChooseFromSearch), R.drawable.baseline_search_24, __ -> {
                 openSearch();
-            } else if (id == 3) {
+                return Unit.INSTANCE;
+            });
+
+        }
+
+        if (hasAvatar) {
+
+            builder.addItem(LocaleController.getString("DeletePhoto", R.string.DeletePhoto), R.drawable.baseline_delete_24, true, __ -> {
                 onDeleteAvatar.run();
-            } else if (id == 4) {
-                openVideoCamera();
-            }
-        });
+                return Unit.INSTANCE;
+            });
+
+        }
+
         BottomSheet sheet = builder.create();
         sheet.setOnHideListener(onDismiss);
         parentFragment.showDialog(sheet);
-        if (hasAvatar) {
-            sheet.setItemColor(items.size() - 1, Theme.getColor(Theme.key_dialogTextRed2), Theme.getColor(Theme.key_dialogRedIcon));
-        }
     }
 
     public void setSearchAvailable(boolean value) {

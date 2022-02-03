@@ -154,7 +154,7 @@ public class ChatAttachAlertAudioLayout extends ChatAttachAlert.AttachAlertLayou
 
         emptyImageView = new ImageView(context);
         emptyImageView.setImageResource(R.drawable.music_empty);
-        emptyImageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogEmptyImage), PorterDuff.Mode.MULTIPLY));
+        emptyImageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogEmptyImage), PorterDuff.Mode.SRC_IN));
         emptyView.addView(emptyImageView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         emptyTitleTextView = new TextView(context);
@@ -280,7 +280,7 @@ public class ChatAttachAlertAudioLayout extends ChatAttachAlert.AttachAlertLayou
         } else {
             visible = audioEntries.isEmpty();
         }
-        currentEmptyView.setVisibility(visible ? VISIBLE :  GONE);
+        currentEmptyView.setVisibility(visible ? VISIBLE : GONE);
         updateEmptyViewPosition();
     }
 
@@ -590,7 +590,10 @@ public class ChatAttachAlertAudioLayout extends ChatAttachAlert.AttachAlertLayou
 
         @Override
         public int getItemCount() {
-            return 1 + audioEntries.size() + (audioEntries.isEmpty() ? 0 : 1);
+            if (audioEntries.isEmpty()) {
+                return 1;
+            }
+            return audioEntries.size() + (audioEntries.isEmpty() ? 0 : 2);
         }
 
         @Override
@@ -764,7 +767,10 @@ public class ChatAttachAlertAudioLayout extends ChatAttachAlert.AttachAlertLayou
 
         @Override
         public int getItemCount() {
-            return 1 + searchResult.size() + (searchResult.isEmpty() ? 0 : 1);
+            if (searchResult.isEmpty()) {
+                return 1;
+            }
+            return searchResult.size() + (searchResult.isEmpty() ? 0 : 2);
         }
 
         @Override

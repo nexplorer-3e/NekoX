@@ -8,10 +8,17 @@
 
 package org.telegram.messenger;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.IBinder;
+
+import androidx.core.app.NotificationCompat;
 
 public class NotificationsService extends Service {
 
@@ -19,6 +26,23 @@ public class NotificationsService extends Service {
     public void onCreate() {
         super.onCreate();
         ApplicationLoader.postInitApplication();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            String CHANNEL_ID = "push_service_channel";
+            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, LocaleController.getString("NekoXPushService", R.string.NekoXPushService), NotificationManager.IMPORTANCE_DEFAULT);
+            notificationManager.createNotificationChannel(channel);
+//            Intent explainIntent = new Intent("android.intent.action.VIEW");
+//            explainIntent.setData(Uri.parse("https://github.com/Telegram-FOSS-Team/Telegram-FOSS/blob/master/Notifications.md"));
+//            PendingIntent explainPendingIntent = PendingIntent.getActivity(this, 0, explainIntent, 0);
+            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+//                    .setContentIntent(explainPendingIntent)
+                    .setShowWhen(false)
+                    .setOngoing(true)
+                    .setSmallIcon(R.drawable.notification)
+                    .setContentText(LocaleController.getString("NekoXPushService", R.string.NekoXPushService))
+                    .build();
+            startForeground(9999, notification);
+        }
     }
 
     @Override
@@ -36,7 +60,12 @@ public class NotificationsService extends Service {
         SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
         if (preferences.getBoolean("pushService", true)) {
             Intent intent = new Intent("org.telegram.start");
-            sendBroadcast(intent);
+            try {
+                sendBroadcast(intent);
+            } catch (Exception ex) {
+                // 辣鷄miui 就你事最多.jpg
+            }
         }
     }
+
 }

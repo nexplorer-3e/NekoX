@@ -25,6 +25,7 @@ import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.LocaleController;
@@ -120,8 +121,8 @@ public class SessionCell extends FrameLayout {
         detailTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         detailTextView.setLines(1);
         detailTextView.setMaxLines(1);
-        detailTextView.setSingleLine(true);
-        detailTextView.setEllipsize(TextUtils.TruncateAt.END);
+        //detailTextView.setSingleLine(true);
+        //detailTextView.setEllipsize(TextUtils.TruncateAt.END);
         detailTextView.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP);
         addView(detailTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, leftMargin, 36, rightMargin, 0));
 
@@ -174,6 +175,21 @@ public class SessionCell extends FrameLayout {
                 timeText = LocaleController.stringForMessageListDate(session.date_active);
             }
 
+            if (!session.official_app && session.api_id != BuildConfig.APP_ID) {
+                if (stringBuilder.length() != 0) {
+                    stringBuilder.append(", ");
+                }
+                stringBuilder.append(LocaleController.getString("UnofficialApp", R.string.UnofficialApp));
+                stringBuilder.append(" (ID: ");
+                stringBuilder.append(session.api_id);
+                stringBuilder.append(")");
+            }
+            stringBuilder = new StringBuilder();
+            stringBuilder.append(session.app_name);
+            stringBuilder.append(" ").append(session.app_version);
+
+            detailTextView.setText(stringBuilder);
+
             SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
             if (session.country.length() != 0) {
                 spannableStringBuilder.append(session.country);
@@ -186,11 +202,6 @@ public class SessionCell extends FrameLayout {
             spannableStringBuilder.append(timeText);
             detailExTextView.setText(spannableStringBuilder);
 
-            stringBuilder = new StringBuilder();
-            stringBuilder.append(session.app_name);
-            stringBuilder.append(" ").append(session.app_version);
-
-            detailTextView.setText(stringBuilder);
         } else if (object instanceof TLRPC.TL_webAuthorization) {
             TLRPC.TL_webAuthorization session = (TLRPC.TL_webAuthorization) object;
             TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(session.bot_id);
@@ -329,7 +340,7 @@ public class SessionCell extends FrameLayout {
             invalidate();
         }
         if (needDivider) {
-            canvas.drawLine(LocaleController.isRTL ? 0 : AndroidUtilities.dp(20), getMeasuredHeight() - 1, getMeasuredWidth() - (LocaleController.isRTL ? AndroidUtilities.dp(20) : 0), getMeasuredHeight() - 1, Theme.dividerPaint);
+            canvas.drawLine(0, getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight() - 1, Theme.dividerPaint);
         }
     }
 

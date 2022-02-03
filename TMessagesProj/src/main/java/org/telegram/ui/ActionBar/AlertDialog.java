@@ -156,7 +156,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
 
             imageView = new ImageView(context);
             imageView.setScaleType(ImageView.ScaleType.CENTER);
-            imageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogIcon), PorterDuff.Mode.MULTIPLY));
+            imageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogIcon), PorterDuff.Mode.SRC_IN));
             addView(imageView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 40, Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT)));
 
             textView = new TextView(context);
@@ -203,7 +203,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
     public AlertDialog(Context context, int progressStyle) {
         this(context, progressStyle, null);
     }
-    
+
     public AlertDialog(Context context, int progressStyle, Theme.ResourcesProvider resourcesProvider) {
         super(context, R.style.TransparentDialog);
         this.resourcesProvider = resourcesProvider;
@@ -211,7 +211,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
         backgroundPaddings = new Rect();
         if (progressStyle != 3) {
             shadowDrawable = context.getResources().getDrawable(R.drawable.popup_fixed_alert).mutate();
-            shadowDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogBackground), PorterDuff.Mode.MULTIPLY));
+            shadowDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogBackground), PorterDuff.Mode.SRC_IN));
             shadowDrawable.getPadding(backgroundPaddings);
         }
 
@@ -228,7 +228,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
 
             @Override
             public boolean onTouchEvent(MotionEvent event) {
-                if (progressViewStyle == 3) {
+                if (progressViewStyle > 0) {
                     showCancelAlert();
                     return false;
                 }
@@ -237,7 +237,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
 
             @Override
             public boolean onInterceptTouchEvent(MotionEvent ev) {
-                if (progressViewStyle == 3) {
+                if (progressViewStyle > 0) {
                     showCancelAlert();
                     return false;
                 }
@@ -469,7 +469,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
             }
             topImageView.setScaleType(ImageView.ScaleType.CENTER);
             topImageView.setBackgroundDrawable(getContext().getResources().getDrawable(R.drawable.popup_fixed_top));
-            topImageView.getBackground().setColorFilter(new PorterDuffColorFilter(topBackgroundColor, PorterDuff.Mode.MULTIPLY));
+            topImageView.getBackground().setColorFilter(new PorterDuffColorFilter(topBackgroundColor, PorterDuff.Mode.SRC_IN));
             topImageView.setPadding(0, 0, 0, 0);
             containerView.addView(topImageView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, topHeight, Gravity.LEFT | Gravity.TOP, -8, -8, 0, 0));
         } else if (topView != null) {
@@ -551,6 +551,8 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
         }
         messageTextView.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP);
         if (progressViewStyle == 1) {
+            setCanceledOnTouchOutside(false);
+            setCancelable(false);
             progressViewContainer = new FrameLayout(getContext());
             containerView.addView(progressViewContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 44, Gravity.LEFT | Gravity.TOP, 23, title == null ? 24 : 0, 23, 24));
 
@@ -562,6 +564,8 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
             messageTextView.setEllipsize(TextUtils.TruncateAt.END);
             progressViewContainer.addView(messageTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, (LocaleController.isRTL ? 0 : 62), 0, (LocaleController.isRTL ? 62 : 0), 0));
         } else if (progressViewStyle == 2) {
+            setCanceledOnTouchOutside(false);
+            setCancelable(false);
             containerView.addView(messageTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 24, title == null ? 19 : 0, 24, 20));
 
             lineProgressView = new LineProgressView(getContext());
@@ -1110,7 +1114,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
         }
         AlertDialogCell cell = itemViews.get(item);
         cell.textView.setTextColor(color);
-        cell.imageView.setColorFilter(new PorterDuffColorFilter(icon, PorterDuff.Mode.MULTIPLY));
+        cell.imageView.setColorFilter(new PorterDuffColorFilter(icon, PorterDuff.Mode.SRC_IN));
     }
 
     public int getItemsCount() {
@@ -1213,6 +1217,10 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
             this(context, null);
         }
 
+        public Builder(Context context, int progressViewStyle) {
+            alertDialog = new AlertDialog(context, progressViewStyle, null);
+        }
+
         public Builder(Context context, Theme.ResourcesProvider resourcesProvider) {
             this(context, 0, resourcesProvider);
         }
@@ -1237,6 +1245,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
         }
 
         public Builder setItems(CharSequence[] items, int[] icons, final OnClickListener onClickListener) {
+            // TODO: NEKOX: MIG ICONS
             alertDialog.items = items;
             alertDialog.itemIcons = icons;
             alertDialog.onClickListener = onClickListener;
@@ -1297,7 +1306,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
         }
 
         public Builder setMessage(CharSequence message) {
-            alertDialog.message = message;
+            alertDialog.message = message instanceof  String ? AndroidUtilities.replaceTags((String) message) : message;
             return this;
         }
 

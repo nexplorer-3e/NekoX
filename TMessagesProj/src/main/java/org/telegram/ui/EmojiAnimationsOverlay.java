@@ -33,6 +33,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
+import tw.nekomimi.nekogram.NekoConfig;
+
 public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCenterDelegate {
 
     private final int ANIMATION_JSON_VERSION = 1;
@@ -152,6 +154,8 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
                 checkStickerPack();
             }
         } else if (id == NotificationCenter.onEmojiInteractionsReceived) {
+            if (NekoConfig.disableRemoteEmojiInteractions.Bool())
+                return;
             long dialogId = (long) args[0];
             TLRPC.TL_sendMessageEmojiInteraction action = (TLRPC.TL_sendMessageEmojiInteraction) args[1];
             if (dialogId == this.dialogId && supportedEmoji.contains(action.emoticon)) {

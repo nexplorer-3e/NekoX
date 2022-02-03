@@ -18,7 +18,6 @@ import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.os.Bundle;
-import android.os.Vibrator;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -59,10 +58,10 @@ import org.telegram.ui.Cells.ShadowSectionCell;
 import org.telegram.ui.Cells.TextBlockCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Components.AvatarDrawable;
-import org.telegram.ui.Components.EditTextEmoji;
-import org.telegram.ui.Components.ImageUpdater;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.EditTextBoldCursor;
+import org.telegram.ui.Components.EditTextEmoji;
+import org.telegram.ui.Components.ImageUpdater;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LinkActionView;
 import org.telegram.ui.Components.RLottieDrawable;
@@ -71,6 +70,10 @@ import org.telegram.ui.Components.RadialProgressView;
 import org.telegram.ui.Components.SizeNotifierFrameLayout;
 
 import java.util.ArrayList;
+
+import kotlin.Unit;
+import tw.nekomimi.nekogram.ui.BottomBuilder;
+import tw.nekomimi.nekogram.utils.VibrateUtil;
 
 public class ChannelCreateActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, ImageUpdater.ImageUpdaterDelegate {
 
@@ -256,10 +259,7 @@ public class ChannelCreateActivity extends BaseFragment implements NotificationC
                             return;
                         }
                         if (nameTextView.length() == 0) {
-                            Vibrator v = (Vibrator) getParentActivity().getSystemService(Context.VIBRATOR_SERVICE);
-                            if (v != null) {
-                                v.vibrate(200);
-                            }
+                            VibrateUtil.vibrate();
                             AndroidUtilities.shakeView(nameTextView, 2, 0);
                             return;
                         }
@@ -293,10 +293,7 @@ public class ChannelCreateActivity extends BaseFragment implements NotificationC
                                 return;
                             } else {
                                 if (!lastNameAvailable) {
-                                    Vibrator v = (Vibrator) getParentActivity().getSystemService(Context.VIBRATOR_SERVICE);
-                                    if (v != null) {
-                                        v.vibrate(200);
-                                    }
+                                    VibrateUtil.vibrate();
                                     AndroidUtilities.shakeView(checkTextView, 2, 0);
                                     return;
                                 } else {
@@ -633,7 +630,7 @@ public class ChannelCreateActivity extends BaseFragment implements NotificationC
 
             radioButtonCell1 = new RadioButtonCell(context);
             radioButtonCell1.setBackgroundDrawable(Theme.getSelectorDrawable(false));
-            radioButtonCell1.setTextAndValue(LocaleController.getString("ChannelPublic", R.string.ChannelPublic), LocaleController.getString("ChannelPublicInfo", R.string.ChannelPublicInfo), false, !isPrivate);
+            radioButtonCell1.setTextAndValueAndCheck(LocaleController.getString("ChannelPublic", R.string.ChannelPublic), LocaleController.getString("ChannelPublicInfo", R.string.ChannelPublicInfo), false, !isPrivate);
             linearLayout2.addView(radioButtonCell1, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
             radioButtonCell1.setOnClickListener(v -> {
                 if (!isPrivate) {
@@ -645,7 +642,7 @@ public class ChannelCreateActivity extends BaseFragment implements NotificationC
 
             radioButtonCell2 = new RadioButtonCell(context);
             radioButtonCell2.setBackgroundDrawable(Theme.getSelectorDrawable(false));
-            radioButtonCell2.setTextAndValue(LocaleController.getString("ChannelPrivate", R.string.ChannelPrivate), LocaleController.getString("ChannelPrivateInfo", R.string.ChannelPrivateInfo), false, isPrivate);
+            radioButtonCell2.setTextAndValueAndCheck(LocaleController.getString("ChannelPrivate", R.string.ChannelPrivate), LocaleController.getString("ChannelPrivateInfo", R.string.ChannelPrivateInfo), false, isPrivate);
             linearLayout2.addView(radioButtonCell2, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
             radioButtonCell2.setOnClickListener(v -> {
                 if (isPrivate) {
@@ -1040,15 +1037,13 @@ public class ChannelCreateActivity extends BaseFragment implements NotificationC
                     AdminedChannelCell adminedChannelCell = new AdminedChannelCell(getParentActivity(), view -> {
                         AdminedChannelCell cell = (AdminedChannelCell) view.getParent();
                         final TLRPC.Chat channel = cell.getCurrentChannel();
-                        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-                        builder.setTitle(LocaleController.getString("AppName", R.string.AppName));
+                        BottomBuilder builder = new BottomBuilder(getParentActivity());
                         if (channel.megagroup) {
-                            builder.setMessage(AndroidUtilities.replaceTags(LocaleController.formatString("RevokeLinkAlert", R.string.RevokeLinkAlert, MessagesController.getInstance(currentAccount).linkPrefix + "/" + channel.username, channel.title)));
+                            builder.addTitle(AndroidUtilities.replaceTags(LocaleController.formatString("RevokeLinkAlert", R.string.RevokeLinkAlert, MessagesController.getInstance(currentAccount).linkPrefix + "/" + channel.username, channel.title)));
                         } else {
-                            builder.setMessage(AndroidUtilities.replaceTags(LocaleController.formatString("RevokeLinkAlertChannel", R.string.RevokeLinkAlertChannel, MessagesController.getInstance(currentAccount).linkPrefix  + "/" + channel.username, channel.title)));
+                            builder.addTitle(AndroidUtilities.replaceTags(LocaleController.formatString("RevokeLinkAlertChannel", R.string.RevokeLinkAlertChannel, MessagesController.getInstance(currentAccount).linkPrefix + "/" + channel.username, channel.title)));
                         }
-                        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
-                        builder.setPositiveButton(LocaleController.getString("RevokeButton", R.string.RevokeButton), (dialogInterface, i) -> {
+                        builder.addItem(LocaleController.getString("RevokeButton", R.string.RevokeButton), R.drawable.baseline_delete_forever_24, (i) -> {
                             TLRPC.TL_channels_updateUsername req1 = new TLRPC.TL_channels_updateUsername();
                             req1.channel = MessagesController.getInputChannel(channel);
                             req1.username = "";
@@ -1063,7 +1058,9 @@ public class ChannelCreateActivity extends BaseFragment implements NotificationC
                                     });
                                 }
                             }, ConnectionsManager.RequestFlagInvokeAfter);
+                            return Unit.INSTANCE;
                         });
+                        builder.addCancelItem();
                         showDialog(builder.create());
                     });
                     adminedChannelCell.setChannel(res.chats.get(a), a == res.chats.size() - 1);

@@ -11,16 +11,12 @@ package org.telegram.ui;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
-import android.net.Uri;
 import android.os.Build;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-import android.text.style.ImageSpan;
 import android.util.Base64;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -33,23 +29,25 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.DocumentObject;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.SvgHelper;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -68,11 +66,8 @@ import org.telegram.ui.Components.ColoredImageSpan;
 import org.telegram.ui.Components.EmptyTextProgressView;
 import org.telegram.ui.Components.FlickerLoadingView;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.RLottieImageView;
 import org.telegram.ui.Components.RecyclerItemsEnterAnimator;
 import org.telegram.ui.Components.RecyclerListView;
-import org.telegram.ui.Components.ReplaceableIconDrawable;
-import org.telegram.ui.Components.SlideChooseView;
 import org.telegram.ui.Components.URLSpanNoUnderline;
 import org.telegram.ui.Components.UndoView;
 
@@ -80,8 +75,6 @@ import java.util.ArrayList;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 public class SessionsActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
@@ -143,11 +136,12 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.newSessionReceived);
     }
 
+    TLRPC.TL_authorization newAuthorizationToOpen;
+
     @Override
     public View createView(Context context) {
         globalFlickerLoadingView = new FlickerLoadingView(context);
         globalFlickerLoadingView.setIsSingleCell(true);
-
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
         if (currentType == 0) {
@@ -182,7 +176,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         } else {
             imageView.setImageResource(R.drawable.no_apps);
         }
-        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_sessions_devicesImage), PorterDuff.Mode.MULTIPLY));
+        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_sessions_devicesImage), PorterDuff.Mode.SRC_IN));
         emptyLayout.addView(imageView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         textView1 = new TextView(context);
@@ -312,7 +306,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                                 }
                             });
 
-                            for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+                            for (int a : SharedConfig.activeAccounts) {
                                 UserConfig userConfig = UserConfig.getInstance(a);
                                 if (!userConfig.isClientActivated()) {
                                     continue;
@@ -404,41 +398,14 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                     });
                     builder.setCustomViewOffset(16);
                     builder.setView(frameLayout1);
-                }
-                builder.setPositiveButton(buttonText, (dialogInterface, option) -> {
-                    if (getParentActivity() == null) {
-                        return;
-                    }
-                    final AlertDialog progressDialog = new AlertDialog(getParentActivity(), 3);
-                    progressDialog.setCanCacnel(false);
-                    progressDialog.show();
 
-                    if (currentType == 0) {
-                        final TLRPC.TL_authorization authorization;
-                        if (position >= otherSessionsStartRow && position < otherSessionsEndRow) {
-                            authorization = (TLRPC.TL_authorization) sessions.get(position - otherSessionsStartRow);
-                        } else {
-                            authorization = (TLRPC.TL_authorization) passwordSessions.get(position - passwordSessionsStartRow);
+                    builder.setPositiveButton(buttonText, (dialogInterface, option) -> {
+                        if (getParentActivity() == null) {
+                            return;
                         }
-                        TLRPC.TL_account_resetAuthorization req = new TLRPC.TL_account_resetAuthorization();
-                        req.hash = authorization.hash;
-                        ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
-                            try {
-                                progressDialog.dismiss();
-                            } catch (Exception e) {
-                                FileLog.e(e);
-                            }
-                            if (error == null) {
-                                sessions.remove(authorization);
-                                passwordSessions.remove(authorization);
-                                updateRows();
-                                if (listAdapter != null) {
-                                    listAdapter.notifyDataSetChanged();
-                                }
-                            }
-                        }));
-                    } else {
-                        final TLRPC.TL_webAuthorization authorization = (TLRPC.TL_webAuthorization) sessions.get(position - otherSessionsStartRow);
+                        final AlertDialog progressDialog = new AlertDialog(getParentActivity(), 3);
+                        progressDialog.setCanCacnel(false);
+                        progressDialog.show();
                         TLRPC.TL_account_resetWebAuthorization req = new TLRPC.TL_account_resetWebAuthorization();
                         req.hash = authorization.hash;
                         ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
@@ -458,14 +425,15 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                         if (param[0]) {
                             MessagesController.getInstance(currentAccount).blockPeer(authorization.bot_id);
                         }
+                    });
+                    builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+                    AlertDialog alertDialog = builder.create();
+                    showDialog(alertDialog);
+                    TextView button = (TextView) alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                    if (button != null) {
+                        button.setTextColor(Theme.getColor(Theme.key_dialogTextRed2));
                     }
-                });
-                builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
-                AlertDialog alertDialog = builder.create();
-                showDialog(alertDialog);
-                TextView button = (TextView) alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
-                if (button != null) {
-                    button.setTextColor(Theme.getColor(Theme.key_dialogTextRed2));
+
                 }
             }
         });
@@ -494,6 +462,10 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                 }
             };
             frameLayout.addView(undoView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT, 8, 0, 8, 8));
+        }
+
+        if (newAuthorizationToOpen != null && undoView != null) {
+            AndroidUtilities.runOnUIThread(() -> undoView.showWithAction(0, UndoView.ACTION_QR_SESSION_ACCEPTED, newAuthorizationToOpen), 3000L);
         }
 
         itemsEnterAnimator = new RecyclerItemsEnterAnimator(listView, true) {
@@ -538,6 +510,59 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         });
         bottomSheet.show();
 
+        /*
+
+                    BottomBuilder builder = new BottomBuilder(getParentActivity());
+
+                    String title = authorization.app_name + " " + authorization.app_version + "\n";
+                    title += authorization.device_model + ", " + authorization.platform + " " + authorization.system_version + "\n";
+                    title += "Login: " + LocaleController.getInstance().chatFullDate.format(authorization.date_created * 1000L) + "\n";
+                    title += "Active: " + LocaleController.getInstance().chatFullDate.format(authorization.date_active * 1000L) + "\n";
+                    if (!authorization.official_app) {
+                        title += "Unofficial application ";
+                        if (authorization.api_id == BuildConfig.APP_ID) {
+                            title += "Nekogram X";
+                        } else {
+                            title += authorization.api_id;
+                        }
+                        title += "\n";
+                    }
+                    title += authorization.ip + " - " + authorization.region + " " + authorization.country;
+
+                    if (!authorization.current) {
+                        builder.addTitle(LocaleController.getString("TerminateSessionText", R.string.TerminateSessionText), title);
+                        builder.addItem(LocaleController.getString("Terminate", R.string.Terminate), R.drawable.baseline_delete_forever_24, true, __ -> {
+                            TLRPC.TL_account_resetAuthorization req = new TLRPC.TL_account_resetAuthorization();
+                            req.hash = authorization.hash;
+                            ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                                if (error != null) {
+                                    AlertUtil.showToast(error);
+                                    return;
+                                }
+                                sessions.remove(authorization);
+                                passwordSessions.remove(authorization);
+                                updateRows();
+                                if (listAdapter != null) {
+                                    listAdapter.notifyDataSetChanged();
+                                }
+                            }));
+                            return Unit.INSTANCE;
+                        });
+                    } else {
+                        builder.addTitle(title);
+                    }
+
+                    builder.addCancelItem();
+
+                    String finalTitle = title;
+                    builder.addItem(LocaleController.getString("Copy", R.string.Copy), R.drawable.baseline_content_copy_24, __ -> {
+                        AlertUtil.copyAndAlert(finalTitle);
+                        return Unit.INSTANCE;
+                    });
+
+                    builder.show();
+
+         */
     }
 
     @Override
@@ -662,8 +687,6 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
             currentSessionSectionRow = rowCount++;
             currentSessionRow = rowCount++;
         }
-
-
         if (!passwordSessions.isEmpty() || !sessions.isEmpty()) {
             terminateAllSessionsRow = rowCount++;
             terminateAllSessionsDetailRow = rowCount++;
@@ -875,6 +898,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
             }
             return 0;
         }
+
     }
 
     private class ScanQRCodeView extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {

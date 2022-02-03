@@ -85,6 +85,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
+import tw.nekomimi.nekogram.utils.EnvUtil;
+
 public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLayout {
 
     public interface DocumentSelectActivityDelegate {
@@ -130,6 +132,12 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
     private int maxSelectedFiles = -1;
     private boolean canSelectOnlyImageFiles;
     private boolean allowMusic;
+
+    public void setAllowPhoto(boolean allowPhoto) {
+        this.allowPhoto = allowPhoto;
+    }
+
+    private boolean allowPhoto = true;
 
     private boolean searching;
 
@@ -1044,7 +1052,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
 
         ListItem fs;
         try {
-            File telegramPath = new File(ApplicationLoader.applicationContext.getExternalFilesDir(null), "Telegram");
+            File telegramPath = EnvUtil.getTelegramPath();
             if (telegramPath.exists()) {
                 fs = new ListItem();
                 fs.title = "Telegram";
@@ -1057,12 +1065,16 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
             FileLog.e(e);
         }
 
-        fs = new ListItem();
-        fs.title = LocaleController.getString("Gallery", R.string.Gallery);
-        fs.subtitle = LocaleController.getString("GalleryInfo", R.string.GalleryInfo);
-        fs.icon = R.drawable.files_gallery;
-        fs.file = null;
-        items.add(fs);
+        if (allowPhoto) {
+
+            fs = new ListItem();
+            fs.title = LocaleController.getString("Gallery", R.string.Gallery);
+            fs.subtitle = LocaleController.getString("GalleryInfo", R.string.GalleryInfo);
+            fs.icon = R.drawable.files_gallery;
+            fs.file = null;
+            items.add(fs);
+
+        }
 
         if (allowMusic) {
             fs = new ListItem();

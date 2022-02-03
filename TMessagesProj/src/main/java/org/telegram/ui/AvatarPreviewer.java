@@ -43,6 +43,10 @@ import org.telegram.ui.Components.AnimatedFileDrawable;
 import org.telegram.ui.Components.MediaActionDrawable;
 import org.telegram.ui.Components.RadialProgress2;
 
+import kotlin.Unit;
+import tw.nekomimi.nekogram.ui.BottomBuilder;
+import tw.nekomimi.nekogram.NekoConfig;
+
 public class AvatarPreviewer {
 
     private static AvatarPreviewer INSTANCE;
@@ -432,7 +436,9 @@ public class AvatarPreviewer {
                     } else {
                         moveProgress = Math.max(-1, Math.min(0f, (event.getY() - downY) / AndroidUtilities.dp(56)));
                         if (moveProgress == -1) {
-                            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                            if (!NekoConfig.disableVibration.Bool()) {
+                                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                            }
                             moveAnimator = ValueAnimator.ofFloat(moveProgress, 0);
                             moveAnimator.setDuration(200);
                             moveAnimator.addUpdateListener(a -> {
@@ -450,18 +456,20 @@ public class AvatarPreviewer {
         }
 
         private void showBottomSheet() {
-            final CharSequence[] labels = new CharSequence[menuItems.length];
+            final String[] labels = new String[menuItems.length];
             final int[] icons = new int[menuItems.length];
             for (int i = 0; i < menuItems.length; i++) {
                 labels[i] = LocaleController.getString(menuItems[i].labelKey, menuItems[i].labelResId);
                 icons[i] = menuItems[i].iconResId;
             }
-            visibleSheet = new BottomSheet.Builder(getContext())
-                    .setItems(labels, icons, (dialog, which) -> {
-                        callback.onMenuClick(menuItems[which]);
-                        setShowing(false);
-                    })
-                    .setDimBehind(false);
+            BottomBuilder visibleSheetBuilder = new BottomBuilder(getContext());
+            visibleSheetBuilder.addItems(labels, icons, (which, text, cell) -> {
+                callback.onMenuClick(menuItems[which]);
+                setShowing(false);
+                return Unit.INSTANCE;
+            });
+            visibleSheet = visibleSheetBuilder.create();
+            visibleSheet.setDimBehind(false);
             visibleSheet.setOnDismissListener(dialog -> {
                 visibleSheet = null;
                 setShowing(false);

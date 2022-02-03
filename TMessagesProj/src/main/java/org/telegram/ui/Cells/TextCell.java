@@ -63,7 +63,7 @@ public class TextCell extends FrameLayout {
 
         imageView = new RLottieImageView(context);
         imageView.setScaleType(ImageView.ScaleType.CENTER);
-        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(dialog ? Theme.key_dialogIcon : Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.MULTIPLY));
+        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(dialog ? Theme.key_dialogIcon : Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.SRC_IN));
         addView(imageView);
 
         valueImageView = new ImageView(context);
@@ -147,7 +147,7 @@ public class TextCell extends FrameLayout {
         textView.setTextColor(Theme.getColor(text));
         textView.setTag(text);
         if (icon != null) {
-            imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(icon), PorterDuff.Mode.MULTIPLY));
+            imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(icon), PorterDuff.Mode.SRC_IN));
             imageView.setTag(icon);
         }
     }
@@ -165,11 +165,13 @@ public class TextCell extends FrameLayout {
     public void setTextAndIcon(String text, int resId, boolean divider) {
         textView.setText(text);
         valueTextView.setText(null);
-        imageView.setImageResource(resId);
-        imageView.setVisibility(VISIBLE);
+        if (resId != 0) {
+            imageView.setImageResource(resId);
+            imageView.setVisibility(VISIBLE);
+        }
+        imageView.setPadding(0, AndroidUtilities.dp(7), 0, 0);
         valueTextView.setVisibility(GONE);
         valueImageView.setVisibility(GONE);
-        imageView.setPadding(0, AndroidUtilities.dp(7), 0, 0);
         needDivider = divider;
         setWillNotDraw(!needDivider);
     }
@@ -234,7 +236,7 @@ public class TextCell extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         if (needDivider) {
-            canvas.drawLine(LocaleController.isRTL ? 0 : AndroidUtilities.dp(imageView.getVisibility() == VISIBLE ? (inDialogs ? 72 : 68) : 20), getMeasuredHeight() - 1, getMeasuredWidth() - (LocaleController.isRTL ? AndroidUtilities.dp(imageView.getVisibility() == VISIBLE ? (inDialogs ? 72 : 68) : 20) : 0), getMeasuredHeight() - 1, Theme.dividerPaint);
+            canvas.drawLine(0, getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight() - 1, Theme.dividerPaint);
         }
     }
 

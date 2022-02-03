@@ -46,7 +46,7 @@ public class ManageChatTextCell extends FrameLayout {
 
         imageView = new ImageView(context);
         imageView.setScaleType(ImageView.ScaleType.CENTER);
-        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.MULTIPLY));
+        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.SRC_IN));
         addView(imageView);
     }
 
@@ -99,7 +99,7 @@ public class ManageChatTextCell extends FrameLayout {
     public void setColors(String icon, String text) {
         textView.setTextColor(Theme.getColor(text));
         textView.setTag(text);
-        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(icon), PorterDuff.Mode.MULTIPLY));
+        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(icon), PorterDuff.Mode.SRC_IN));
         imageView.setTag(icon);
     }
 

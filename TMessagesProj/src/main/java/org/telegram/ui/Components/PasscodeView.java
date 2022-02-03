@@ -23,11 +23,13 @@ import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.hardware.biometrics.BiometricManager;
+import android.hardware.biometrics.BiometricPrompt;
 import android.os.Build;
 import android.os.SystemClock;
-import android.os.Vibrator;
 
 import androidx.annotation.IdRes;
+import androidx.core.content.ContextCompat;
 import androidx.core.os.CancellationSignal;
 
 import android.text.Editable;
@@ -53,10 +55,10 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.support.fingerprint.FingerprintManagerCompat;
@@ -65,6 +67,10 @@ import org.telegram.ui.ActionBar.Theme;
 
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.concurrent.Executor;
+
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.utils.VibrateUtil;
 
 public class PasscodeView extends FrameLayout {
 
@@ -120,7 +126,9 @@ public class PasscodeView extends FrameLayout {
                 return;
             }
             try {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (!NekoConfig.disableVibration.Bool()) {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                }
             } catch (Exception e) {
                 FileLog.e(e);
             }
@@ -241,7 +249,9 @@ public class PasscodeView extends FrameLayout {
                 return false;
             }
             try {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (!NekoConfig.disableVibration.Bool()) {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                }
             } catch (Exception e) {
                 FileLog.e(e);
             }
@@ -901,10 +911,7 @@ public class PasscodeView extends FrameLayout {
     }
 
     private void onPasscodeError() {
-        Vibrator v = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
-        if (v != null) {
-            v.vibrate(200);
-        }
+        VibrateUtil.vibrate();
         shakeTextView(2, 0);
     }
 
@@ -955,6 +962,40 @@ public class PasscodeView extends FrameLayout {
         }
         Activity parentActivity = (Activity) getContext();
         if (parentActivity != null && fingerprintView.getVisibility() == VISIBLE && !ApplicationLoader.mainInterfacePaused) {
+            if (Build.VERSION.SDK_INT >= 28) {
+                try {
+                    boolean useBiometric;
+                    if (Build.VERSION.SDK_INT >= 29) {
+                        BiometricManager biometricManager = (BiometricManager) ApplicationLoader.applicationContext.getSystemService(Context.BIOMETRIC_SERVICE);
+                        if (Build.VERSION.SDK_INT >= 30) {
+                            useBiometric = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS;
+                        } else {
+                            useBiometric = biometricManager.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS;
+                        }
+                    } else {
+                        FingerprintManagerCompat fingerprintManager = FingerprintManagerCompat.from(ApplicationLoader.applicationContext);
+                        useBiometric = fingerprintManager.isHardwareDetected() && fingerprintManager.hasEnrolledFingerprints();
+                    }
+                    if (useBiometric) {
+                        Executor executor = ContextCompat.getMainExecutor(parentActivity);
+                        BiometricPrompt.Builder builder = new BiometricPrompt.Builder(parentActivity)
+                                .setTitle(LocaleController.getString("NekoX", R.string.NekoX))
+                                .setNegativeButton(LocaleController.getString("Canel", R.string.Cancel), executor, (dialog, which) -> { });
+                        if (Build.VERSION.SDK_INT >= 29) {
+                            builder.setConfirmationRequired(false);
+                        }
+                        builder.build().authenticate(new android.os.CancellationSignal(), executor, new BiometricPrompt.AuthenticationCallback() {
+                            @Override
+                            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                                processDone(true);
+                            }
+                        });
+                        return;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
             try {
                 if (fingerprintDialog != null && fingerprintDialog.isShowing()) {
                     return;
@@ -998,7 +1039,7 @@ public class PasscodeView extends FrameLayout {
                     fingerprintStatusTextView.setLayoutParams(layoutParams);
 
                     AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                    builder.setTitle(LocaleController.getString("AppName", R.string.AppName));
+                    builder.setTitle(LocaleController.getString("NekoX", R.string.NekoX));
                     builder.setView(relativeLayout);
                     builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
                     builder.setOnDismissListener(dialog -> {
@@ -1345,10 +1386,7 @@ public class PasscodeView extends FrameLayout {
         fingerprintImageView.setImageResource(R.drawable.ic_fingerprint_error);
         fingerprintStatusTextView.setText(error);
         fingerprintStatusTextView.setTextColor(0xfff4511e);
-        Vibrator v = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
-        if (v != null) {
-            v.vibrate(200);
-        }
+        VibrateUtil.vibrate();
         AndroidUtilities.shakeView(fingerprintStatusTextView, 2, 0);
     }
 

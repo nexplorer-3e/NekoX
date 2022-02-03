@@ -729,7 +729,7 @@ public class EmbedBottomSheet extends BottomSheet {
         pipButton.setContentDescription(LocaleController.getString("AccDescrPipMode", R.string.AccDescrPipMode));
         pipButton.setEnabled(false);
         pipButton.setAlpha(0.5f);
-        pipButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogTextBlue4), PorterDuff.Mode.MULTIPLY));
+        pipButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogTextBlue4), PorterDuff.Mode.SRC_IN));
         pipButton.setBackgroundDrawable(Theme.createSelectorDrawable(Theme.getColor(Theme.key_dialogButtonSelector), 0));
         imageButtonsContainer.addView(pipButton, LayoutHelper.createFrame(48, 48, Gravity.TOP | Gravity.LEFT, 0, 0, 4, 0));
         pipButton.setOnClickListener(v -> {
@@ -802,7 +802,7 @@ public class EmbedBottomSheet extends BottomSheet {
         copyButton.setScaleType(ImageView.ScaleType.CENTER);
         copyButton.setImageResource(R.drawable.video_copy);
         copyButton.setContentDescription(LocaleController.getString("CopyLink", R.string.CopyLink));
-        copyButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogTextBlue4), PorterDuff.Mode.MULTIPLY));
+        copyButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogTextBlue4), PorterDuff.Mode.SRC_IN));
         copyButton.setBackgroundDrawable(Theme.createSelectorDrawable(Theme.getColor(Theme.key_dialogButtonSelector), 0));
         imageButtonsContainer.addView(copyButton, LayoutHelper.createFrame(48, 48, Gravity.TOP | Gravity.LEFT));
         copyButton.setOnClickListener(copyClickListener);
@@ -955,9 +955,9 @@ public class EmbedBottomSheet extends BottomSheet {
             if (videoView.getTextureImageView() != null) {
                 videoView.getTextureImageView().setVisibility(View.INVISIBLE);
             }
-            if (currentYoutubeId != null && "disabled".equals(MessagesController.getInstance(currentAccount).youtubePipType)) {
+            /*if (currentYoutubeId != null && "disabled".equals(MessagesController.getInstance(currentAccount).youtubePipType)) {
                 pipButton.setVisibility(View.GONE);
-            }
+            }*/
         }
 
         if (orientationEventListener.canDetectOrientation()) {

@@ -13,6 +13,6 @@
         android:paddingRight="10dp"
         android:textColor="@color/widget_name"
         android:layout_gravity="center"
-        android:gravity="center"/>
+        android:gravity="center" />
 
 </FrameLayout>

@@ -87,7 +87,7 @@ public class UserCell2 extends FrameLayout {
 
         imageView = new ImageView(context);
         imageView.setScaleType(ImageView.ScaleType.CENTER);
-        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.MULTIPLY));
+        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.SRC_IN));
         imageView.setVisibility(GONE);
         addView(imageView, LayoutHelper.createFrame(LayoutParams.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, LocaleController.isRTL ? 0 : 16, 0, LocaleController.isRTL ? 16 : 0, 0));
 
@@ -260,6 +260,7 @@ public class UserCell2 extends FrameLayout {
                     statusTextView.setText(LocaleController.formatUserStatus(currentAccount, currentUser));
                 }
             }
+            // TODO: NekoX: Wait for review
             avatarImageView.setForUserOrChat(currentUser, avatarDrawable);
         } else if (currentChat != null) {
             statusTextView.setTextColor(statusColor);
@@ -282,6 +283,10 @@ public class UserCell2 extends FrameLayout {
                     statusTextView.setText(LocaleController.getString("MegaPublic", R.string.MegaPublic));
                 }
             }
+        }
+        if (currentUser != null) {
+            avatarImageView.setImage(ImageLocation.getForUser(currentUser, ImageLocation.TYPE_SMALL), "50_50", avatarDrawable, currentUser);
+        } else if (currentChat != null) {
             avatarImageView.setForUserOrChat(currentChat, avatarDrawable);
         } else {
             avatarImageView.setImageDrawable(avatarDrawable);

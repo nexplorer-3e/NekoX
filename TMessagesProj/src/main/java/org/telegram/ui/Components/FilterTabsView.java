@@ -42,6 +42,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.LocaleController;
@@ -55,17 +56,28 @@ import org.telegram.ui.ActionBar.Theme;
 
 import java.util.ArrayList;
 
+import tw.nekomimi.nekogram.NekoXConfig;
+import tw.nekomimi.nekogram.NekoConfig;
+
 public class FilterTabsView extends FrameLayout {
 
     public interface FilterTabsViewDelegate {
         void onPageSelected(int page, boolean forward);
+
         void onPageScrolled(float progress);
+
         void onSamePageSelected();
+
         int getTabCounter(int tabId);
+
         boolean didSelectTab(TabView tabView, boolean selected);
+
         boolean isTabMenuVisible();
+
         void onDeletePressed(int id);
+
         void onPageReorder(int fromId, int toId);
+
         boolean canPerformActions();
     }
 
@@ -278,7 +290,6 @@ public class FilterTabsView extends FrameLayout {
                 counterWidth = 0;
                 countWidth = 0;
             }
-
 
 
             if (currentTab.id != Integer.MAX_VALUE && (isEditing || editingStartAnimationProgress != 0)) {
@@ -760,13 +771,13 @@ public class FilterTabsView extends FrameLayout {
                 boolean changesPending = !mPendingChanges.isEmpty();
                 boolean additionsPending = !mPendingAdditions.isEmpty();
                 if (removalsPending || movesPending || additionsPending || changesPending) {
-                   ValueAnimator valueAnimator = ValueAnimator.ofFloat(0.1f);
-                   valueAnimator.addUpdateListener(valueAnimator12 -> {
-                       listView.invalidate();
-                       invalidate();
-                   });
-                   valueAnimator.setDuration(getMoveDuration());
-                   valueAnimator.start();
+                    ValueAnimator valueAnimator = ValueAnimator.ofFloat(0.1f);
+                    valueAnimator.addUpdateListener(valueAnimator12 -> {
+                        listView.invalidate();
+                        invalidate();
+                    });
+                    valueAnimator.setDuration(getMoveDuration());
+                    valueAnimator.start();
                 }
                 super.runPendingAnimations();
             }
@@ -973,6 +984,8 @@ public class FilterTabsView extends FrameLayout {
             delegate.onPageSelected(id, scrollingForward);
         }
         scrollToChild(position);
+        if (NekoConfig.hideAllTab.Bool() && showAllChatsTab && id != Integer.MAX_VALUE)
+            toggleAllTabs(false);
     }
 
     public void selectFirstTab() {
@@ -1199,9 +1212,9 @@ public class FilterTabsView extends FrameLayout {
         if (!tabs.isEmpty()) {
             int width = MeasureSpec.getSize(widthMeasureSpec) - AndroidUtilities.dp(7) - AndroidUtilities.dp(7);
             Tab firstTab = tabs.get(0);
-            firstTab.setTitle(LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
             int tabWith = firstTab.getWidth(false);
-            firstTab.setTitle(allTabsWidth > width ? LocaleController.getString("FilterAllChatsShort", R.string.FilterAllChatsShort) : LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
+            if (showAllChatsTab)
+                firstTab.setTitle(allTabsWidth > width ? LocaleController.getString("FilterAllChatsShort", R.string.FilterAllChatsShort) : LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
             int trueTabsWidth = allTabsWidth - tabWith;
             trueTabsWidth += firstTab.getWidth(false);
             int prevWidth = additionalTabWidth;
@@ -1282,6 +1295,8 @@ public class FilterTabsView extends FrameLayout {
             manualScrollingToId = -1;
             currentPosition = position;
             selectedTabId = id;
+            if (NekoConfig.hideAllTab.Bool() && showAllChatsTab)
+                toggleAllTabs(false);
         }
     }
 
@@ -1352,7 +1367,8 @@ public class FilterTabsView extends FrameLayout {
                 invalidated = true;
                 requestLayout();
                 allTabsWidth = 0;
-                tabs.get(0).setTitle(LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
+                if (showAllChatsTab)
+                    tabs.get(0).setTitle(LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
                 for (int b = 0; b < N; b++) {
                     allTabsWidth += tabs.get(b).getWidth(true) + AndroidUtilities.dp(32);
                 }
@@ -1383,7 +1399,8 @@ public class FilterTabsView extends FrameLayout {
             listView.setItemAnimator(itemAnimator);
             adapter.notifyDataSetChanged();
             allTabsWidth = 0;
-            tabs.get(0).setTitle(LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
+            if (showAllChatsTab)
+                tabs.get(0).setTitle(LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
             for (int b = 0, N = tabs.size(); b < N; b++) {
                 allTabsWidth += tabs.get(b).getWidth(true) + AndroidUtilities.dp(32);
             }
@@ -1433,6 +1450,11 @@ public class FilterTabsView extends FrameLayout {
             int idx1 = fromIndex - 1;
             int idx2 = toIndex - 1;
             int count = tabs.size() - 1;
+            if (!showAllChatsTab) {
+                idx1++;
+                idx2++;
+                count++;
+            }
             if (idx1 < 0 || idx2 < 0 || idx1 >= count || idx2 >= count) {
                 return;
             }
@@ -1495,7 +1517,7 @@ public class FilterTabsView extends FrameLayout {
 
         @Override
         public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-            if (!isEditing || viewHolder.getAdapterPosition() == 0) {
+            if (!isEditing || ((showAllChatsTab && viewHolder.getAdapterPosition() == 0) && !NekoConfig.pressTitleToOpenAllChats.Bool())) {
                 return makeMovementFlags(0, 0);
             }
             return makeMovementFlags(ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, 0);
@@ -1503,7 +1525,7 @@ public class FilterTabsView extends FrameLayout {
 
         @Override
         public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder source, RecyclerView.ViewHolder target) {
-            if (source.getAdapterPosition() == 0 || target.getAdapterPosition() == 0) {
+            if (showAllChatsTab && (source.getAdapterPosition() == 0 || target.getAdapterPosition() == 0)) {
                 return false;
             }
             adapter.swapElements(source.getAdapterPosition(), target.getAdapterPosition());
@@ -1535,5 +1557,32 @@ public class FilterTabsView extends FrameLayout {
 
     public RecyclerListView getListView() {
         return listView;
+    }
+
+    public boolean showAllChatsTab = !NekoConfig.hideAllTab.Bool();
+
+    public void toggleAllTabs(boolean show) {
+        if (show == showAllChatsTab)
+            return;
+        showAllChatsTab = show;
+        removeTabs();
+        if (showAllChatsTab)
+            addTab(Integer.MAX_VALUE, 0, LocaleController.getString("FilterAllChats", R.string.FilterAllChats));
+        ArrayList<MessagesController.DialogFilter> filters = AccountInstance.getInstance(UserConfig.selectedAccount).getMessagesController().dialogFilters;
+        for (int a = 0, N = filters.size(); a < N; a++) {
+            MessagesController.DialogFilter dialogFilter = filters.get(a);
+            switch (NekoConfig.tabsTitleType.Int()) {
+                case NekoXConfig.TITLE_TYPE_TEXT:
+                    addTab(a, filters.get(a).localId, dialogFilter.name);
+                    break;
+                case NekoXConfig.TITLE_TYPE_ICON:
+                    addTab(a, filters.get(a).localId, dialogFilter.emoticon != null ? dialogFilter.emoticon : "📂");
+                    break;
+                case NekoXConfig.TITLE_TYPE_MIX:
+                    addTab(a, filters.get(a).localId, dialogFilter.emoticon != null ? dialogFilter.emoticon + " " + dialogFilter.name : "📂 " + dialogFilter.name);
+                    break;
+            }
+        }
+        finishAddingTabs(true);
     }
 }

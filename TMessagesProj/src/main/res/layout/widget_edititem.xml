@@ -16,6 +16,6 @@
         android:singleLine="true"
         android:ellipsize="end"
         android:background="@drawable/widget_edit"
-        android:gravity="center"/>
+        android:gravity="center" />
 
 </FrameLayout>

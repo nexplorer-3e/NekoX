@@ -37,7 +37,6 @@ import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Icon;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -132,6 +131,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
+import tw.nekomimi.nekogram.NekoConfig;
 
 @SuppressLint("NewApi")
 public class VoIPService extends Service implements SensorEventListener, AudioManager.OnAudioFocusChangeListener, VoIPController.ConnectionStateListener, NotificationCenter.NotificationCenterDelegate {
@@ -306,6 +307,8 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 
 	private HashMap<String, Integer> currentStreamRequestTimestamp = new HashMap<>();
 	public boolean micSwitching;
+
+	private int currentStreamType;
 
 	private Runnable afterSoundRunnable = new Runnable() {
 		@Override
@@ -3431,11 +3434,18 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 	}
 
 	private void loadResources() {
-		if (Build.VERSION.SDK_INT >= 21) {
-			WebRtcAudioTrack.setAudioTrackUsageAttribute(AudioAttributes.USAGE_VOICE_COMMUNICATION);
+		if (NekoConfig.useMediaStreamInVoip.Bool()) {
+			currentStreamType = AudioManager.STREAM_MUSIC;
+			if (Build.VERSION.SDK_INT >= 21)
+				WebRtcAudioTrack.setAudioTrackUsageAttribute(AudioAttributes.USAGE_MEDIA);
+		} else {
+			currentStreamType = AudioManager.STREAM_VOICE_CALL;
+			if (Build.VERSION.SDK_INT >= 21)
+				WebRtcAudioTrack.setAudioTrackUsageAttribute(AudioAttributes.USAGE_VOICE_COMMUNICATION);
 		}
+		WebRtcAudioTrack.setAudioStreamType(currentStreamType);
 		Utilities.globalQueue.postRunnable(() -> {
-			soundPool = new SoundPool(1, AudioManager.STREAM_VOICE_CALL, 0);
+			soundPool = new SoundPool(1, currentStreamType, 0);
 			spConnectingId = soundPool.load(this, R.raw.voip_connecting, 1);
 			spRingbackID = soundPool.load(this, R.raw.voip_ringback, 1);
 			spFailedID = soundPool.load(this, R.raw.voip_failed, 1);
@@ -3495,13 +3505,15 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
 		if (!USE_CONNECTION_SERVICE) {
 			Utilities.globalQueue.postRunnable(() -> {
-				try {
-					am.setMode(AudioManager.MODE_IN_COMMUNICATION);
-				} catch (Exception e) {
-					FileLog.e(e);
+				if(currentStreamType == AudioManager.STREAM_VOICE_CALL) {
+					try {
+						am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+					} catch (Exception e) {
+						FileLog.e(e);
+					}
 				}
 				AndroidUtilities.runOnUIThread(() -> {
-					am.requestAudioFocus(VoIPService.this, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN);
+					am.requestAudioFocus(VoIPService.this, currentStreamType, AudioManager.AUDIOFOCUS_GAIN);
 					if (isBluetoothHeadsetConnected() && hasEarpiece()) {
 						switch (audioRouteToSet) {
 							case AUDIO_ROUTE_BLUETOOTH:
@@ -4238,7 +4250,6 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		PhoneAccountHandle handle = new PhoneAccountHandle(new ComponentName(this, TelegramConnectionService.class), "" + self.id);
 		PhoneAccount account = new PhoneAccount.Builder(handle, ContactsController.formatName(self.first_name, self.last_name))
 				.setCapabilities(PhoneAccount.CAPABILITY_SELF_MANAGED)
-				.setIcon(Icon.createWithResource(this, R.drawable.ic_launcher_dr))
 				.setHighlightColor(0xff2ca5e0)
 				.addSupportedUriScheme("sip")
 				.build();

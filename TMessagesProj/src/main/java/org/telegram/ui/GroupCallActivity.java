@@ -7,7 +7,6 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -43,9 +42,6 @@ import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Property;
-import android.util.SparseArray;
-import android.util.SparseBooleanArray;
-import android.util.SparseIntArray;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
@@ -158,10 +154,9 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
+import tw.nekomimi.nekogram.NekoConfig;
 
 import static android.content.Context.AUDIO_SERVICE;
-
-import com.google.android.exoplayer2.util.Log;
 
 public class GroupCallActivity extends BottomSheet implements NotificationCenter.NotificationCenterDelegate, VoIPService.StateListener {
 
@@ -418,7 +413,9 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         if (call == null || !scheduled || VoIPService.getSharedInstance() == null) {
             return;
         }
-        muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+        if (!NekoConfig.disableVibration.Bool()) {
+            muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+        }
         updateMuteButton(MUTE_BUTTON_STATE_MUTE, true);
         AndroidUtilities.runOnUIThread(unmuteRunnable, 80);
         scheduled = false;
@@ -1150,26 +1147,15 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                     if (args.length >= 4) {
                         long justJoinedId = (Long) args[3];
                         if (justJoinedId != 0) {
-                            boolean hasInDialogs = false;
-                            try {
-                                ArrayList<TLRPC.Dialog> dialogs = accountInstance.getMessagesController().getAllDialogs();
-                                if (dialogs != null) {
-                                    for (TLRPC.Dialog dialog : dialogs) {
-                                        if (dialog.id == justJoinedId) {
-                                            hasInDialogs = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            } catch (Exception ignore) {}
+                            TLObject object;
                             if (DialogObject.isUserDialog(justJoinedId)) {
                                 TLRPC.User user = accountInstance.getMessagesController().getUser(justJoinedId);
-                                if (user != null && (call.call.participants_count < 250 || UserObject.isContact(user) || user.verified || hasInDialogs)) {
+                                if (call.call.participants_count < 250 || UserObject.isContact(user)) {
                                     getUndoView().showWithAction(0, UndoView.ACTION_VOIP_USER_JOINED, user, currentChat, null, null);
                                 }
                             } else {
                                 TLRPC.Chat chat = accountInstance.getMessagesController().getChat(-justJoinedId);
-                                if (chat != null && (call.call.participants_count < 250 || !ChatObject.isNotInChat(chat) || chat.verified || hasInDialogs)) {
+                                if (call.call.participants_count < 250 || !ChatObject.isNotInChat(chat)) {
                                     getUndoView().showWithAction(0, UndoView.ACTION_VOIP_USER_JOINED, chat, currentChat, null, null);
                                 }
                             }
@@ -4080,7 +4066,9 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                         updateMuteButton(MUTE_BUTTON_STATE_UNMUTE, true);
                         if (VoIPService.getSharedInstance() != null) {
                             VoIPService.getSharedInstance().setMicMute(true, true, false);
-                            muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                            if (!NekoConfig.disableVibration.Bool()) {
+                                muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                            }
                         }
                         attachedRenderersTmp.clear();
                         attachedRenderersTmp.addAll(attachedRenderers);
@@ -4206,11 +4194,15 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                     } else if (muteButtonState == MUTE_BUTTON_STATE_UNMUTE) {
                         updateMuteButton(MUTE_BUTTON_STATE_MUTE, true);
                         VoIPService.getSharedInstance().setMicMute(false, false, true);
-                        muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                        if (!NekoConfig.disableVibration.Bool()) {
+                            muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                        }
                     } else {
                         updateMuteButton(MUTE_BUTTON_STATE_UNMUTE, true);
                         VoIPService.getSharedInstance().setMicMute(true, false, true);
-                        muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                        if (!NekoConfig.disableVibration.Bool()) {
+                            muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                        }
                     }
                 }
             }
@@ -7033,7 +7025,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                 options.add(8);
             } else {
                 items.add(LocaleController.getString("VoipGroupOpenProfile", R.string.VoipGroupOpenProfile));
-                icons.add(R.drawable.msg_openprofile);
+                icons.add(R.drawable.baseline_person_24);
                 options.add(6);
             }
             if (!isAdmin && ChatObject.canBlockUsers(currentChat)) {
@@ -7058,7 +7050,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                 options.add(8);
             } else {
                 items.add(LocaleController.getString("VoipGroupOpenChat", R.string.VoipGroupOpenChat));
-                icons.add(R.drawable.msg_msgbubble3);
+                icons.add(R.drawable.baseline_person_24);
                 options.add(6);
             }
         }

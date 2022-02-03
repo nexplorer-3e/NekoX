@@ -76,6 +76,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 
+import tw.nekomimi.nekogram.NekoConfig;
+
 public class ManageLinksActivity extends BaseFragment {
 
     private ListAdapter listViewAdapter;
@@ -642,7 +644,9 @@ public class ManageLinksActivity extends BaseFragment {
             if ((position >= linksStartRow && position < linksEndRow) || (position >= revokedLinksStartRow && position < revokedLinksEndRow)) {
                 LinkCell cell = (LinkCell) view;
                 cell.optionsView.callOnClick();
-                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                if (!NekoConfig.disableVibration.Bool()) {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                }
                 return true;
             }
             return false;
@@ -1104,27 +1108,27 @@ public class ManageLinksActivity extends BaseFragment {
                 boolean redLastItem = false;
                 if (invite.revoked) {
                     items.add(LocaleController.getString("Delete", R.string.Delete));
-                    icons.add(R.drawable.msg_delete);
+                    icons.add(R.drawable.baseline_delete_24);
                     actions.add(4);
                     redLastItem = true;
                 } else {
                     items.add(LocaleController.getString("CopyLink", R.string.CopyLink));
-                    icons.add(R.drawable.msg_copy);
+                    icons.add(R.drawable.baseline_content_copy_24);
                     actions.add(0);
 
                     items.add(LocaleController.getString("ShareLink", R.string.ShareLink));
-                    icons.add(R.drawable.msg_share);
+                    icons.add(R.drawable.baseline_forward_24);
                     actions.add(1);
 
                     if (!invite.permanent && canEdit) {
                         items.add(LocaleController.getString("EditLink", R.string.EditLink));
-                        icons.add(R.drawable.msg_edit);
+                        icons.add(R.drawable.baseline_edit_24);
                         actions.add(2);
                     }
 
                     if (canEdit) {
                         items.add(LocaleController.getString("RevokeLink", R.string.RevokeLink));
-                        icons.add(R.drawable.msg_delete);
+                    icons.add(R.drawable.baseline_delete_24);
                         actions.add(3);
                         redLastItem = true;
                     }
@@ -1196,6 +1200,7 @@ public class ManageLinksActivity extends BaseFragment {
             setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
             setWillNotDraw(false);
         }
+
         boolean timerRunning;
 
         @Override

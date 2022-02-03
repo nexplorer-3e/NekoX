@@ -42,6 +42,9 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.text.TextUtils;
+import android.util.SparseArray;
+
 
 import androidx.collection.LongSparseArray;
 import androidx.core.app.NotificationCompat;
@@ -53,8 +56,6 @@ import androidx.core.content.LocusIdCompat;
 import androidx.core.content.pm.ShortcutInfoCompat;
 import androidx.core.content.pm.ShortcutManagerCompat;
 import androidx.core.graphics.drawable.IconCompat;
-import android.text.TextUtils;
-import android.util.SparseArray;
 
 import org.telegram.messenger.support.LongSparseIntArray;
 import org.telegram.tgnet.ConnectionsManager;
@@ -70,6 +71,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+
+import tw.nekomimi.nekogram.NekoXConfig;
+import tw.nekomimi.nekogram.NekoConfig;
 
 public class NotificationsController extends BaseController {
 
@@ -138,16 +142,16 @@ public class NotificationsController extends BaseController {
         }
         audioManager = (AudioManager) ApplicationLoader.applicationContext.getSystemService(Context.AUDIO_SERVICE);
     }
-    
-    private static volatile NotificationsController[] Instance = new NotificationsController[UserConfig.MAX_ACCOUNT_COUNT];
+
+    private static SparseArray<NotificationsController> Instance = new SparseArray<>();
 
     public static NotificationsController getInstance(int num) {
-        NotificationsController localInstance = Instance[num];
+        NotificationsController localInstance = Instance.get(num);
         if (localInstance == null) {
             synchronized (NotificationsController.class) {
-                localInstance = Instance[num];
+                localInstance = Instance.get(num);
                 if (localInstance == null) {
-                    Instance[num] = localInstance = new NotificationsController(num);
+                    Instance.put(num, localInstance = new NotificationsController(num));
                 }
             }
         }
@@ -156,6 +160,7 @@ public class NotificationsController extends BaseController {
 
     public NotificationsController(int instance) {
         super(instance);
+
         notificationId = currentAccount + 1;
         notificationGroup = "messages" + (currentAccount == 0 ? "" : currentAccount);
         SharedPreferences preferences = getAccountInstance().getNotificationsSettings();
@@ -293,6 +298,59 @@ public class NotificationsController extends BaseController {
                             if (BuildVars.LOGS_ENABLED) {
                                 FileLog.d("delete channel cleanup " + id);
                             }
+                        }
+                    }
+                } catch (Throwable e) {
+                    FileLog.e(e);
+                }
+                try {
+                    String keyGroup = currentAccount + "group";
+                    List<NotificationChannelGroup> list = systemNotificationManager.getNotificationChannelGroups();
+                    for (NotificationChannelGroup group : list) {
+                        String id = group.getId();
+                        if (id.equals(keyGroup)) {
+                            systemNotificationManager.deleteNotificationChannelGroup(id);
+                        }
+                    }
+                } catch (Throwable e) {
+                    FileLog.e(e);
+                }
+            }
+        });
+    }
+
+    public void cleanupNotificationChannels() {
+        notificationsQueue.postRunnable(() -> {
+            if (Build.VERSION.SDK_INT >= 26) {
+                try {
+                    String keyStart = currentAccount + "channel";
+                    List<NotificationChannel> list = systemNotificationManager.getNotificationChannels();
+                    int count = list.size();
+                    for (int a = 0; a < count; a++) {
+                        NotificationChannel channel = list.get(a);
+                        String id = channel.getId();
+                        if (id.startsWith(keyStart)) {
+                            try {
+                                systemNotificationManager.deleteNotificationChannel(id);
+                            } catch (Exception e) {
+                                FileLog.e(e);
+                            }
+                            if (BuildVars.LOGS_ENABLED) {
+                                FileLog.d("delete channel cleanup " + id);
+                            }
+                        }
+                    }
+                } catch (Throwable e) {
+                    FileLog.e(e);
+                }
+                // Remove shits from 0552bcdc
+                try {
+                    String keyGroup = currentAccount + "group";
+                    List<NotificationChannelGroup> list = systemNotificationManager.getNotificationChannelGroups();
+                    for (NotificationChannelGroup group : list) {
+                        String id = group.getId();
+                        if (id.equals(keyGroup)) {
+                            systemNotificationManager.deleteNotificationChannelGroup(id);
                         }
                     }
                 } catch (Throwable e) {
@@ -720,6 +778,10 @@ public class NotificationsController extends BaseController {
                         messageObject.messageOwner.silent && (messageObject.messageOwner.action instanceof TLRPC.TL_messageActionContactSignUp || messageObject.messageOwner.action instanceof TLRPC.TL_messageActionUserJoined))) {
                     continue;
                 }
+                if (NekoConfig.ignoreBlocked.Bool() && getMessagesController().blockePeers.indexOfKey(messageObject.getSenderId()) >= 0) {
+                    continue;
+                }
+
                 int mid = messageObject.getId();
                 long randomId = messageObject.isFcmMessage() ? messageObject.messageOwner.random_id : 0;
                 long dialogId = messageObject.getDialogId();
@@ -1212,7 +1274,7 @@ public class NotificationsController extends BaseController {
 
     private int getTotalAllUnreadCount() {
         int count = 0;
-        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+        for (int a : SharedConfig.activeAccounts) {
             if (UserConfig.getInstance(a).isClientActivated()) {
                 NotificationsController controller = getInstance(a);
                 if (controller.showBadgeNumber) {
@@ -1853,6 +1915,8 @@ public class NotificationsController extends BaseController {
             return null;
         }
         StringBuilder stringBuilder = new StringBuilder(text);
+        if (NekoConfig.showSpoilersDirectly.Bool())
+            return stringBuilder.toString();
         for (int i = 0; i < messageObject.messageOwner.entities.size(); i++) {
             if (messageObject.messageOwner.entities.get(i) instanceof TLRPC.TL_messageEntitySpoiler) {
                 TLRPC.TL_messageEntitySpoiler spoiler = (TLRPC.TL_messageEntitySpoiler) messageObject.messageOwner.entities.get(i);
@@ -2899,14 +2963,16 @@ public class NotificationsController extends BaseController {
             } else {
                 icon = IconCompat.createWithResource(ApplicationLoader.applicationContext, R.drawable.book_group);
             }
-            NotificationCompat.BubbleMetadata.Builder bubbleBuilder =
-                    new NotificationCompat.BubbleMetadata.Builder(
-                            PendingIntent.getActivity(ApplicationLoader.applicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT),
-                            icon);
-            bubbleBuilder.setSuppressNotification(openedDialogId == did);
-            bubbleBuilder.setAutoExpandBubble(false);
-            bubbleBuilder.setDesiredHeight(AndroidUtilities.dp(640));
-            builder.setBubbleMetadata(bubbleBuilder.build());
+            if (!NekoConfig.disableNotificationBubbles.Bool()) {
+                NotificationCompat.BubbleMetadata.Builder bubbleBuilder =
+                        new NotificationCompat.BubbleMetadata.Builder(
+                                PendingIntent.getActivity(ApplicationLoader.applicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT),
+                                icon);
+                bubbleBuilder.setSuppressNotification(openedDialogId == did);
+                bubbleBuilder.setAutoExpandBubble(false);
+                bubbleBuilder.setDesiredHeight(AndroidUtilities.dp(640));
+                builder.setBubbleMetadata(bubbleBuilder.build());
+            }
             return id;
         } catch (Exception e) {
             FileLog.e(e);
@@ -3329,6 +3395,7 @@ public class NotificationsController extends BaseController {
             } else {
                 notificationChannel.setSound(null, builder.build());
             }
+            systemNotificationManager.createNotificationChannel(notificationChannel);
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.d("create new channel " + channelId);
             }
@@ -3677,7 +3744,7 @@ public class NotificationsController extends BaseController {
                     .setGroupSummary(true)
                     .setShowWhen(true)
                     .setWhen(((long) lastMessageObject.messageOwner.date) * 1000)
-                    .setColor(0xff11acfa);
+                    .setColor(NekoXConfig.getNotificationColor());
 
             long[] vibrationPattern = null;
             Uri sound = null;
@@ -4169,6 +4236,9 @@ public class NotificationsController extends BaseController {
             int rowsMid = 0;
             for (int a = messageObjects.size() - 1; a >= 0; a--) {
                 MessageObject messageObject = messageObjects.get(a);
+                if (NekoConfig.ignoreBlocked.Bool() && getMessagesController().blockePeers.indexOfKey(messageObject.getSenderId()) >= 0) {
+                    continue;
+                }
                 String message = getShortStringForMessage(messageObject, senderName, preview);
                 if (dialogId == selfUserId) {
                     senderName[0] = name;
@@ -4348,7 +4418,7 @@ public class NotificationsController extends BaseController {
             msgHeardIntent.putExtra("max_id", maxId);
             msgHeardIntent.putExtra("currentAccount", currentAccount);
             PendingIntent readPendingIntent = PendingIntent.getBroadcast(ApplicationLoader.applicationContext, internalId, msgHeardIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            NotificationCompat.Action readAction = new NotificationCompat.Action.Builder(R.drawable.menu_read, LocaleController.getString("MarkAsRead", R.string.MarkAsRead), readPendingIntent)
+            NotificationCompat.Action readAction = new NotificationCompat.Action.Builder(R.drawable.baseline_done_all_24, LocaleController.getString("MarkAsRead", R.string.MarkAsRead), readPendingIntent)
                     .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
                     .setShowsUserInterface(false)
                     .build();
@@ -4382,7 +4452,7 @@ public class NotificationsController extends BaseController {
                     .setContentText(text.toString())
                     .setAutoCancel(true)
                     .setNumber(messageObjects.size())
-                    .setColor(0xff11acfa)
+                    .setColor(NekoXConfig.getNotificationColor())
                     .setGroupSummary(false)
                     .setWhen(date)
                     .setShowWhen(true)
@@ -4744,4 +4814,5 @@ public class NotificationsController extends BaseController {
             return "EnableChannel2";
         }
     }
+
 }

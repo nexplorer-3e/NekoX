@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.PixelFormat;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 
@@ -61,8 +60,6 @@ public class ReactionsEffectOverlay {
     private boolean wasScrolled;
     private ChatMessageCell cell;
     private boolean finished;
-    private boolean useWindow;
-    private ViewGroup decorView;
 
     private ReactionsEffectOverlay(Context context, BaseFragment fragment, ReactionsContainerLayout reactionsLayout, ChatMessageCell cell, float x, float y, String reaction, int currentAccount, int animationType) {
         this.fragment = fragment;
@@ -130,7 +127,11 @@ public class ReactionsEffectOverlay {
                         if (dismissProgress > 1f) {
                             dismissProgress = 1f;
                             AndroidUtilities.runOnUIThread(() -> {
-                                removeCurrentView();
+                                try {
+                                    windowManager.removeView(windowView);
+                                } catch (Exception e) {
+
+                                }
                             });
                         }
                     }
@@ -152,7 +153,7 @@ public class ReactionsEffectOverlay {
                 }
                 ChatMessageCell drawingCell;
                 if (fragment instanceof ChatActivity) {
-                    drawingCell = ((ChatActivity) fragment).findMessageCell(messageId, false);
+                    drawingCell = ((ChatActivity) fragment).findMessageCell(messageId);
                 } else {
                     drawingCell = cell;
                 }
@@ -300,7 +301,11 @@ public class ReactionsEffectOverlay {
                                 ((View) cell.getParent()).invalidate();
                             }
                             AndroidUtilities.runOnUIThread(() -> {
-                                removeCurrentView();
+                                try {
+                                    windowManager.removeView(windowView);
+                                } catch (Exception e) {
+
+                                }
                             });
                         }
                     }
@@ -393,25 +398,11 @@ public class ReactionsEffectOverlay {
             container.setPivotX(leftOffset);
             container.setPivotY(topOffset);
             //}
-        } else {
-            dismissed = true;
-        }
-    }
-
-    private void removeCurrentView() {
-        try {
-            if (useWindow) {
-                windowManager.removeView(windowView);
-            } else {
-                decorView.removeView(windowView);
-            }
-        } catch (Exception e) {
-
         }
     }
 
     public static void show(BaseFragment baseFragment, ReactionsContainerLayout reactionsLayout, ChatMessageCell cell, float x, float y, String reaction, int currentAccount, int animationType) {
-        if (cell == null || reaction == null || baseFragment == null || baseFragment.getParentActivity() == null) {
+        if (cell == null) {
             return;
         }
         boolean animationEnabled = MessagesController.getGlobalMainSettings().getBoolean("view_animations", true);
@@ -429,28 +420,14 @@ public class ReactionsEffectOverlay {
             currentOverlay = reactionsEffectOverlay;
         }
 
-        boolean useWindow = false;
-        if (baseFragment instanceof ChatActivity) {
-            ChatActivity chatActivity = (ChatActivity) baseFragment;
-            if (chatActivity.scrimPopupWindow != null && chatActivity.scrimPopupWindow.isShowing()) {
-                useWindow = true;
-            }
-        }
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.width = lp.height = WindowManager.LayoutParams.MATCH_PARENT;
+        lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+        lp.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR;
+        lp.format = PixelFormat.TRANSLUCENT;
 
-        reactionsEffectOverlay.useWindow = useWindow;
-        if (useWindow) {
-            WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-            lp.width = lp.height = WindowManager.LayoutParams.MATCH_PARENT;
-            lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
-            lp.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR;
-            lp.format = PixelFormat.TRANSLUCENT;
-
-            reactionsEffectOverlay.windowManager = baseFragment.getParentActivity().getWindowManager();
-            reactionsEffectOverlay.windowManager.addView(reactionsEffectOverlay.windowView, lp);
-        } else {
-            reactionsEffectOverlay.decorView = (FrameLayout) baseFragment.getParentActivity().getWindow().getDecorView();
-            reactionsEffectOverlay.decorView.addView(reactionsEffectOverlay.windowView);
-        }
+        reactionsEffectOverlay.windowManager = baseFragment.getParentActivity().getWindowManager();
+        reactionsEffectOverlay.windowManager.addView(reactionsEffectOverlay.windowView, lp);
         cell.invalidate();
         if (cell.getCurrentMessagesGroup() != null && cell.getParent() != null) {
             ((View) cell.getParent()).invalidate();
@@ -483,7 +460,11 @@ public class ReactionsEffectOverlay {
             ReactionsEffectOverlay overlay = i == 0 ? currentOverlay : currentShortOverlay;
             if (overlay != null) {
                 if (instant) {
-                    overlay.removeCurrentView();
+                    try {
+                        overlay.windowManager.removeView(overlay.windowView);
+                    } catch (Exception e) {
+
+                    }
                 } else {
                     overlay.dismissed = true;
                 }

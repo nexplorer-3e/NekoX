@@ -37,6 +37,7 @@ import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Cells.HeaderCell;
 import org.telegram.ui.Cells.ShadowSectionCell;
 import org.telegram.ui.Components.CombinedDrawable;
+import org.telegram.ui.Components.EmojiTextView;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.ProgressButton;
 import org.telegram.ui.Components.RLottieImageView;
@@ -252,12 +253,12 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
             moveImageView.setFocusable(false);
             moveImageView.setScaleType(ImageView.ScaleType.CENTER);
             moveImageView.setImageResource(R.drawable.list_reorder);
-            moveImageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_stickers_menu), PorterDuff.Mode.MULTIPLY));
+            moveImageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_stickers_menu), PorterDuff.Mode.SRC_IN));
             moveImageView.setContentDescription(LocaleController.getString("FilterReorder", R.string.FilterReorder));
             moveImageView.setClickable(true);
             addView(moveImageView, LayoutHelper.createFrame(48, 48, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 6, 0, 6, 0));
 
-            textView = new TextView(context);
+            textView = new EmojiTextView(context);
             textView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
             textView.setLines(1);
@@ -283,7 +284,7 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
             optionsImageView.setFocusable(false);
             optionsImageView.setScaleType(ImageView.ScaleType.CENTER);
             optionsImageView.setBackgroundDrawable(Theme.createSelectorDrawable(Theme.getColor(Theme.key_stickers_menuSelector)));
-            optionsImageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_stickers_menu), PorterDuff.Mode.MULTIPLY));
+            optionsImageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_stickers_menu), PorterDuff.Mode.SRC_IN));
             optionsImageView.setImageResource(R.drawable.msg_actions);
             optionsImageView.setContentDescription(LocaleController.getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
             addView(optionsImageView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 6, 0, 6, 0));
@@ -342,7 +343,7 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
                 info.append(LocaleController.getString("FilterNoChats", R.string.FilterNoChats));
             }
 
-            textView.setText(Emoji.replaceEmoji(filter.name, textView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(20), false));
+            textView.setText(filter.name);
             valueTextView.setText(info);
             //valueTextView.setVisibility(VISIBLE);
             needDivider = divider;
@@ -359,7 +360,7 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
         @Override
         protected void onDraw(Canvas canvas) {
             if (needDivider) {
-                canvas.drawLine(LocaleController.isRTL ? 0 : AndroidUtilities.dp(62), getMeasuredHeight() - 1, getMeasuredWidth() - (LocaleController.isRTL ? AndroidUtilities.dp(62) : 0), getMeasuredHeight() - 1, Theme.dividerPaint);
+                canvas.drawLine(0, getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight() - 1, Theme.dividerPaint);
             }
         }
 
@@ -374,10 +375,6 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
         updateRows(true);
         getMessagesController().loadRemoteFilters(true);
         getNotificationCenter().addObserver(this, NotificationCenter.dialogFiltersUpdated);
-        getNotificationCenter().addObserver(this, NotificationCenter.suggestedFiltersLoaded);
-        if (getMessagesController().suggestedFilters.isEmpty()) {
-            getMessagesController().loadSuggestedFilters();
-        }
         return super.onFragmentCreate();
     }
 
@@ -493,6 +490,10 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
                 return;
             }
             updateRows(true);
+            getNotificationCenter().addObserver(this, NotificationCenter.suggestedFiltersLoaded);
+            if (getMessagesController().suggestedFilters.isEmpty()) {
+                getMessagesController().loadSuggestedFilters();
+            }
         } else if (id == NotificationCenter.suggestedFiltersLoaded) {
             updateRows(true);
         }
@@ -550,8 +551,8 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
                                 LocaleController.getString("FilterDeleteItem", R.string.FilterDeleteItem),
                         };
                         final int[] icons = new int[]{
-                                R.drawable.msg_edit,
-                                R.drawable.msg_delete
+                                R.drawable.baseline_edit_24,
+                                R.drawable.baseline_delete_24
                         };
                         builder1.setItems(items, icons, (dialog, which) -> {
                             if (which == 0) {
@@ -748,8 +749,8 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
                     if (position == createFilterRow) {
                         Drawable drawable1 = mContext.getResources().getDrawable(R.drawable.poll_add_circle);
                         Drawable drawable2 = mContext.getResources().getDrawable(R.drawable.poll_add_plus);
-                        drawable1.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_switchTrackChecked), PorterDuff.Mode.MULTIPLY));
-                        drawable2.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_checkboxCheck), PorterDuff.Mode.MULTIPLY));
+                        drawable1.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_switchTrackChecked), PorterDuff.Mode.SRC_IN));
+                        drawable2.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_checkboxCheck), PorterDuff.Mode.SRC_IN));
                         CombinedDrawable combinedDrawable = new CombinedDrawable(drawable1, drawable2);
 
                         textCell.setTextAndIcon(LocaleController.getString("CreateNewFilter", R.string.CreateNewFilter), combinedDrawable, false);

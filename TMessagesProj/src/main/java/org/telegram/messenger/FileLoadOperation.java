@@ -16,9 +16,9 @@ import org.telegram.tgnet.NativeByteBuffer;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.RandomAccessFile;
-import java.io.File;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -742,6 +742,8 @@ public class FileLoadOperation {
         if (parentObject instanceof TLRPC.TL_theme) {
             TLRPC.TL_theme theme = (TLRPC.TL_theme) parentObject;
             cacheFileFinal = new File(ApplicationLoader.getFilesDirFixed(), "remote" + theme.id + ".attheme");
+        } else if (fileName != null && !encryptFile) {
+            cacheFileFinal = new File(storePath, fileName);
         } else {
             cacheFileFinal = new File(storePath, fileNameFinal);
         }

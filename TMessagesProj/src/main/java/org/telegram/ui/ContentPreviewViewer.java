@@ -12,6 +12,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
@@ -34,7 +35,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ImageLoader;
+import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
@@ -56,11 +57,13 @@ import org.telegram.ui.Cells.ContextLinkCell;
 import org.telegram.ui.Cells.StickerCell;
 import org.telegram.ui.Cells.StickerEmojiCell;
 import org.telegram.ui.Components.AlertsCreator;
-import org.telegram.ui.Components.EmojiView;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 
+import java.io.FileOutputStream;
 import java.util.ArrayList;
+
+import tw.nekomimi.nekogram.NekoConfig;
 
 public class ContentPreviewViewer {
 
@@ -168,17 +171,17 @@ public class ContentPreviewViewer {
                 if (delegate != null) {
                     if (delegate.needSend() && !delegate.isInScheduleMode()) {
                         items.add(LocaleController.getString("SendStickerPreview", R.string.SendStickerPreview));
-                        icons.add(R.drawable.outline_send);
+                        icons.add(R.drawable.deproko_baseline_send_24);
                         actions.add(0);
                     }
-                    if (!delegate.isInScheduleMode()) {
+                    if (delegate.needSend() && !delegate.isInScheduleMode()) {
                         items.add(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound));
-                        icons.add(R.drawable.input_notify_off);
-                        actions.add(6);
+                        icons.add(R.drawable.baseline_notifications_off_24);
+                        actions.add(100);
                     }
                     if (delegate.canSchedule()) {
                         items.add(LocaleController.getString("Schedule", R.string.Schedule));
-                        icons.add(R.drawable.msg_timer);
+                        icons.add(R.drawable.baseline_timer_24);
                         actions.add(3);
                     }
                     if (currentStickerSet != null && delegate.needOpen()) {
@@ -188,9 +191,12 @@ public class ContentPreviewViewer {
                     }
                     if (delegate.needRemove()) {
                         items.add(LocaleController.getString("ImportStickersRemoveMenu", R.string.ImportStickersRemoveMenu));
-                        icons.add(R.drawable.msg_delete);
+                        icons.add(R.drawable.baseline_delete_24);
                         actions.add(5);
                     }
+                    items.add(LocaleController.getString("SaveToGallery", R.string.SaveToGallery));
+                    icons.add(R.drawable.baseline_image_24);
+                    actions.add(110);
                 }
                 if (!MessageObject.isMaskDocument(currentDocument) && (inFavs || MediaDataController.getInstance(currentAccount).canAddStickerToFavorites() && MessageObject.isStickerHasSet(currentDocument))) {
                     items.add(inFavs ? LocaleController.getString("DeleteFromFavorites", R.string.DeleteFromFavorites) : LocaleController.getString("AddToFavorites", R.string.AddToFavorites));
@@ -199,7 +205,7 @@ public class ContentPreviewViewer {
                 }
                 if (isRecentSticker) {
                     items.add(LocaleController.getString("DeleteFromRecent", R.string.DeleteFromRecent));
-                    icons.add(R.drawable.msg_delete);
+                    icons.add(R.drawable.baseline_delete_24);
                     actions.add(4);
                 }
                 if (items.isEmpty()) {
@@ -213,7 +219,7 @@ public class ContentPreviewViewer {
                     if (parentActivity == null) {
                         return;
                     }
-                    if (actions.get(which) == 0 || actions.get(which) == 6) {
+                    if (actions.get(which) == 0 || actions.get(which) == 6 || actions.get(which) == 100) {
                         if (delegate != null) {
                             delegate.sendSticker(currentDocument, currentQuery, parentObject, actions.get(which) == 0, 0);
                         }
@@ -233,6 +239,20 @@ public class ContentPreviewViewer {
                         MediaDataController.getInstance(currentAccount).addRecentSticker(MediaDataController.TYPE_IMAGE, parentObject, currentDocument, (int) (System.currentTimeMillis() / 1000), true);
                     } else if (actions.get(which) == 5) {
                         delegate.remove(importingSticker);
+                    } else if (actions.get(which) == 110) {
+                        // save to gallery
+                        String path = FileLoader.getPathToAttach(currentDocument, true).toString();
+                        if (!TextUtils.isEmpty(path)) {
+                            try {
+                                Bitmap image = BitmapFactory.decodeFile(path);
+                                FileOutputStream stream = new FileOutputStream(path + ".png");
+                                image.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                                stream.close();
+                                MediaController.saveFile(path + ".png", parentActivity, 0, null, null);
+                            } catch (Exception e) {
+                                FileLog.e(e);
+                            }
+                        }
                     }
                 });
                 builder.setDimBehind(false);
@@ -242,7 +262,9 @@ public class ContentPreviewViewer {
                     close();
                 });
                 visibleDialog.show();
-                containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                if (!NekoConfig.disableVibration.Bool()) {
+                    containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                }
                 if (delegate != null && delegate.needRemove()) {
                     BottomSheet.BottomSheetCell cell = visibleDialog.getItemViews().get(0);
                     cell.setTextColor(getThemedColor(Theme.key_dialogTextRed));
@@ -274,12 +296,17 @@ public class ContentPreviewViewer {
 
                 if (delegate.needSend() && !delegate.isInScheduleMode()) {
                     items.add(LocaleController.getString("SendGifPreview", R.string.SendGifPreview));
-                    icons.add(R.drawable.outline_send);
+                    icons.add(R.drawable.deproko_baseline_send_24);
                     actions.add(0);
+                }
+                if (delegate.needSend() && !delegate.isInScheduleMode()) {
+                    items.add(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound));
+                    icons.add(R.drawable.baseline_notifications_off_24);
+                    actions.add(100);
                 }
                 if (delegate.canSchedule()) {
                     items.add(LocaleController.getString("Schedule", R.string.Schedule));
-                    icons.add(R.drawable.msg_timer);
+                    icons.add(R.drawable.baseline_timer_24);
                     actions.add(3);
                 }
 
@@ -287,11 +314,11 @@ public class ContentPreviewViewer {
                 if (currentDocument != null) {
                     if (canDelete = MediaDataController.getInstance(currentAccount).hasRecentGif(currentDocument)) {
                         items.add(LocaleController.formatString("Delete", R.string.Delete));
-                        icons.add(R.drawable.msg_delete);
+                        icons.add(R.drawable.baseline_delete_24);
                         actions.add(1);
                     } else {
                         items.add(LocaleController.formatString("SaveToGIFs", R.string.SaveToGIFs));
-                        icons.add(R.drawable.outline_add_gif);
+                        icons.add(R.drawable.deproko_baseline_gif_24);
                         actions.add(2);
                     }
                 } else {
@@ -306,8 +333,8 @@ public class ContentPreviewViewer {
                     if (parentActivity == null) {
                         return;
                     }
-                    if (actions.get(which) == 0) {
-                        delegate.sendGif(currentDocument != null ? currentDocument : inlineResult, parentObject, true, 0);
+                    if (actions.get(which) == 0 || actions.get(which) == 100) {
+                        delegate.sendGif(currentDocument != null ? currentDocument : inlineResult, parentObject, actions.get(which) == 0, 0);
                     } else if (actions.get(which) == 1) {
                         MediaDataController.getInstance(currentAccount).removeRecentGif(currentDocument);
                         delegate.gifAddedOrDeleted();
@@ -329,7 +356,9 @@ public class ContentPreviewViewer {
                     close();
                 });
                 visibleDialog.show();
-                containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                if (!NekoConfig.disableVibration.Bool()) {
+                    containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                }
                 if (canDelete) {
                     visibleDialog.setItemColor(items.size() - 1, getThemedColor(Theme.key_dialogTextRed2), getThemedColor(Theme.key_dialogRedIcon));
                 }

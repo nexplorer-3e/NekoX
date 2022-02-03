@@ -23,7 +23,6 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Vibrator;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -45,8 +44,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.exoplayer2.util.Log;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
@@ -74,6 +71,9 @@ import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RLottieImageView;
 
 import java.util.ArrayList;
+
+import tw.nekomimi.nekogram.ui.EditTextAutoFill;
+import tw.nekomimi.nekogram.utils.VibrateUtil;
 
 public class TwoStepVerificationSetupActivity extends BaseFragment {
 
@@ -887,7 +887,7 @@ public class TwoStepVerificationSetupActivity extends BaseFragment {
                 FrameLayout frameLayout = new FrameLayout(context);
                 scrollViewLinearLayout.addView(frameLayout, LayoutHelper.createLinear(220, 36, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 40, 32, 40, 0));
 
-                passwordEditText = new EditTextBoldCursor(context);
+                passwordEditText = new EditTextAutoFill(context);
                 passwordEditText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
                 passwordEditText.setPadding(0, AndroidUtilities.dp(2), 0, 0);
                 passwordEditText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
@@ -940,14 +940,14 @@ public class TwoStepVerificationSetupActivity extends BaseFragment {
                 if (Build.VERSION.SDK_INT >= 21) {
                     showPasswordButton.setBackgroundDrawable(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)));
                 }
-                showPasswordButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.MULTIPLY));
+                showPasswordButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.SRC_IN));
                 showPasswordButton.setVisibility(View.GONE);
                 frameLayout.addView(showPasswordButton, LayoutHelper.createFrame(36, 36, Gravity.RIGHT | Gravity.TOP, 0, -5, 0, 0));
                 showPasswordButton.setOnClickListener(v -> {
                     ignoreTextChange = true;
                     if (passwordEditText.getTransformationMethod() == null) {
                         passwordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
-                        showPasswordButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.MULTIPLY));
+                        showPasswordButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.SRC_IN));
                         if (currentType == TYPE_ENTER_FIRST) {
                             if (passwordEditText.length() > 0) {
                                 animationDrawables[3].setCustomEndFrame(-1);
@@ -960,7 +960,7 @@ public class TwoStepVerificationSetupActivity extends BaseFragment {
                         }
                     } else {
                         passwordEditText.setTransformationMethod(null);
-                        showPasswordButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelSend), PorterDuff.Mode.MULTIPLY));
+                        showPasswordButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelSend), PorterDuff.Mode.SRC_IN));
                         if (currentType == TYPE_ENTER_FIRST) {
                             if (passwordEditText.length() > 0) {
                                 animationDrawables[3].setCustomEndFrame(18);
@@ -1753,10 +1753,7 @@ public class TwoStepVerificationSetupActivity extends BaseFragment {
         if (getParentActivity() == null) {
             return;
         }
-        Vibrator v = (Vibrator) getParentActivity().getSystemService(Context.VIBRATOR_SERVICE);
-        if (v != null) {
-            v.vibrate(200);
-        }
+        VibrateUtil.vibrate();
         if (clear) {
             field.setText("");
         }

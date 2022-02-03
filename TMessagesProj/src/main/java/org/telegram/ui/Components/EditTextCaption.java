@@ -36,6 +36,7 @@ import android.widget.FrameLayout;
 
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
+import org.jetbrains.annotations.NotNull;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
@@ -45,6 +46,13 @@ import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
 
 import java.util.List;
+
+import cn.hutool.core.util.StrUtil;
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.transtale.TranslateDb;
+import tw.nekomimi.nekogram.transtale.Translator;
+import tw.nekomimi.nekogram.transtale.TranslatorKt;
+import tw.nekomimi.nekogram.utils.AlertUtil;
 
 public class EditTextCaption extends EditTextBoldCursor {
 
@@ -69,6 +77,8 @@ public class EditTextCaption extends EditTextBoldCursor {
 
     public interface EditTextCaptionDelegate {
         void onSpansChanged();
+
+        long getCurrentChat();
     }
 
     public EditTextCaption(Context context, Theme.ResourcesProvider resourcesProvider) {
@@ -154,6 +164,146 @@ public class EditTextCaption extends EditTextBoldCursor {
         TextStyleSpan.TextStyleRun run = new TextStyleSpan.TextStyleRun();
         run.flags |= TextStyleSpan.FLAG_STYLE_UNDERLINE;
         applyTextStyleToSelection(new TextStyleSpan(run));
+    }
+
+    private String replaceAt(String origin, int start, int end, String translation) {
+
+        String trans = origin.substring(0, start);
+
+        trans += translation;
+
+        trans += origin.substring(end);
+
+        return trans;
+
+    }
+
+    public void makeSelectedTranslate() {
+
+        int start = getSelectionStart();
+        int end = getSelectionEnd();
+
+        String origin = getText().toString();
+        String text = getText().subSequence(start, end).toString();
+
+        if (StrUtil.isBlank(origin)) return;
+
+        TranslateDb db = TranslateDb.currentInputTarget();
+
+        if (db.contains(text)) {
+
+            setText(replaceAt(origin, start, end, TranslateDb.currentInputTarget().query(text)));
+
+        } else {
+
+            Translator.translate(TranslateDb.getChatLanguage(delegate.getCurrentChat(), TranslatorKt.getCode2Locale(NekoConfig.translateInputLang.String())), text, new Translator.Companion.TranslateCallBack() {
+
+                AlertDialog status = AlertUtil.showProgress(getContext());
+
+                {
+                    status.show();
+                }
+
+                @Override
+                public void onSuccess(@NotNull String translation) {
+                    status.dismiss();
+                    setText(replaceAt(origin, start, end, translation));
+                }
+
+                @Override
+                public void onFailed(boolean unsupported, @NotNull String message) {
+                    status.dismiss();
+                    AlertUtil.showTransFailedDialog(getContext(), unsupported, message, () -> {
+                        status = AlertUtil.showProgress(getContext());
+                        status.show();
+                        Translator.translate(text, this);
+                    });
+                }
+
+            });
+
+        }
+
+    }
+
+    public void makeSelectedMention() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle(LocaleController.getString("CreateMention", R.string.CreateMention));
+
+        final EditTextBoldCursor editText = new EditTextBoldCursor(getContext()) {
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(64), MeasureSpec.EXACTLY));
+            }
+        };
+        editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        editText.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        editText.setHintText("ID");
+        editText.setHeaderHintColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        editText.setSingleLine(true);
+        editText.setFocusable(true);
+        editText.setTransformHintToHeader(true);
+        editText.setLineColors(Theme.getColor(Theme.key_windowBackgroundWhiteInputField), Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated), Theme.getColor(Theme.key_windowBackgroundWhiteRedText3));
+        editText.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        editText.setBackgroundDrawable(null);
+        editText.requestFocus();
+        editText.setPadding(0, 0, 0, 0);
+        builder.setView(editText);
+
+        final int start;
+        final int end;
+        if (selectionStart >= 0 && selectionEnd >= 0) {
+            start = selectionStart;
+            end = selectionEnd;
+            selectionStart = selectionEnd = -1;
+        } else {
+            start = getSelectionStart();
+            end = getSelectionEnd();
+        }
+
+        builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), (dialogInterface, i) -> {
+            Editable editable = getText();
+            CharacterStyle spans[] = editable.getSpans(start, end, CharacterStyle.class);
+            if (spans != null && spans.length > 0) {
+                for (int a = 0; a < spans.length; a++) {
+                    CharacterStyle oldSpan = spans[a];
+                    int spanStart = editable.getSpanStart(oldSpan);
+                    int spanEnd = editable.getSpanEnd(oldSpan);
+                    editable.removeSpan(oldSpan);
+                    if (spanStart < start) {
+                        editable.setSpan(oldSpan, spanStart, start, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    if (spanEnd > end) {
+                        editable.setSpan(oldSpan, end, spanEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
+            }
+            try {
+                editable.setSpan(new URLSpanUserMention(editText.getText().toString(), 1), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } catch (Exception ignore) {
+
+            }
+            if (delegate != null) {
+                delegate.onSpansChanged();
+            }
+        });
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        builder.show().setOnShowListener(dialog -> {
+            editText.requestFocus();
+            AndroidUtilities.showKeyboard(editText);
+        });
+        if (editText != null) {
+            ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) editText.getLayoutParams();
+            if (layoutParams != null) {
+                if (layoutParams instanceof FrameLayout.LayoutParams) {
+                    ((FrameLayout.LayoutParams) layoutParams).gravity = Gravity.CENTER_HORIZONTAL;
+                }
+                layoutParams.rightMargin = layoutParams.leftMargin = AndroidUtilities.dp(24);
+                layoutParams.height = AndroidUtilities.dp(36);
+                editText.setLayoutParams(layoutParams);
+            }
+            editText.setSelection(0, editText.getText().length());
+        }
     }
 
     public void makeSelectedUrl() {
@@ -297,7 +447,6 @@ public class EditTextCaption extends EditTextBoldCursor {
                 try {
                     return callback.onActionItemClicked(mode, item);
                 } catch (Exception ignore) {
-
                 }
                 return true;
             }
@@ -360,6 +509,9 @@ public class EditTextCaption extends EditTextBoldCursor {
         } else if (itemId == R.id.menu_link) {
             makeSelectedUrl();
             return true;
+        } else if (itemId == R.id.menu_mention) {
+            makeSelectedMention();
+            return true;
         } else if (itemId == R.id.menu_strike) {
             makeSelectedStrike();
             return true;
@@ -368,6 +520,10 @@ public class EditTextCaption extends EditTextBoldCursor {
             return true;
         } else if (itemId == R.id.menu_spoiler) {
             makeSelectedSpoiler();
+            return true;
+        } else if (itemId == R.id.menu_translate) {
+            // NekoX
+            makeSelectedTranslate();
             return true;
         }
         return false;

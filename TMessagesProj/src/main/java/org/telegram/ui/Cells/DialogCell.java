@@ -27,7 +27,6 @@ import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
-import android.text.style.ClickableSpan;
 import android.text.style.ReplacementSpan;
 import android.view.HapticFeedbackConstants;
 import android.view.accessibility.AccessibilityEvent;
@@ -37,9 +36,9 @@ import android.view.animation.OvershootInterpolator;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
-import org.telegram.messenger.ChatThemeController;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.ChatThemeController;
 import org.telegram.messenger.DownloadController;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
@@ -79,6 +78,9 @@ import org.telegram.ui.DialogsActivity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
+import tw.nekomimi.nekogram.ui.MessageHelper;
+import tw.nekomimi.nekogram.NekoConfig;
 
 public class DialogCell extends BaseCell {
 
@@ -149,7 +151,6 @@ public class DialogCell extends BaseCell {
     private int unreadCount;
     private boolean markUnread;
     private int mentionCount;
-    private int reactionMentionCount;
     private boolean lastUnreadState;
     private int lastSendState;
     private boolean dialogMuted;
@@ -268,18 +269,14 @@ public class DialogCell extends BaseCell {
     private int countLeftOld;
     private boolean countAnimationIncrement;
     private ValueAnimator countAnimator;
-    private ValueAnimator reactionsMentionsAnimator;
     private float countChangeProgress = 1f;
-    private float reactionsMentionsChangeProgress = 1f;
     private StaticLayout countLayout;
     private StaticLayout countOldLayout;
     private StaticLayout countAnimationStableLayout;
     private StaticLayout countAnimationInLayout;
 
     private boolean drawMention;
-    private boolean drawReactionMention;
     private int mentionLeft;
-    private int reactionMentionLeft;
     private int mentionWidth;
     private StaticLayout mentionLayout;
 
@@ -445,7 +442,6 @@ public class DialogCell extends BaseCell {
         markUnread = false;
         messageId = messageObject != null ? messageObject.getId() : 0;
         mentionCount = 0;
-        reactionMentionCount = 0;
         lastUnreadState = messageObject != null && messageObject.isUnread();
         if (message != null) {
             lastSendState = message.messageOwner.send_state;
@@ -831,7 +827,7 @@ public class DialogCell extends BaseCell {
                             drawScam = 2;
                             Theme.dialogs_fakeDrawable.checkText();
                         } else {
-                            drawVerified = chat.verified;
+                            drawVerified = chat.verifiedExtended();
                         }
                         if (SharedConfig.drawDialogIcons) {
                             if (useForceThreeLines || SharedConfig.useThreeLinesLayout) {
@@ -876,7 +872,7 @@ public class DialogCell extends BaseCell {
                             drawScam = 2;
                             Theme.dialogs_fakeDrawable.checkText();
                         } else {
-                            drawVerified = user.verified;
+                            drawVerified = user.verifiedExtended();
                         }
                         if (SharedConfig.drawDialogIcons && user.bot) {
                             drawNameBot = true;
@@ -1027,7 +1023,7 @@ public class DialogCell extends BaseCell {
                             currentMessagePaint = Theme.dialogs_messagePrintingPaint[paintIndex];
                         } else {
                             boolean needEmoji = true;
-                            if (TextUtils.isEmpty(restrictionReason) && currentDialogFolderId == 0 && encryptedChat == null && !message.needDrawBluredPreview() && (message.isPhoto() || message.isNewGif() || message.isVideo())) {
+                            if (NekoConfig.mediaPreview.Bool() && TextUtils.isEmpty(restrictionReason) && currentDialogFolderId == 0 && encryptedChat == null && !message.needDrawBluredPreview() && (message.isPhoto() || message.isNewGif() || message.isVideo())) {
                                 String type = message.isWebpage() ? message.messageOwner.media.webpage.type : null;
                                 if (!("app".equals(type) || "profile".equals(type) || "article".equals(type) || type != null && type.startsWith("telegram_"))) {
                                     TLRPC.PhotoSize smallThumb = FileLoader.getClosestPhotoSizeWithSize(message.photoThumbs, 40);
@@ -1057,8 +1053,9 @@ public class DialogCell extends BaseCell {
                             if (chat != null && chat.id > 0 && fromChat == null && (!ChatObject.isChannel(chat) || ChatObject.isMegagroup(chat))) {
                                 if (message.isOutOwner()) {
                                     messageNameString = LocaleController.getString("FromYou", R.string.FromYou);
-                                } else if (message != null && message.messageOwner.fwd_from != null && message.messageOwner.fwd_from.from_name != null) {
-                                    messageNameString = message.messageOwner.fwd_from.from_name;
+                                // NekoX: fix show forwarded name as sender
+                                /*} else if (message != null && message.messageOwner.fwd_from != null && message.messageOwner.fwd_from.from_name != null) {
+                                    messageNameString = message.messageOwner.fwd_from.from_name;*/
                                 } else if (fromUser != null) {
                                     if (useForceThreeLines || SharedConfig.useThreeLinesLayout) {
                                         if (UserObject.isDeleted(fromUser)) {
@@ -1096,7 +1093,8 @@ public class DialogCell extends BaseCell {
                                         emoji = "\uD83D\uDCCE ";
                                     }
                                     SpannableStringBuilder msgBuilder = new SpannableStringBuilder(mess);
-                                    MediaDataController.addTextStyleRuns(message.messageOwner.entities, message.caption, msgBuilder, TextStyleSpan.FLAG_STYLE_SPOILER);
+                                    if (!NekoConfig.showSpoilersDirectly.Bool())
+                                        MediaDataController.addTextStyleRuns(message.messageOwner.entities, message.caption, msgBuilder, TextStyleSpan.FLAG_STYLE_SPOILER);
                                     stringBuilder = AndroidUtilities.formatSpannable(messageFormat, new SpannableStringBuilder(emoji).append(AndroidUtilities.replaceNewLines(msgBuilder)), messageNameString);
                                 } else if (message.messageOwner.media != null && !message.isMediaEmpty()) {
                                     currentMessagePaint = Theme.dialogs_messagePrintingPaint[paintIndex];
@@ -1155,7 +1153,8 @@ public class DialogCell extends BaseCell {
                                         mess = AndroidUtilities.replaceNewLines(mess);
                                     }
                                     mess = new SpannableStringBuilder(mess);
-                                    MediaDataController.addTextStyleRuns(message, (Spannable) mess, TextStyleSpan.FLAG_STYLE_SPOILER);
+                                    if (!NekoConfig.showSpoilersDirectly.Bool())
+                                        MediaDataController.addTextStyleRuns(message, (Spannable) mess, TextStyleSpan.FLAG_STYLE_SPOILER);
                                     stringBuilder = AndroidUtilities.formatSpannable(messageFormat, mess, messageNameString);
                                 } else {
                                     stringBuilder = SpannableStringBuilder.valueOf("");
@@ -1225,7 +1224,8 @@ public class DialogCell extends BaseCell {
                                         messageString = emoji + str;
                                     } else {
                                         SpannableStringBuilder msgBuilder = new SpannableStringBuilder(message.caption);
-                                        MediaDataController.addTextStyleRuns(message.messageOwner.entities, message.caption, msgBuilder, TextStyleSpan.FLAG_STYLE_SPOILER);
+                                        if (!NekoConfig.showSpoilersDirectly.Bool())
+                                            MediaDataController.addTextStyleRuns(message.messageOwner.entities, message.caption, msgBuilder, TextStyleSpan.FLAG_STYLE_SPOILER);
                                         messageString = new SpannableStringBuilder(emoji).append(msgBuilder);
                                     }
                                 } else {
@@ -1248,7 +1248,8 @@ public class DialogCell extends BaseCell {
                                             messageString = AndroidUtilities.ellipsizeCenterEnd(messageString, message.highlightedWords.get(0), w, currentMessagePaint, 130).toString();
                                         } else {
                                             SpannableStringBuilder stringBuilder = new SpannableStringBuilder(msgText);
-                                            MediaDataController.addTextStyleRuns(message, stringBuilder, TextStyleSpan.FLAG_STYLE_SPOILER);
+                                            if (!NekoConfig.showSpoilersDirectly.Bool())
+                                                MediaDataController.addTextStyleRuns(message, stringBuilder, TextStyleSpan.FLAG_STYLE_SPOILER);
                                             messageString = stringBuilder;
                                         }
                                         AndroidUtilities.highlightText(messageString, message.highlightedWords, resourcesProvider);
@@ -1309,7 +1310,6 @@ public class DialogCell extends BaseCell {
                 drawClock = false;
                 drawCount = false;
                 drawMention = false;
-                drawReactionMention = false;
                 drawError = false;
             } else {
                 if (currentDialogFolderId != 0) {
@@ -1345,11 +1345,6 @@ public class DialogCell extends BaseCell {
                         mentionString = "@";
                     } else {
                         drawMention = false;
-                    }
-                    if (reactionMentionCount != 0) {
-                        drawReactionMention = true;
-                    } else {
-                        drawReactionMention = false;
                     }
                 }
 
@@ -1519,6 +1514,7 @@ public class DialogCell extends BaseCell {
                     nameStringFinal = s;
                 }
             }
+            nameStringFinal = Emoji.replaceEmoji(nameStringFinal, Theme.dialogs_namePaint[paintIndex].getFontMetricsInt(), AndroidUtilities.dp(12), false);
             nameLayout = new StaticLayout(nameStringFinal, Theme.dialogs_namePaint[paintIndex], nameWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
         } catch (Exception e) {
             FileLog.e(e);
@@ -1588,7 +1584,7 @@ public class DialogCell extends BaseCell {
                 messageLeft += w;
                 messageNameLeft += w;
             }
-        } else if (countString != null || mentionString != null || drawReactionMention) {
+        } else if (countString != null || mentionString != null) {
             if (countString != null) {
                 countWidth = Math.max(AndroidUtilities.dp(12), (int) Math.ceil(Theme.dialogs_countTextPaint.measureText(countString)));
                 countLayout = new StaticLayout(countString, Theme.dialogs_countTextPaint, countWidth, Layout.Alignment.ALIGN_CENTER, 1.0f, 0.0f, false);
@@ -1622,17 +1618,6 @@ public class DialogCell extends BaseCell {
                     messageNameLeft += w;
                 }
                 drawMention = true;
-            }
-            if (drawReactionMention) {
-                int w = AndroidUtilities.dp(24);
-                messageWidth -= w;
-                if (!LocaleController.isRTL) {
-                    reactionMentionLeft = getMeasuredWidth() - AndroidUtilities.dp(32) - (mentionWidth != 0 ? (mentionWidth + AndroidUtilities.dp(20)) : 0) - (countWidth != 0 ? countWidth + AndroidUtilities.dp(18) : 0);
-                } else {
-                    reactionMentionLeft = AndroidUtilities.dp(20) + (countWidth != 0 ? countWidth + AndroidUtilities.dp(18) : 0);
-                    messageLeft += w;
-                    messageNameLeft += w;
-                }
             }
         } else {
             if (drawPin) {
@@ -1677,6 +1662,7 @@ public class DialogCell extends BaseCell {
                         messageNameString = s;
                     }
                 }
+                messageNameString = Emoji.replaceEmoji(messageNameString, Theme.dialogs_messageNamePaint.getFontMetricsInt(), AndroidUtilities.dp(12), false);
                 messageNameLayout = StaticLayoutEx.createStaticLayout(messageNameString, Theme.dialogs_messageNamePaint, messageWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0, false, TextUtils.TruncateAt.END, messageWidth, 1);
             } catch (Exception e) {
                 FileLog.e(e);
@@ -1704,19 +1690,12 @@ public class DialogCell extends BaseCell {
             } else {
                 messageStringFinal = messageString;
             }
-            // Removing links to get rid of underlining
-            if (messageStringFinal instanceof Spannable) {
-                Spannable messageStringSpannable = (Spannable) messageStringFinal;
-                ClickableSpan[] spans = messageStringSpannable.getSpans(0, messageStringSpannable.length(), ClickableSpan.class);
-                for (ClickableSpan span : spans) {
-                    messageStringSpannable.removeSpan(span);
-                }
-            }
 
             if (useForceThreeLines || SharedConfig.useThreeLinesLayout) {
                 if (hasMessageThumb && messageNameString != null) {
                     messageWidth += AndroidUtilities.dp(6);
                 }
+                messageStringFinal = Emoji.replaceEmoji(messageStringFinal, currentMessagePaint.getFontMetricsInt(), AndroidUtilities.dp(12), false);
                 messageLayout = StaticLayoutEx.createStaticLayout(messageStringFinal, currentMessagePaint, messageWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, AndroidUtilities.dp(1), false, TextUtils.TruncateAt.END, messageWidth, messageNameString != null ? 1 : 2);
             } else {
                 if (hasMessageThumb) {
@@ -1725,11 +1704,13 @@ public class DialogCell extends BaseCell {
                         messageLeft -= thumbSize + AndroidUtilities.dp(6);
                     }
                 }
+                messageStringFinal = Emoji.replaceEmoji(messageStringFinal,currentMessagePaint.getFontMetricsInt(), AndroidUtilities.dp(12), false);
                 messageLayout = new StaticLayout(messageStringFinal, currentMessagePaint, messageWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
             }
             spoilersPool.addAll(spoilers);
             spoilers.clear();
-            SpoilerEffect.addSpoilers(this, messageLayout, spoilersPool, spoilers);
+            if (!NekoConfig.showSpoilersDirectly.Bool())
+                SpoilerEffect.addSpoilers(this, messageLayout, spoilersPool, spoilers);
         } catch (Exception e) {
             messageLayout = null;
             FileLog.e(e);
@@ -2045,7 +2026,6 @@ public class DialogCell extends BaseCell {
             thumbImage.setImageBitmap((BitmapDrawable) null);
         } else {
             int oldUnreadCount = unreadCount;
-            boolean oldHasReactionsMentions = reactionMentionCount != 0;
             boolean oldMarkUnread = markUnread;
             if (isDialogCell) {
                 TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
@@ -2053,6 +2033,15 @@ public class DialogCell extends BaseCell {
                     if (mask == 0) {
                         clearingDialog = MessagesController.getInstance(currentAccount).isClearingDialog(dialog.id);
                         message = MessagesController.getInstance(currentAccount).dialogMessage.get(dialog.id);
+                        if (message != null && NekoConfig.ignoreBlocked.Bool() && MessagesController.getInstance(currentAccount).blockePeers.indexOfKey(message.getSenderId()) >= 0) {
+                            if (MessagesController.getInstance(currentAccount).dialogMessageFromUnblocked.get(dialog.id) != null)
+                                message = MessagesController.getInstance(currentAccount).dialogMessageFromUnblocked.get(dialog.id);
+                            else {
+                                message = MessageHelper.getInstance(currentAccount).getLastMessageFromUnblock(dialog.id);
+                                MessagesController.getInstance(currentAccount).dialogMessageFromUnblocked.put(dialog.id, message);
+                            }
+                            // Username show may be abnormal if User who send `message` is not loaded in (never enter chat since boot, esp after cold starting)
+                        }
                         lastUnreadState = message != null && message.isUnread();
                         if (dialog instanceof TLRPC.TL_dialogFolder) {
                             unreadCount = MessagesStorage.getInstance(currentAccount).getArchiveUnreadCount();
@@ -2060,7 +2049,6 @@ public class DialogCell extends BaseCell {
                         } else {
                             unreadCount = dialog.unread_count;
                             mentionCount = dialog.unread_mentions_count;
-                            reactionMentionCount = dialog.unread_reactions_count;
                         }
                         markUnread = dialog.unread_mark;
                         currentEditDate = message != null ? message.messageOwner.edit_date : 0;
@@ -2292,34 +2280,6 @@ public class DialogCell extends BaseCell {
                 countAnimationIncrement = unreadCount > oldUnreadCount;
                 countAnimator.start();
             }
-
-            boolean newHasReactionsMentions = reactionMentionCount != 0;
-            if (animated && (newHasReactionsMentions != oldHasReactionsMentions)) {
-                if (reactionsMentionsAnimator != null) {
-                    reactionsMentionsAnimator.cancel();
-                }
-                reactionsMentionsChangeProgress = 0;
-                reactionsMentionsAnimator = ValueAnimator.ofFloat(0, 1f);
-                reactionsMentionsAnimator.addUpdateListener(valueAnimator -> {
-                    reactionsMentionsChangeProgress = (float) valueAnimator.getAnimatedValue();
-                    invalidate();
-                });
-                reactionsMentionsAnimator.addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        reactionsMentionsChangeProgress = 1f;
-                        invalidate();
-                    }
-                });
-                if (newHasReactionsMentions) {
-                    reactionsMentionsAnimator.setDuration(220);
-                    reactionsMentionsAnimator.setInterpolator(new OvershootInterpolator());
-                } else {
-                    reactionsMentionsAnimator.setDuration(150);
-                    reactionsMentionsAnimator.setInterpolator(CubicBezierInterpolator.DEFAULT);
-                }
-                reactionsMentionsAnimator.start();
-            }
         }
         if (getMeasuredWidth() != 0 || getMeasuredHeight() != 0) {
             buildLayout();
@@ -2329,9 +2289,6 @@ public class DialogCell extends BaseCell {
 
         if (!animated) {
             dialogMutedProgress = dialogMuted ? 1f : 0f;
-            if (countAnimator != null) {
-                countAnimator.cancel();
-            }
         }
 
         invalidate();
@@ -2362,7 +2319,7 @@ public class DialogCell extends BaseCell {
         if (isSliding && !swipeCanceled) {
             boolean prevValue = drawRevealBackground;
             drawRevealBackground = Math.abs(translationX) >= getMeasuredWidth() * 0.45f;
-            if (prevValue != drawRevealBackground && archiveHidden == SharedConfig.archiveHidden) {
+            if (prevValue != drawRevealBackground && archiveHidden == SharedConfig.archiveHidden && !NekoConfig.disableVibration.Bool()) {
                 try {
                     performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                 } catch (Exception ignore) {
@@ -2795,7 +2752,7 @@ public class DialogCell extends BaseCell {
             canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, Theme.dialogs_errorPaint);
             setDrawableBounds(Theme.dialogs_errorDrawable, errorLeft + AndroidUtilities.dp(5.5f), errorTop + AndroidUtilities.dp(5));
             Theme.dialogs_errorDrawable.draw(canvas);
-        } else if (drawCount || drawMention || countChangeProgress != 1f || drawReactionMention || reactionsMentionsChangeProgress != 1f) {
+        } else if (drawCount || drawMention || countChangeProgress != 1f) {
             if (drawCount || countChangeProgress != 1f) {
                 final float progressFinal = (unreadCount == 0 && !markUnread) ? 1f - countChangeProgress : countChangeProgress;
                 if (countOldLayout == null || unreadCount == 0) {
@@ -2910,26 +2867,6 @@ public class DialogCell extends BaseCell {
                     setDrawableBounds(Theme.dialogs_mentionDrawable, mentionLeft - AndroidUtilities.dp(2), countTop + AndroidUtilities.dp(3.2f), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
                     Theme.dialogs_mentionDrawable.draw(canvas);
                 }
-            }
-
-            if (drawReactionMention || reactionsMentionsChangeProgress != 1f) {
-
-                Theme.dialogs_countPaint.setAlpha((int) ((1.0f - reorderIconProgress) * 255));
-
-                int x = reactionMentionLeft - AndroidUtilities.dp(5.5f);
-                rect.set(x, countTop, x + AndroidUtilities.dp(23), countTop + AndroidUtilities.dp(23));
-                Paint paint = dialogMuted && folderId != 0 ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint;
-
-                canvas.save();
-                if (reactionsMentionsChangeProgress != 1f) {
-                    float s = drawReactionMention ? reactionsMentionsChangeProgress : (1f - reactionsMentionsChangeProgress);
-                    canvas.scale(s, s, rect.centerX(),  rect.centerY());
-                }
-                canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, paint);
-                Theme.dialogs_reactionsMentionDrawable.setAlpha((int) ((1.0f - reorderIconProgress) * 255));
-                setDrawableBounds(Theme.dialogs_reactionsMentionDrawable, reactionMentionLeft - AndroidUtilities.dp(2), countTop + AndroidUtilities.dp(3.8f), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
-                Theme.dialogs_reactionsMentionDrawable.draw(canvas);
-                canvas.restore();
             }
         } else if (drawPin) {
             Theme.dialogs_pinnedDrawable.setAlpha((int) ((1.0f - reorderIconProgress) * 255));
@@ -3347,7 +3284,7 @@ public class DialogCell extends BaseCell {
         }
         sb.append(". ");
         if (chat != null && !message.isOut() && message.isFromUser() && message.messageOwner.action == null) {
-            TLRPC.User fromUser = MessagesController.getInstance(currentAccount).getUser(message.messageOwner.from_id.user_id);
+            TLRPC.User fromUser = MessagesController.getInstance(currentAccount).getUser(message.getSenderId());
             if (fromUser != null) {
                 sb.append(ContactsController.formatName(fromUser.first_name, fromUser.last_name));
                 sb.append(". ");

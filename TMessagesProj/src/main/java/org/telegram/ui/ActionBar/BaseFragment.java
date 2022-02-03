@@ -28,8 +28,6 @@ import android.view.Window;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.FrameLayout;
 
-import com.google.android.exoplayer2.util.Log;
-
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -52,15 +50,19 @@ import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
 
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.utils.VibrateUtil;
+import tw.nekomimi.nekogram.ui.MessageHelper;
+
 public abstract class BaseFragment {
 
-    private boolean isFinished;
-    private boolean finishing;
+    protected boolean isFinished;
+    protected boolean finishing;
     protected Dialog visibleDialog;
     protected int currentAccount = UserConfig.selectedAccount;
 
     protected View fragmentView;
-    protected ActionBarLayout parentLayout;
+    public ActionBarLayout parentLayout;
     protected ActionBar actionBar;
     protected boolean inPreviewMode;
     protected boolean inMenuMode;
@@ -189,6 +191,9 @@ public abstract class BaseFragment {
     public void setParentFragment(BaseFragment fragment) {
         setParentLayout(fragment.parentLayout);
         fragmentView = createView(parentLayout.getContext());
+        if (NekoConfig.disableVibration.Bool()) {
+            VibrateUtil.disableHapticFeedback(fragmentView);
+        }
     }
 
     protected void setParentLayout(ActionBarLayout layout) {
@@ -637,6 +642,10 @@ public abstract class BaseFragment {
         if (parentLayout != null) {
             parentLayout.setFragmentPanTranslationOffset(offset);
         }
+    }
+
+    public MessageHelper getMessageHelper() {
+        return MessageHelper.getInstance(currentAccount);
     }
 
     public void saveKeyboardPositionBeforeTransition() {

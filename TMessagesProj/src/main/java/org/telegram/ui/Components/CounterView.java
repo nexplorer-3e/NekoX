@@ -205,6 +205,7 @@ public class CounterView extends View {
                 countAnimator.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
+                        animationType = -1;
                         countChangeProgress = 1f;
                         countOldLayout = null;
                         countAnimationStableLayout = null;
@@ -215,7 +216,6 @@ public class CounterView extends View {
                             }
                             parent.invalidate();
                         }
-                        animationType = -1;
                     }
                 });
                 if (currentCount <= 0) {
@@ -435,21 +435,5 @@ public class CounterView extends View {
             Integer color = resourcesProvider != null ? resourcesProvider.getColor(key) : null;
             return color != null ? color : Theme.getColor(key);
         }
-    }
-
-    public float getEnterProgress() {
-        if (counterDrawable.countChangeProgress != 1f && (counterDrawable.animationType == CounterDrawable.ANIMATION_TYPE_IN || counterDrawable.animationType == CounterDrawable.ANIMATION_TYPE_OUT)) {
-            if (counterDrawable.animationType == CounterDrawable.ANIMATION_TYPE_IN) {
-                return counterDrawable.countChangeProgress;
-            } else {
-                return 1f - counterDrawable.countChangeProgress;
-            }
-        } else {
-            return counterDrawable.currentCount == 0 ? 0 : 1f;
-        }
-    }
-
-    public boolean isInOutAnimation() {
-        return counterDrawable.animationType == CounterDrawable.ANIMATION_TYPE_IN || counterDrawable.animationType == CounterDrawable.ANIMATION_TYPE_OUT;
     }
 }

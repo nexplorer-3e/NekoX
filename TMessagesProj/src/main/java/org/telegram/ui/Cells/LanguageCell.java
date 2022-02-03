@@ -12,18 +12,30 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
+import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.URLSpanNoUnderline;
+import org.telegram.ui.ProxyListActivity;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import tw.nekomimi.nekogram.utils.StrUtil;
 
 public class LanguageCell extends FrameLayout {
 
@@ -64,7 +76,7 @@ public class LanguageCell extends FrameLayout {
         addView(textView2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 23 + 48 : 23, (isDialog ? 25 : 29), LocaleController.isRTL ? 23 : 23 + 48, 0));
 
         checkImage = new ImageView(context);
-        checkImage.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_featuredStickers_addedIcon), PorterDuff.Mode.MULTIPLY));
+        checkImage.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_featuredStickers_addedIcon), PorterDuff.Mode.SRC_IN));
         checkImage.setImageResource(R.drawable.sticker_added);
         addView(checkImage, LayoutHelper.createFrame(19, 14, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 23, 0, 23, 0));
     }
@@ -80,6 +92,14 @@ public class LanguageCell extends FrameLayout {
         currentLocale = language;
         needDivider = divider;
     }
+
+    public void setLanguage(BaseFragment fragment,LocaleController.LocaleInfo language, String desc, boolean divider) {
+        StrUtil.setText(fragment, textView, desc != null ? desc : language.name);
+        StrUtil.setText(fragment, textView2, language.nameEnglish);
+        currentLocale = language;
+        needDivider = divider;
+    }
+
 
     public void setValue(String name, String nameEnglish) {
         textView.setText(name);
@@ -100,7 +120,7 @@ public class LanguageCell extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         if (needDivider) {
-            canvas.drawLine(LocaleController.isRTL ? 0 : AndroidUtilities.dp(20), getMeasuredHeight() - 1, getMeasuredWidth() - (LocaleController.isRTL ? AndroidUtilities.dp(20) : 0), getMeasuredHeight() - 1, Theme.dividerPaint);
+            canvas.drawLine(0, getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight() - 1, Theme.dividerPaint);
         }
     }
 }

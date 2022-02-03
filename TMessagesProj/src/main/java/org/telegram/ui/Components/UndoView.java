@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
@@ -36,6 +37,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.jakewharton.processphoenix.ProcessPhoenix;
+
 import androidx.annotation.Keep;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -49,12 +52,12 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
-import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.PaymentFormActivity;
+import org.telegram.ui.LaunchActivity;
+import tw.nekomimi.nekogram.NekoConfig;
 
 import java.util.ArrayList;
 
@@ -174,6 +177,8 @@ public class UndoView extends FrameLayout {
     public final static int ACTION_EMAIL_COPIED = 80;
     public final static int ACTION_CLEAR_DATES = 81;
 
+    public final static int ACTION_NEED_RESATRT = 100;
+
     private CharSequence infoText;
     private int hideAnimationType = 1;
     Drawable backgroundDrawable;
@@ -222,14 +227,14 @@ public class UndoView extends FrameLayout {
         parentFragment = parent;
         fromTop = top;
 
-        infoTextView = new TextView(context);
+        infoTextView = new EmojiTextView(context);
         infoTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         infoTextView.setTextColor(getThemedColor(Theme.key_undo_infoColor));
         infoTextView.setLinkTextColor(getThemedColor(Theme.key_undo_cancelColor));
         infoTextView.setMovementMethod(new LinkMovementMethodMy());
         addView(infoTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT, 45, 13, 0, 0));
 
-        subinfoTextView = new TextView(context);
+        subinfoTextView = new EmojiTextView(context);
         subinfoTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         subinfoTextView.setTextColor(getThemedColor(Theme.key_undo_infoColor));
         subinfoTextView.setLinkTextColor(getThemedColor(Theme.key_undo_cancelColor));
@@ -274,7 +279,7 @@ public class UndoView extends FrameLayout {
 
         undoImageView = new ImageView(context);
         undoImageView.setImageResource(R.drawable.chats_undo);
-        undoImageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_undo_cancelColor), PorterDuff.Mode.MULTIPLY));
+        undoImageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_undo_cancelColor), PorterDuff.Mode.SRC_IN));
         undoButton.addView(undoImageView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.LEFT));
 
         undoTextView = new TextView(context);
@@ -314,7 +319,7 @@ public class UndoView extends FrameLayout {
     }
 
     private boolean isTooltipAction() {
-        return currentAction == ACTION_ARCHIVE_HIDDEN || currentAction == ACTION_ARCHIVE_HINT || currentAction == ACTION_ARCHIVE_FEW_HINT ||
+        return currentAction == ACTION_NEED_RESATRT || currentAction == ACTION_ARCHIVE_HIDDEN || currentAction == ACTION_ARCHIVE_HINT || currentAction == ACTION_ARCHIVE_FEW_HINT ||
                 currentAction == ACTION_ARCHIVE_PINNED || currentAction == ACTION_CONTACT_ADDED || currentAction == ACTION_OWNER_TRANSFERED_CHANNEL ||
                 currentAction == ACTION_OWNER_TRANSFERED_GROUP || currentAction == ACTION_QUIZ_CORRECT || currentAction == ACTION_QUIZ_INCORRECT || currentAction == ACTION_CACHE_WAS_CLEARED ||
                 currentAction == ACTION_ADDED_TO_FOLDER || currentAction == ACTION_REMOVED_FROM_FOLDER || currentAction == ACTION_PROFILE_PHOTO_CHANGED ||
@@ -446,6 +451,12 @@ public class UndoView extends FrameLayout {
         currentAction = action;
         timeLeft = 5000;
         currentInfoObject = infoObject;
+
+        if (NekoConfig.disableUndo.Bool() && !isTooltipAction()) {
+            if (actionRunnable != null) actionRunnable.run();
+            return;
+        }
+
         lastUpdateTime = SystemClock.elapsedRealtime();
         undoTextView.setText(LocaleController.getString("Undo", R.string.Undo).toUpperCase());
         undoImageView.setVisibility(VISIBLE);
@@ -481,10 +492,31 @@ public class UndoView extends FrameLayout {
 
         infoTextView.setMovementMethod(null);
 
-        if (isTooltipAction()) {
-            CharSequence infoText;
-            String subInfoText;
-            int icon;
+        if (currentAction == ACTION_NEED_RESATRT) {
+            infoTextView.setText(LocaleController.getString("RestartAppToTakeEffect", R.string.RestartAppToTakeEffect));
+
+            layoutParams.leftMargin = AndroidUtilities.dp(58);
+            layoutParams.topMargin = AndroidUtilities.dp(13);
+            layoutParams.rightMargin = 0;
+
+            infoTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            undoButton.setVisibility(VISIBLE);
+            infoTextView.setTypeface(Typeface.DEFAULT);
+            subinfoTextView.setVisibility(GONE);
+
+            leftImageView.setVisibility(VISIBLE);
+            leftImageView.setAnimation(R.raw.chats_infotip, 36, 36);
+            leftImageView.setProgress(0);
+            leftImageView.playAnimation();
+            undoImageView.setVisibility(GONE);
+
+            undoTextView.setText(LocaleController.getString("ApplyTheme", R.string.ApplyTheme));
+            currentCancelRunnable = () -> ProcessPhoenix.triggerRebirth(getContext(), new Intent(getContext(), LaunchActivity.class));
+
+        } else if (isTooltipAction()) {
+            CharSequence infoText = "";
+            String subInfoText = "";
+            int icon = 0;
             int size = 36;
             boolean iconIsDrawable = false;
 
@@ -566,7 +598,7 @@ public class UndoView extends FrameLayout {
                 icon = R.raw.voip_invite;
                 timeLeft = 3000;
             } else if (action == ACTION_PAYMENT_SUCCESS) {
-                infoText = (CharSequence) infoObject;
+               /* infoText = (CharSequence) infoObject;
                 subInfoText = null;
                 icon = R.raw.payment_success;
                 timeLeft = 5000;
@@ -585,7 +617,7 @@ public class UndoView extends FrameLayout {
                             }
                         }), ConnectionsManager.RequestFlagFailOnServerErrors);
                     });
-                }
+                }*/
             } else if (action == ACTION_VOIP_MUTED) {
                 String name;
                 if (infoObject instanceof TLRPC.User) {
@@ -873,7 +905,7 @@ public class UndoView extends FrameLayout {
             undoButton.setVisibility(GONE);
         } else if (currentAction == ACTION_IMPORT_NOT_MUTUAL || currentAction == ACTION_IMPORT_GROUP_NOT_ADMIN || currentAction == ACTION_IMPORT_INFO ||
                 currentAction == ACTION_PLAYBACK_SPEED_DISABLED || currentAction == ACTION_PLAYBACK_SPEED_ENABLED || currentAction == ACTION_MESSAGE_COPIED ||
-                currentAction == ACTION_FWD_MESSAGES || currentAction == ACTION_NOTIFY_ON || currentAction == ACTION_NOTIFY_OFF ||  currentAction == ACTION_USERNAME_COPIED ||
+                currentAction == ACTION_FWD_MESSAGES || currentAction == ACTION_NOTIFY_ON || currentAction == ACTION_NOTIFY_OFF || currentAction == ACTION_USERNAME_COPIED ||
                 currentAction == ACTION_HASHTAG_COPIED || currentAction == ACTION_TEXT_COPIED || currentAction == ACTION_LINK_COPIED || currentAction == ACTION_PHONE_COPIED ||
                 currentAction == ACTION_AUTO_DELETE_OFF || currentAction == ACTION_AUTO_DELETE_ON || currentAction == ACTION_GIGAGROUP_CANCEL || currentAction == ACTION_GIGAGROUP_SUCCESS ||
                 currentAction == ACTION_VOIP_INVITE_LINK_SENT || currentAction == ACTION_PIN_DIALOGS || currentAction == ACTION_UNPIN_DIALOGS || currentAction == ACTION_SHARE_BACKGROUND || currentAction == ACTION_EMAIL_COPIED) {
@@ -952,9 +984,6 @@ public class UndoView extends FrameLayout {
                 timeLeft = 3000;
                 infoTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
             } else if (currentAction == ACTION_MESSAGE_COPIED || currentAction == ACTION_USERNAME_COPIED || currentAction == ACTION_HASHTAG_COPIED || currentAction == ACTION_TEXT_COPIED || currentAction == ACTION_LINK_COPIED || currentAction == ACTION_PHONE_COPIED || currentAction == ACTION_EMAIL_COPIED) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    return;
-                }
                 int iconRawId = R.raw.copy;
                 if (currentAction == ACTION_EMAIL_COPIED) {
                     infoTextView.setText(LocaleController.getString("EmailCopied", R.string.EmailCopied));
@@ -1196,15 +1225,15 @@ public class UndoView extends FrameLayout {
             if ("\uD83C\uDFB2".equals(emoji)) {
                 infoTextView.setText(AndroidUtilities.replaceTags(LocaleController.getString("DiceInfo2", R.string.DiceInfo2)));
                 leftImageView.setImageResource(R.drawable.dice);
-            } else{
+            } else {
                 if ("\uD83C\uDFAF".equals(emoji)) {
                     infoTextView.setText(AndroidUtilities.replaceTags(LocaleController.getString("DartInfo", R.string.DartInfo)));
                 } else {
                     String info = LocaleController.getServerString("DiceEmojiInfo_" + emoji);
                     if (!TextUtils.isEmpty(info)) {
-                        infoTextView.setText(Emoji.replaceEmoji(info, infoTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false));
+                        infoTextView.setText(info);
                     } else {
-                        infoTextView.setText(Emoji.replaceEmoji(LocaleController.formatString("DiceEmojiInfo", R.string.DiceEmojiInfo, emoji), infoTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false));
+                        infoTextView.setText(LocaleController.formatString("DiceEmojiInfo", R.string.DiceEmojiInfo, emoji));
                     }
                 }
                 leftImageView.setImageDrawable(Emoji.getEmojiDrawable(emoji));
@@ -1480,8 +1509,8 @@ public class UndoView extends FrameLayout {
                 canvas.restore();
             }
 
-           // canvas.drawText(timeLeftString, rect.centerX() - textWidth / 2, AndroidUtilities.dp(28.2f), textPaint);
-           // canvas.drawText(timeLeftString, , textPaint);
+            // canvas.drawText(timeLeftString, rect.centerX() - textWidth / 2, AndroidUtilities.dp(28.2f), textPaint);
+            // canvas.drawText(timeLeftString, , textPaint);
             canvas.drawArc(rect, -90, -360 * (timeLeft / 5000.0f), false, progressPaint);
         }
 

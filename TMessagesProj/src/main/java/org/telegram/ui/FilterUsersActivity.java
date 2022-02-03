@@ -44,6 +44,7 @@ import android.widget.ImageView;
 import android.widget.ScrollView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.LocaleController;
@@ -55,6 +56,8 @@ import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.ActionBarMenu;
+import org.telegram.ui.ActionBar.ActionBarMenuItem;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
@@ -414,9 +417,18 @@ public class FilterUsersActivity extends BaseFragment implements NotificationCen
                     finishFragment();
                 } else if (id == done_button) {
                     onDonePressed(true);
+                } else if (id == 2) {
+                    adapter.checkAllAdministrated();
                 }
             }
         });
+
+        if (isInclude) {
+            ActionBarMenu menu = actionBar.createMenu();
+            ActionBarMenuItem headerItem = menu.addItem(0, R.drawable.ic_ab_other);
+            headerItem.setContentDescription(LocaleController.getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
+            headerItem.addSubItem(2, R.drawable.baseline_stars_24, LocaleController.getString("CheckAllAdministrated", R.string.CheckAllAdministrated));
+        }
 
         fragmentView = new ViewGroup(context) {
             @Override
@@ -723,13 +735,13 @@ public class FilterUsersActivity extends BaseFragment implements NotificationCen
         Drawable drawable = Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(56), Theme.getColor(Theme.key_chats_actionBackground), Theme.getColor(Theme.key_chats_actionPressedBackground));
         if (Build.VERSION.SDK_INT < 21) {
             Drawable shadowDrawable = context.getResources().getDrawable(R.drawable.floating_shadow).mutate();
-            shadowDrawable.setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.MULTIPLY));
+            shadowDrawable.setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.SRC_IN));
             CombinedDrawable combinedDrawable = new CombinedDrawable(shadowDrawable, drawable, 0, 0);
             combinedDrawable.setIconSize(AndroidUtilities.dp(56), AndroidUtilities.dp(56));
             drawable = combinedDrawable;
         }
         floatingButton.setBackgroundDrawable(drawable);
-        floatingButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_actionIcon), PorterDuff.Mode.MULTIPLY));
+        floatingButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_actionIcon), PorterDuff.Mode.SRC_IN));
         floatingButton.setImageResource(R.drawable.floating_check);
         if (Build.VERSION.SDK_INT >= 21) {
             StateListAnimator animator = new StateListAnimator();
@@ -1004,6 +1016,31 @@ public class FilterUsersActivity extends BaseFragment implements NotificationCen
                 }
                 notifyDataSetChanged();
             });
+        }
+
+        public void checkAllAdministrated() {
+            for (Object object : contacts) {
+                if (object instanceof TLRPC.Chat) {
+                    TLRPC.Chat chat = (TLRPC.Chat) object;
+                    if (chat.creator || ChatObject.hasAdminRights(chat)) {
+                        if (selectedCount >= 100) {
+                            continue;
+                        }
+                        GroupCreateSpan span = new GroupCreateSpan(editText.getContext(), object);
+                        if (selectedContacts.indexOfKey(span.getUid()) >= 0) {
+                            continue;
+                        }
+                        spansContainer.addSpan(span, true);
+                        span.setOnClickListener(FilterUsersActivity.this);
+                    }
+                }
+            }
+            updateHint();
+            AndroidUtilities.hideKeyboard(editText);
+            if (editText.length() > 0) {
+                editText.setText(null);
+            }
+            checkVisibleRows();
         }
 
         public void setSearching(boolean value) {

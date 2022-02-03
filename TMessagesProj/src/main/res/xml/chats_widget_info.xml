@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<appwidget-provider
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="110dp"
     android:minResizeWidth="180dp"
@@ -16,5 +15,4 @@
     android:previewImage="@drawable/chats_widget_preview"
     android:previewLayout="@layout/shortcut_widget_layout_preview"
     android:widgetFeatures="reconfigurable|configuration_optional"
-    android:configure="org.telegram.ui.ChatsWidgetConfigActivity">
-</appwidget-provider>
+    android:configure="org.telegram.ui.ChatsWidgetConfigActivity"></appwidget-provider>

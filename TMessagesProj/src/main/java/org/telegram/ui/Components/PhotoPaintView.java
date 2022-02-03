@@ -6,12 +6,15 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -24,13 +27,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.google.android.gms.vision.Frame;
-import com.google.android.gms.vision.face.Face;
-import com.google.android.gms.vision.face.FaceDetector;
-
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Bitmaps;
-import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.DispatchQueue;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
@@ -38,7 +36,6 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.R;
-import org.telegram.messenger.Utilities;
 import org.telegram.messenger.VideoEditedInfo;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -46,17 +43,16 @@ import org.telegram.ui.ActionBar.ActionBarPopupWindow;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.BubbleActivity;
-import org.telegram.ui.Components.Paint.PhotoFace;
+import org.telegram.ui.Components.Paint.Brush;
+import org.telegram.ui.Components.Paint.Painting;
+import org.telegram.ui.Components.Paint.RenderView;
+import org.telegram.ui.Components.Paint.Swatch;
+import org.telegram.ui.Components.Paint.UndoStore;
+import org.telegram.ui.Components.Paint.Views.ColorPicker;
 import org.telegram.ui.Components.Paint.Views.EntitiesContainerView;
 import org.telegram.ui.Components.Paint.Views.EntityView;
 import org.telegram.ui.Components.Paint.Views.StickerView;
 import org.telegram.ui.Components.Paint.Views.TextPaintView;
-import org.telegram.ui.Components.Paint.UndoStore;
-import org.telegram.ui.Components.Paint.Brush;
-import org.telegram.ui.Components.Paint.RenderView;
-import org.telegram.ui.Components.Paint.Painting;
-import org.telegram.ui.Components.Paint.Swatch;
-import org.telegram.ui.Components.Paint.Views.ColorPicker;
 import org.telegram.ui.PhotoViewer;
 
 import java.math.BigInteger;
@@ -118,7 +114,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
     private Animator colorPickerAnimator;
 
     private DispatchQueue queue;
-    private ArrayList<PhotoFace> faces;
+    //private ArrayList<PhotoFace> faces;
 
     private boolean ignoreLayout;
 
@@ -419,7 +415,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
                 setCurrentSwatch(brushSwatch, true);
                 brushSwatch = null;
             }
-            paintButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            paintButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
             paintButton.setImageResource(R.drawable.photo_paint);
         }
 
@@ -428,7 +424,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
 
     public void updateColors() {
         if (paintButton != null && paintButton.getColorFilter() != null) {
-            paintButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            paintButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
         }
         if (doneTextView != null) {
             doneTextView.setTextColor(getThemedColor(Theme.key_dialogFloatingButton));
@@ -439,7 +435,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
         entitiesView.setVisibility(VISIBLE);
         renderView.setVisibility(View.VISIBLE);
         if (facesBitmap != null) {
-            detectFaces();
+            //detectFaces();
         }
     }
 
@@ -1212,6 +1208,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
     }
 
     private int[] pos = new int[2];
+
     private int[] getCenterLocationInWindow(View view) {
         view.getLocationInWindow(pos);
         float rotation = (float) Math.toRadians(view.getRotation() + (currentCropState != null ? currentCropState.cropRotate + currentCropState.transformRotation : 0));
@@ -1333,7 +1330,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
         ImageView check = new ImageView(getContext());
         check.setImageResource(R.drawable.msg_text_check);
         check.setScaleType(ImageView.ScaleType.CENTER);
-        check.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_radioBackgroundChecked), PorterDuff.Mode.MULTIPLY));
+        check.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_radioBackgroundChecked), PorterDuff.Mode.SRC_IN));
         check.setVisibility(selected ? VISIBLE : INVISIBLE);
         button.addView(check, LayoutHelper.createLinear(50, LayoutHelper.MATCH_PARENT));
 
@@ -1390,7 +1387,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
             ImageView check = new ImageView(getContext());
             check.setImageResource(R.drawable.msg_text_check);
             check.setScaleType(ImageView.ScaleType.CENTER);
-            check.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_radioBackgroundChecked), PorterDuff.Mode.MULTIPLY));
+            check.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_radioBackgroundChecked), PorterDuff.Mode.SRC_IN));
             button.addView(check, LayoutHelper.createLinear(50, LayoutHelper.MATCH_PARENT));
         }
 
@@ -1473,6 +1470,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
         popupWindow.startAnimation();
     }
 
+    /*
     private int getFrameRotation() {
         switch (originalBitmapRotation) {
             case 90: {
@@ -1540,6 +1538,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
             }
         });
     }
+    */
 
     private StickerPosition calculateStickerPosition(TLRPC.Document document) {
         TLRPC.TL_maskCoords maskCoords = null;
@@ -1562,15 +1561,16 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
             baseScale = 0.75f;
         }
         StickerPosition defaultPosition = new StickerPosition(centerPositionForEntity(), baseScale, rotation);
+        /*
         if (maskCoords == null || faces == null || faces.size() == 0) {
             return defaultPosition;
         } else {
             int anchor = maskCoords.n;
 
             PhotoFace face = getRandomFaceWithVacantAnchor(anchor, document.id, maskCoords);
-            if (face == null) {
-                return defaultPosition;
-            }
+            if (face == null) {*/
+        return defaultPosition;
+    }/*
 
             Point referencePoint = face.getPointForAnchor(anchor);
             float referenceWidth = face.getWidthForAnchor(anchor);
@@ -1641,6 +1641,7 @@ public class PhotoPaintView extends FrameLayout implements EntityView.EntityView
 
         return false;
     }
+	*/
 
     private int getThemedColor(String key) {
         Integer color = resourcesProvider != null ? resourcesProvider.getColor(key) : null;

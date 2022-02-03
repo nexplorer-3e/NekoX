@@ -16,8 +16,6 @@
 
 package androidx.recyclerview.widget;
 
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PointF;
@@ -36,6 +34,8 @@ import androidx.core.view.ViewCompat;
 import org.telegram.messenger.BuildVars;
 
 import java.util.List;
+
+import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 /**
  * A {@link RecyclerView.LayoutManager} implementation which provides
@@ -80,7 +80,6 @@ public class LinearLayoutManager extends RecyclerView.LayoutManager implements
      * helps {@link LinearLayoutManager} make those decisions.
      */
     OrientationHelper mOrientationHelper;
-    public boolean mIgnoreTopPadding = false;
 
     /**
      * We need to track this so that we can ignore current position when it changes.
@@ -1884,7 +1883,7 @@ public class LinearLayoutManager extends RecyclerView.LayoutManager implements
         ensureLayoutState();
         View invalidMatch = null;
         View outOfBoundsMatch = null;
-        final int boundsStart = mIgnoreTopPadding ? 0 : mOrientationHelper.getStartAfterPadding();
+        final int boundsStart = mOrientationHelper.getStartAfterPadding();
         final int boundsEnd = mOrientationHelper.getEndAfterPadding();
         final int diff = end > start ? 1 : -1;
         for (int i = start; i != end; i += diff) {

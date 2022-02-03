@@ -32,6 +32,8 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
+import tw.nekomimi.nekogram.utils.AlertUtil;
+
 public class SecretChatHelper extends BaseController {
 
     public static class TL_decryptedMessageHolder extends TLObject {
@@ -66,7 +68,7 @@ public class SecretChatHelper extends BaseController {
         }
     }
 
-    public static int CURRENT_SECRET_CHAT_LAYER = 101;
+    public static final int CURRENT_SECRET_CHAT_LAYER = 101;
 
     private ArrayList<Integer> sendingNotifyLayer = new ArrayList<>();
     private SparseArray<ArrayList<TL_decryptedMessageHolder>> secretHolesQueue = new SparseArray<>();
@@ -77,15 +79,15 @@ public class SecretChatHelper extends BaseController {
     private ArrayList<Long> pendingEncMessagesToDelete = new ArrayList<>();
     private boolean startingSecretChat = false;
 
-    private static volatile SecretChatHelper[] Instance = new SecretChatHelper[UserConfig.MAX_ACCOUNT_COUNT];
+    private static SparseArray<SecretChatHelper> Instance = new SparseArray<>();
 
     public static SecretChatHelper getInstance(int num) {
-        SecretChatHelper localInstance = Instance[num];
+        SecretChatHelper localInstance = Instance.get(num);
         if (localInstance == null) {
             synchronized (SecretChatHelper.class) {
-                localInstance = Instance[num];
+                localInstance = Instance.get(num);
                 if (localInstance == null) {
-                    Instance[num] = localInstance = new SecretChatHelper(num);
+                    Instance.put(num, localInstance = new SecretChatHelper(num));
                 }
             }
         }
@@ -185,6 +187,7 @@ public class SecretChatHelper extends BaseController {
         TLRPC.EncryptedChat existingChat = getMessagesController().getEncryptedChatDB(newChat.id, false);
 
         if (newChat instanceof TLRPC.TL_encryptedChatRequested && existingChat == null) {
+
             long userId = newChat.participant_id;
             if (userId == getUserConfig().getClientUserId()) {
                 userId = newChat.admin_id;
@@ -2006,25 +2009,12 @@ public class SecretChatHelper extends BaseController {
                         });
                     } else {
                         delayedEncryptedChatUpdates.clear();
-                        AndroidUtilities.runOnUIThread(() -> {
-                            if (!((Activity) context).isFinishing()) {
-                                startingSecretChat = false;
-                                try {
-                                    progressDialog.dismiss();
-                                } catch (Exception e) {
-                                    FileLog.e(e);
-                                }
-                                AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                                builder.setTitle(LocaleController.getString("AppName", R.string.AppName));
-                                builder.setMessage(LocaleController.getString("CreateEncryptedChatError", R.string.CreateEncryptedChatError));
-                                builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), null);
-                                builder.show().setCanceledOnTouchOutside(true);
-                            }
-                        });
+                        AlertUtil.showToast(error1);
                     }
                 }, ConnectionsManager.RequestFlagFailOnServerErrors);
             } else {
                 delayedEncryptedChatUpdates.clear();
+                AlertUtil.showToast(error);
                 AndroidUtilities.runOnUIThread(() -> {
                     startingSecretChat = false;
                     if (!((Activity) context).isFinishing()) {

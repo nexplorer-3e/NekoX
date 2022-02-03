@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import org.telegram.ui.Adapters.DialogsAdapter;
 import org.telegram.ui.Cells.DialogCell;
-import org.telegram.ui.Cells.DialogsEmptyCell;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -747,6 +746,6 @@ public class DialogsItemAnimator extends SimpleItemAnimator {
 
     @Override
     public boolean canReuseUpdatedViewHolder(ViewHolder viewHolder, List<Object> payloads) {
-        return viewHolder.itemView instanceof DialogsEmptyCell;
+        return false;
     }
 }

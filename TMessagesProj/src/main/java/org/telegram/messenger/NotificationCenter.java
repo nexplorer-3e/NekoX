@@ -155,6 +155,8 @@ public class NotificationCenter {
     public static final int recordStopped = totalEvents++;
     public static final int screenshotTook = totalEvents++;
     public static final int albumsDidLoad = totalEvents++;
+
+    public static final int beforeAudioDidSent = totalEvents++;
     public static final int audioDidSent = totalEvents++;
     public static final int audioRecordTooShort = totalEvents++;
     public static final int audioRouteChanged = totalEvents++;
@@ -206,7 +208,6 @@ public class NotificationCenter {
     public static final int needSetDayNightTheme = totalEvents++;
     public static final int goingToPreviewTheme = totalEvents++;
     public static final int locationPermissionGranted = totalEvents++;
-    public static final int locationPermissionDenied = totalEvents++;
     public static final int reloadInterface = totalEvents++;
     public static final int suggestedLangpack = totalEvents++;
     public static final int didSetNewWallpapper = totalEvents++;
@@ -231,7 +232,13 @@ public class NotificationCenter {
     public static final int emojiPreviewThemesChanged = totalEvents++;
     public static final int reactionsDidLoad = totalEvents++;
     public static final int chatAvailableReactionsUpdated = totalEvents++;
-    public static final int dialogsUnreadReactionsCounterChanged = totalEvents++;
+
+    // custom
+
+    public static final int updateUserStatus = totalEvents++;
+    public static final int updateLoginToken = totalEvents++;
+    public static final int accountLogin = totalEvents++;
+
 
     private SparseArray<ArrayList<NotificationCenterDelegate>> observers = new SparseArray<>();
     private SparseArray<ArrayList<NotificationCenterDelegate>> removeAfterBroadcast = new SparseArray<>();
@@ -270,17 +277,18 @@ public class NotificationCenter {
 
     private int currentAccount;
     private int currentHeavyOperationFlags;
-    private static volatile NotificationCenter[] Instance = new NotificationCenter[UserConfig.MAX_ACCOUNT_COUNT];
     private static volatile NotificationCenter globalInstance;
+    private static SparseArray<NotificationCenter> Instance = new SparseArray<>();
 
     @UiThread
     public static NotificationCenter getInstance(int num) {
-        NotificationCenter localInstance = Instance[num];
+        NotificationCenter localInstance = Instance.get(num);
         if (localInstance == null) {
             synchronized (NotificationCenter.class) {
-                localInstance = Instance[num];
+                localInstance = Instance.get(num);
                 if (localInstance == null) {
-                    Instance[num] = localInstance = new NotificationCenter(num);
+                    Instance.put(num, localInstance = new NotificationCenter(num));
+
                 }
             }
         }
@@ -405,7 +413,7 @@ public class NotificationCenter {
             delayedRunnablesTmp.addAll(delayedRunnables);
             delayedRunnables.clear();
             for (int a = 0; a < delayedRunnablesTmp.size(); a++) {
-                AndroidUtilities.runOnUIThread(delayedRunnablesTmp.get(a));
+                delayedRunnablesTmp.get(a).run();
             }
             delayedRunnablesTmp.clear();
         }

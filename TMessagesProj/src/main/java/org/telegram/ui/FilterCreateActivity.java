@@ -280,7 +280,7 @@ public class FilterCreateActivity extends BaseFragment {
         } else {
             TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
             paint.setTextSize(AndroidUtilities.dp(20));
-            actionBar.setTitle(Emoji.replaceEmoji(filter.name, paint.getFontMetricsInt(), AndroidUtilities.dp(20), false));
+            actionBar.setTitle(filter.name);
         }
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
@@ -996,10 +996,10 @@ public class FilterCreateActivity extends BaseFragment {
                         textCell.setTextAndIcon(LocaleController.formatPluralString("FilterShowMoreChats", newNeverShow.size() - 5), R.drawable.arrow_more, false);
                     } else if (position == includeAddRow) {
                         textCell.setColors(Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhiteBlueText4);
-                        textCell.setTextAndIcon(LocaleController.getString("FilterAddChats", R.string.FilterAddChats), R.drawable.actions_addchat, position + 1 != includeSectionRow);
+                        textCell.setTextAndIcon(LocaleController.getString("FilterAddChats", R.string.FilterAddChats), R.drawable.baseline_person_add_24, position + 1 != includeSectionRow);
                     } else if (position == excludeAddRow) {
                         textCell.setColors(Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhiteBlueText4);
-                        textCell.setTextAndIcon(LocaleController.getString("FilterRemoveChats", R.string.FilterRemoveChats), R.drawable.actions_addchat, position + 1 != excludeSectionRow);
+                        textCell.setTextAndIcon(LocaleController.getString("FilterRemoveChats", R.string.FilterRemoveChats), R.drawable.baseline_person_add_24, position + 1 != excludeSectionRow);
                     }
                     break;
                 }

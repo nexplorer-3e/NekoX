@@ -21,6 +21,11 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+
+import androidx.annotation.Keep;
+import androidx.core.view.ViewCompat;
+import androidx.core.widget.ScrollerCompat;
+
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -146,7 +151,7 @@ public class ActionBarPopupWindow extends PopupWindow {
 
             try {
                 scrollView = new ScrollView(context);
-                scrollView.setVerticalScrollBarEnabled(false);
+//                scrollView.setVerticalScrollBarEnabled(verticalScrollBarEnabled);
                 if (swipeBackLayout != null) {
                     swipeBackLayout.addView(scrollView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
                 } else addView(scrollView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
@@ -198,7 +203,7 @@ public class ActionBarPopupWindow extends PopupWindow {
             };
             linearLayout.setOrientation(LinearLayout.VERTICAL);
             if (scrollView != null) {
-                scrollView.addView(linearLayout, new ScrollView.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                scrollView.addView(linearLayout, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             } else if (swipeBackLayout != null) {
                 swipeBackLayout.addView(linearLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
             } else {
@@ -234,7 +239,7 @@ public class ActionBarPopupWindow extends PopupWindow {
 
         public void setBackgroundColor(int color) {
             if (backgroundColor != color) {
-                backgroundDrawable.setColorFilter(new PorterDuffColorFilter(backgroundColor = color, PorterDuff.Mode.MULTIPLY));
+                backgroundDrawable.setColorFilter(new PorterDuffColorFilter(backgroundColor = color, PorterDuff.Mode.SRC_IN));
             }
         }
 
@@ -594,6 +599,12 @@ public class ActionBarPopupWindow extends PopupWindow {
             content.setPivotX(content.getMeasuredWidth());
             content.setPivotY(0);
             int count = content.getItemsCount();
+            int height = AndroidUtilities.displayMetrics.heightPixels;
+            int item = content.getItemAt(0).getMeasuredHeight();
+            if (item > 0) {
+                int maxItems = height / item;
+                if (count > maxItems) count = maxItems;
+            }
             content.positions.clear();
             int visibleCount = 0;
             for (int a = 0; a < count; a++) {
@@ -615,6 +626,7 @@ public class ActionBarPopupWindow extends PopupWindow {
                     ObjectAnimator.ofFloat(content, "backScaleY", 0.0f, 1.0f),
                     ObjectAnimator.ofInt(content, "backAlpha", 0, 255));
             windowAnimatorSet.setDuration(150 + 16 * visibleCount);
+            int finalCount = count;
             windowAnimatorSet.addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {

@@ -4,3 +4,9 @@ build/
 obj/
 *.iml
 local.properties
+.externalNativeBuild
+.cxx
+service_account_credentials.json
+*.aar
+*.so
+TMessagesProj/priv-signing.properties

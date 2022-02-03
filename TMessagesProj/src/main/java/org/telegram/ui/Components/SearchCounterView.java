@@ -86,7 +86,7 @@ public class SearchCounterView extends View {
         if (currentCount == 0 || count <= 0 || newStr == null || LocaleController.isRTL || TextUtils.isEmpty(newStr)) {
             animated = false;
         }
-        
+
         if (animated && newStr != null && !newStr.contains("**")) {
             animated = false;
         }

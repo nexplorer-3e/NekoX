@@ -27,7 +27,7 @@
 #define DOWNLOAD_CONNECTIONS_COUNT 2
 #define UPLOAD_CONNECTIONS_COUNT 4
 #define CONNECTION_BACKGROUND_KEEP_TIME 10000
-#define MAX_ACCOUNT_COUNT 3
+#define MAX_ACCOUNT_COUNT 16
 #define USE_DELEGATE_HOST_RESOLVE
 
 #define USE_IPV4_ONLY 0
@@ -39,9 +39,13 @@
 #define NETWORK_TYPE_ROAMING 2
 
 class TLObject;
+
 class TL_error;
+
 class Request;
+
 class TL_message;
+
 class TL_config;
 class NativeByteBuffer;
 class Handshake;

@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
+import tw.nekomimi.nekogram.NekoConfig;
 import androidx.collection.LongSparseArray;
 
 public class ContactsController extends BaseController {
@@ -85,10 +86,14 @@ public class ContactsController extends BaseController {
     private class MyContentObserver extends ContentObserver {
 
         private Runnable checkRunnable = () -> {
-            for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+            for (int a : SharedConfig.activeAccounts) {
                 if (UserConfig.getInstance(a).isClientActivated()) {
                     ConnectionsManager.getInstance(a).resumeNetworkMaybe();
                     ContactsController.getInstance(a).checkContacts();
+                }
+                if (SharedConfig.loginingAccount != -1) {
+                    ConnectionsManager.getInstance(SharedConfig.loginingAccount).resumeNetworkMaybe();
+                    ContactsController.getInstance(SharedConfig.loginingAccount).checkContacts();
                 }
             }
         };
@@ -179,15 +184,16 @@ public class ContactsController extends BaseController {
     public HashMap<String, TLRPC.TL_contact> contactsByShortPhone = new HashMap<>();
 
     private int completedRequestsCount;
-    
-    private static volatile ContactsController[] Instance = new ContactsController[UserConfig.MAX_ACCOUNT_COUNT];
+
+    private static SparseArray<ContactsController> Instance = new SparseArray();
+
     public static ContactsController getInstance(int num) {
-        ContactsController localInstance = Instance[num];
+        ContactsController localInstance = Instance.get(num);
         if (localInstance == null) {
             synchronized (ContactsController.class) {
-                localInstance = Instance[num];
+                localInstance = Instance.get(num);
                 if (localInstance == null) {
-                    Instance[num] = localInstance = new ContactsController(num);
+                    Instance.put(num, localInstance = new ContactsController(num));
                 }
             }
         }
@@ -316,44 +322,15 @@ public class ContactsController extends BaseController {
 
     public void checkAppAccount() {
         AccountManager am = AccountManager.get(ApplicationLoader.applicationContext);
-        try {
-            Account[] accounts = am.getAccountsByType("org.telegram.messenger");
-            systemAccount = null;
-            for (int a = 0; a < accounts.length; a++) {
-                Account acc = accounts[a];
-                boolean found = false;
-                for (int b = 0; b < UserConfig.MAX_ACCOUNT_COUNT; b++) {
-                    TLRPC.User user = UserConfig.getInstance(b).getCurrentUser();
-                    if (user != null) {
-                        if (acc.name.equals("" + user.id)) {
-                            if (b == currentAccount) {
-                                systemAccount = acc;
-                            }
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                if (!found) {
-                    try {
-                        am.removeAccount(accounts[a], null, null);
-                    } catch (Exception ignore) {
-
-                    }
-                }
-
-            }
-        } catch (Throwable ignore) {
-
-        }
         if (getUserConfig().isClientActivated()) {
             readContacts();
-            if (systemAccount == null) {
+            if (systemAccount == null && !NekoConfig.disableSystemAccount.Bool()) {
                 try {
-                    systemAccount = new Account("" + getUserConfig().getClientUserId(), "org.telegram.messenger");
+                    TLRPC.User user = getUserConfig().getCurrentUser();
+                    systemAccount = new Account(formatName(user.first_name, user.last_name), BuildConfig.APPLICATION_ID);
                     am.addAccountExplicitly(systemAccount, "", null);
-                } catch (Exception ignore) {
-
+                } catch (Exception e) {
+                    FileLog.e(e);
                 }
             }
         }
@@ -363,24 +340,32 @@ public class ContactsController extends BaseController {
         try {
             systemAccount = null;
             AccountManager am = AccountManager.get(ApplicationLoader.applicationContext);
-            Account[] accounts = am.getAccountsByType("org.telegram.messenger");
+            Account[] accounts = am.getAccountsByType(BuildConfig.APPLICATION_ID);
             for (int a = 0; a < accounts.length; a++) {
                 Account acc = accounts[a];
-                boolean found = false;
-                for (int b = 0; b < UserConfig.MAX_ACCOUNT_COUNT; b++) {
-                    TLRPC.User user = UserConfig.getInstance(b).getCurrentUser();
-                    if (user != null) {
-                        if (acc.name.equals("" + user.id)) {
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                if (!found) {
+                if (NekoConfig.disableSystemAccount.Bool()) {
                     try {
                         am.removeAccount(accounts[a], null, null);
                     } catch (Exception ignore) {
 
+                    }
+                } else {
+                    boolean found = false;
+                    for (int b : SharedConfig.activeAccounts) {
+                        TLRPC.User user = UserConfig.getInstance(b).getCurrentUser();
+                        if (user != null) {
+                            if (acc.name.equals(formatName(user.first_name, user.last_name))) {
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!found) {
+                        try {
+                            am.removeAccount(accounts[a], null, null);
+                        } catch (Exception ignore) {
+
+                        }
                     }
                 }
             }
@@ -439,11 +424,11 @@ public class ContactsController extends BaseController {
                 AndroidUtilities.runOnUIThread(() -> {
                     AccountManager am = AccountManager.get(ApplicationLoader.applicationContext);
                     try {
-                        Account[] accounts = am.getAccountsByType("org.telegram.messenger");
+                        Account[] accounts = am.getAccountsByType(BuildConfig.APPLICATION_ID);
                         systemAccount = null;
                         for (int a = 0; a < accounts.length; a++) {
                             Account acc = accounts[a];
-                            for (int b = 0; b < UserConfig.MAX_ACCOUNT_COUNT; b++) {
+                            for (int b : SharedConfig.activeAccounts) {
                                 TLRPC.User user = UserConfig.getInstance(b).getCurrentUser();
                                 if (user != null) {
                                     if (acc.name.equals("" + user.id)) {
@@ -457,7 +442,7 @@ public class ContactsController extends BaseController {
 
                     }
                     try {
-                        systemAccount = new Account("" + getUserConfig().getClientUserId(), "org.telegram.messenger");
+                        systemAccount = new Account("" + UserConfig.getInstance(currentAccount).getClientUserId(), BuildConfig.APPLICATION_ID);
                         am.addAccountExplicitly(systemAccount, "", null);
                     } catch (Exception ignore) {
 
@@ -1611,7 +1596,7 @@ public class ContactsController extends BaseController {
     private void saveContactsLoadTime() {
         try {
             SharedPreferences preferences = MessagesController.getMainSettings(currentAccount);
-            preferences.edit().putLong("lastReloadStatusTime", System.currentTimeMillis()).commit();
+            preferences.edit().putLong("lastReloadStatusTime", System.currentTimeMillis()).apply();
         } catch (Exception e) {
             FileLog.e(e);
         }
@@ -2288,7 +2273,7 @@ public class ContactsController extends BaseController {
         getMessagesController().clearFullUsers();
         SharedPreferences preferences = MessagesController.getMainSettings(currentAccount);
         final SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("needGetStatuses", true).commit();
+        editor.putBoolean("needGetStatuses", true).apply();
         TLRPC.TL_contacts_getStatuses req = new TLRPC.TL_contacts_getStatuses();
         getConnectionsManager().sendRequest(req, (response, error) -> {
             if (error == null) {
@@ -2656,7 +2641,7 @@ public class ContactsController extends BaseController {
             lastName = lastName.trim();
         }
         StringBuilder result = new StringBuilder((firstName != null ? firstName.length() : 0) + (lastName != null ? lastName.length() : 0) + 1);
-        if (LocaleController.nameDisplayOrder == 1) {
+        if (NekoConfig.nameOrder.Int() == 1) {
             if (firstName != null && firstName.length() > 0) {
                 if (maxLength > 0 && firstName.length() > maxLength + 2) {
                     return firstName.substring(0, maxLength);

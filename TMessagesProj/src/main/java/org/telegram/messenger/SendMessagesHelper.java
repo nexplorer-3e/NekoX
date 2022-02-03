@@ -61,7 +61,6 @@ import org.telegram.ui.Components.AnimatedFileDrawable;
 import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Point;
-import org.telegram.ui.PaymentFormActivity;
 import org.telegram.ui.TwoStepVerificationActivity;
 import org.telegram.ui.TwoStepVerificationSetupActivity;
 
@@ -645,9 +644,8 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         public TLRPC.EncryptedChat encryptedChat;
         public VideoEditedInfo videoEditedInfo;
         public boolean performMediaUpload;
+public boolean retriedToSend;
 
-        public boolean retriedToSend;
-        
         public int topMessageId;
 
         public TLRPC.InputMedia inputUploadMedia;
@@ -753,14 +751,14 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         }
     }
 
-    private static volatile SendMessagesHelper[] Instance = new SendMessagesHelper[UserConfig.MAX_ACCOUNT_COUNT];
+    private static SparseArray<SendMessagesHelper> Instance = new SparseArray<>();
     public static SendMessagesHelper getInstance(int num) {
-        SendMessagesHelper localInstance = Instance[num];
+        SendMessagesHelper localInstance = Instance.get(num);
         if (localInstance == null) {
             synchronized (SendMessagesHelper.class) {
-                localInstance = Instance[num];
+                localInstance = Instance.get(num);
                 if (localInstance == null) {
-                    Instance[num] = localInstance = new SendMessagesHelper(num);
+                    Instance.put(num, localInstance = new SendMessagesHelper(num));
                 }
             }
         }
@@ -2658,7 +2656,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         return voteSendTime.get(pollId, 0L);
     }
 
-    public void sendReaction(MessageObject messageObject, CharSequence reaction, boolean big, ChatActivity parentFragment, Runnable callback) {
+    public void sendReaction(MessageObject messageObject, CharSequence reaction, ChatActivity parentFragment, Runnable callback) {
         if (messageObject == null || parentFragment == null) {
             return;
         }
@@ -2673,10 +2671,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         if (reaction != null) {
             req.reaction = reaction.toString();
             req.flags |= 1;
-        }
-        if (big) {
-            req.flags |= 2;
-            req.big = true;
         }
         getConnectionsManager().sendRequest(req, (response, error) -> {
             if (response != null) {
@@ -2758,13 +2752,8 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                         AlertsCreator.showOpenUrlAlert(parentFragment, button.url, false, true);
                     }
                 } else if (button instanceof TLRPC.TL_keyboardButtonBuy) {
-                    if (response instanceof TLRPC.TL_payments_paymentForm) {
-                        final TLRPC.TL_payments_paymentForm form = (TLRPC.TL_payments_paymentForm) response;
-                        getMessagesController().putUsers(form.users, false);
-                        parentFragment.presentFragment(new PaymentFormActivity(form, messageObject, parentFragment));
-                    } else if (response instanceof TLRPC.TL_payments_paymentReceipt) {
-                        parentFragment.presentFragment(new PaymentFormActivity((TLRPC.TL_payments_paymentReceipt) response));
-                    }
+                    Toast.makeText(ApplicationLoader.applicationContext, R.string.nekoXPaymentRemovedToast, Toast.LENGTH_SHORT).show();
+                    // NekoX: The payment function has been removed.
                 } else {
                     TLRPC.TL_messages_botCallbackAnswer res = (TLRPC.TL_messages_botCallbackAnswer) response;
                     if (!cacheFinal && res.cache_time != 0 && !button.requires_password) {
@@ -3364,7 +3353,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                     newMsg.media.document = document;
                     if (params != null && params.containsKey("query_id")) {
                         type = 9;
-                    } else if (!MessageObject.isVideoSticker(document) && (MessageObject.isVideoDocument(document) || MessageObject.isRoundVideoDocument(document) || videoEditedInfo != null)) {
+                    } else if (MessageObject.isVideoDocument(document) || MessageObject.isRoundVideoDocument(document) || videoEditedInfo != null) {
                         type = 3;
                     } else if (MessageObject.isVoiceDocument(document)) {
                         type = 8;
@@ -6003,12 +5992,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         if ((path == null || path.length() == 0) && uri == null) {
             return false;
         }
-        if (uri != null && AndroidUtilities.isInternalUri(uri)) {
-            return false;
-        }
-        if (path != null && AndroidUtilities.isInternalUri(Uri.fromFile(new File(path)))) {
-            return false;
-        }
         MimeTypeMap myMime = MimeTypeMap.getSingleton();
         TLRPC.TL_documentAttributeAudio attributeAudio = null;
         String extension = null;
@@ -6449,6 +6432,29 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                 });
             }
         }).start();
+    }
+
+    @UiThread
+    public static void prepareSendingLocation(AccountInstance accountInstance, final Location location, final long dialog_id) {
+        accountInstance.getMessagesStorage().getStorageQueue().postRunnable(() -> Utilities.stageQueue.postRunnable(() -> AndroidUtilities.runOnUIThread(() -> {
+            CharSequence venueTitle = location.getExtras().getCharSequence("venueTitle");
+            CharSequence venueAddress = location.getExtras().getCharSequence("venueAddress");
+            TLRPC.MessageMedia sendingMedia;
+            if(venueTitle != null || venueAddress != null) {
+                sendingMedia = new TLRPC.TL_messageMediaVenue();
+                sendingMedia.address = venueAddress == null ? "" : venueAddress.toString();
+                sendingMedia.title = venueTitle == null ? "" : venueTitle.toString();
+                sendingMedia.provider = "";
+                sendingMedia.venue_id = "";
+            }
+            else {
+                sendingMedia = new TLRPC.TL_messageMediaGeo();
+            }
+            sendingMedia.geo = new TLRPC.TL_geoPoint();
+            sendingMedia.geo.lat = location.getLatitude();
+            sendingMedia.geo._long = location.getLongitude();
+            accountInstance.getSendMessagesHelper().sendMessage(sendingMedia, dialog_id, null, null, null, null, true, 0);
+        })));
     }
 
     @UiThread

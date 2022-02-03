@@ -443,12 +443,12 @@ public class PhotoFilterView extends FrameLayout implements FilterShaders.Filter
         tuneItem = new ImageView(context);
         tuneItem.setScaleType(ImageView.ScaleType.CENTER);
         tuneItem.setImageResource(R.drawable.photo_tools);
-        tuneItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+        tuneItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
         tuneItem.setBackgroundDrawable(Theme.createSelectorDrawable(Theme.ACTION_BAR_WHITE_SELECTOR_COLOR));
         linearLayout.addView(tuneItem, LayoutHelper.createLinear(56, 48));
         tuneItem.setOnClickListener(v -> {
             selectedTool = 0;
-            tuneItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            tuneItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
             blurItem.setColorFilter(null);
             curveItem.setColorFilter(null);
             switchMode();
@@ -462,7 +462,7 @@ public class PhotoFilterView extends FrameLayout implements FilterShaders.Filter
         blurItem.setOnClickListener(v -> {
             selectedTool = 1;
             tuneItem.setColorFilter(null);
-            blurItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            blurItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
             curveItem.setColorFilter(null);
             switchMode();
         });
@@ -479,7 +479,7 @@ public class PhotoFilterView extends FrameLayout implements FilterShaders.Filter
             selectedTool = 2;
             tuneItem.setColorFilter(null);
             blurItem.setColorFilter(null);
-            curveItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            curveItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
             switchMode();
         });
 
@@ -611,13 +611,13 @@ public class PhotoFilterView extends FrameLayout implements FilterShaders.Filter
             doneTextView.setTextColor(getThemedColor(Theme.key_dialogFloatingButton));
         }
         if (tuneItem != null && tuneItem.getColorFilter() != null) {
-            tuneItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            tuneItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
         }
         if (blurItem != null && blurItem.getColorFilter() != null) {
-            blurItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            blurItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
         }
         if (curveItem != null && curveItem.getColorFilter() != null) {
-            curveItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            curveItem.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
         }
         updateSelectedBlurType();
     }
@@ -625,7 +625,7 @@ public class PhotoFilterView extends FrameLayout implements FilterShaders.Filter
     private void updateSelectedBlurType() {
         if (blurType == 0) {
             Drawable drawable = blurOffButton.getContext().getResources().getDrawable(R.drawable.blur_off).mutate();
-            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
             blurOffButton.setCompoundDrawablesWithIntrinsicBounds(null, drawable, null, null);
             blurOffButton.setTextColor(getThemedColor(Theme.key_dialogFloatingButton));
 
@@ -639,7 +639,7 @@ public class PhotoFilterView extends FrameLayout implements FilterShaders.Filter
             blurOffButton.setTextColor(0xffffffff);
 
             Drawable drawable = blurOffButton.getContext().getResources().getDrawable(R.drawable.blur_radial).mutate();
-            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
             blurRadialButton.setCompoundDrawablesWithIntrinsicBounds(null, drawable, null, null);
             blurRadialButton.setTextColor(getThemedColor(Theme.key_dialogFloatingButton));
 
@@ -653,7 +653,7 @@ public class PhotoFilterView extends FrameLayout implements FilterShaders.Filter
             blurRadialButton.setTextColor(0xffffffff);
 
             Drawable drawable = blurOffButton.getContext().getResources().getDrawable(R.drawable.blur_linear).mutate();
-            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.MULTIPLY));
+            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingButton), PorterDuff.Mode.SRC_IN));
             blurLinearButton.setCompoundDrawablesWithIntrinsicBounds(null, drawable, null, null);
             blurLinearButton.setTextColor(getThemedColor(Theme.key_dialogFloatingButton));
         }

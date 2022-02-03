@@ -32,6 +32,9 @@ import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.UserObject;
+import org.telegram.messenger.LocaleController;
 import org.telegram.ui.Cells.DialogCell;
 import org.telegram.ui.Components.EmptyStubSpan;
 import org.telegram.ui.Components.StaticLayoutEx;
@@ -241,6 +244,7 @@ public class SimpleTextView extends View implements Drawable.Callback {
         CharSequence text = this.text;
         replacingDrawableTextIndex = -1;
         if (text != null) {
+            text = Emoji.replaceEmoji(text, textPaint.getFontMetricsInt(), (int) textPaint.getTextSize(), false);
             try {
                 if (leftDrawable != null) {
                     width -= leftDrawable.getIntrinsicWidth();

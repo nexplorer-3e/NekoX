@@ -36,7 +36,8 @@
 #ifdef ANDROID
 #include <jni.h>
 JavaVM *javaVm = nullptr;
-JNIEnv *jniEnv[MAX_ACCOUNT_COUNT];
+//JNIEnv *jniEnv[MAX_ACCOUNT_COUNT];
+std::vector<JNIEnv*> jniEnv(10);
 jclass jclass_ByteBuffer = nullptr;
 jmethodID jclass_ByteBuffer_allocateDirect = nullptr;
 #endif
@@ -134,19 +135,22 @@ ConnectionsManager::~ConnectionsManager() {
     pthread_mutex_destroy(&mutex);
 }
 
+std::vector<ConnectionsManager*> ConnectionsManager::_instances = std::vector<ConnectionsManager*>(10);
+
 ConnectionsManager& ConnectionsManager::getInstance(int32_t instanceNum) {
-    switch (instanceNum) {
-        case 0:
-            static ConnectionsManager instance0(0);
-            return instance0;
-        case 1:
-            static ConnectionsManager instance1(1);
-            return instance1;
-        case 2:
-        default:
-            static ConnectionsManager instance2(2);
-            return instance2;
+    static std::mutex _new_mutex;
+
+    if (instanceNum >= _instances.capacity()) {
+        _instances.resize(instanceNum + 10, nullptr);
     }
+
+    if(_instances[instanceNum] == nullptr) {
+        _new_mutex.lock();
+        if(_instances[instanceNum] == nullptr)
+            _instances[instanceNum] = new ConnectionsManager(instanceNum);
+        _new_mutex.unlock();
+    }
+    return *_instances[instanceNum];
 }
 
 int ConnectionsManager::callEvents(int64_t now) {
@@ -2826,7 +2830,11 @@ std::unique_ptr<TLObject> ConnectionsManager::wrapInLayer(TLObject *object, Data
             if (!proxyAddress.empty() && !proxySecret.empty()) {
                 request->flags |= 1;
                 request->proxy = std::make_unique<TL_inputClientProxy>();
-                request->proxy->address = proxyAddress;
+                if (proxyAddress == "127.0.0.1") {
+                    request->proxy->address = "neko.services";
+                } else {
+                    request->proxy->address = proxyAddress;
+                }
                 request->proxy->port = proxyPort;
             }
 

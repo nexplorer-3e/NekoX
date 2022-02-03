@@ -22,12 +22,12 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.SparseArray;
 
+import androidx.exifinterface.media.ExifInterface;
 import androidx.exifinterface.media.ExifInterface;
 
 import org.json.JSONArray;
@@ -73,6 +73,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
+import tw.nekomimi.nekogram.utils.EnvUtil;
+import tw.nekomimi.nekogram.utils.FileUtil;
+
 /**
  * image filter types
  * suffixes:
@@ -87,7 +90,7 @@ public class ImageLoader {
     private LruCache<BitmapDrawable> smallImagesMemCache;
     private LruCache<BitmapDrawable> memCache;
     private LruCache<BitmapDrawable> wallpaperMemCache;
-    private LruCache<BitmapDrawable> lottieMemCache;
+    private LruCache<RLottieDrawable> lottieMemCache;
     private HashMap<String, CacheImage> imageLoadingByUrl = new HashMap<>();
     private HashMap<String, CacheImage> imageLoadingByKeys = new HashMap<>();
     private SparseArray<CacheImage> imageLoadingByTag = new SparseArray<>();
@@ -954,7 +957,7 @@ public class ImageLoader {
                             h = (int) (h_filter * AndroidUtilities.density);
                         }
                     }
-                    fileDrawable = new AnimatedFileDrawable(cacheImage.finalFilePath, "d".equals(cacheImage.filter), 0, cacheImage.imageLocation.document, null, null, seekTo, cacheImage.currentAccount, false , w, h);
+                    fileDrawable = new AnimatedFileDrawable(cacheImage.finalFilePath, "d".equals(cacheImage.filter), 0, null, null, null, seekTo, cacheImage.currentAccount, false , w, h);
                 }
                 Thread.interrupted();
                 onPostExecute(fileDrawable);
@@ -1459,20 +1462,7 @@ public class ImageLoader {
                         decrementKey = cacheImage.key;
                     }
                 } else if (drawable instanceof AnimatedFileDrawable) {
-                    AnimatedFileDrawable animatedFileDrawable = (AnimatedFileDrawable) drawable;
-                    if (animatedFileDrawable.isWebmSticker) {
-                        toSet = getFromLottieCahce(cacheImage.key);
-                        if (toSet == null) {
-                            lottieMemCache.put(cacheImage.key, animatedFileDrawable);
-                            toSet = animatedFileDrawable;
-                        } else {
-                            animatedFileDrawable.recycle();
-                        }
-                        incrementUseCount(cacheImage.key);
-                        decrementKey = cacheImage.key;
-                    } else {
-                        toSet = drawable;
-                    }
+                    toSet = drawable;
                 } else if (drawable instanceof BitmapDrawable) {
                     BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
                     toSet = getFromMemCache(cacheImage.key);
@@ -1523,9 +1513,6 @@ public class ImageLoader {
         }
         if (drawable == null) {
             drawable = wallpaperMemCache.get(key);
-        }
-        if (drawable == null) {
-            drawable = getFromLottieCahce(key);
         }
         return drawable;
     }
@@ -1804,22 +1791,17 @@ public class ImageLoader {
             }
         };
 
-        lottieMemCache = new LruCache<BitmapDrawable>(512 * 512 * 2 * 4 * 5) {
+        lottieMemCache = new LruCache<RLottieDrawable>(512 * 512 * 2 * 4 * 5) {
             @Override
-            protected int sizeOf(String key, BitmapDrawable value) {
+            protected int sizeOf(String key, RLottieDrawable value) {
                 return value.getIntrinsicWidth() * value.getIntrinsicHeight() * 4 * 2;
             }
 
             @Override
-            protected void entryRemoved(boolean evicted, String key, final BitmapDrawable oldValue, BitmapDrawable newValue) {
+            protected void entryRemoved(boolean evicted, String key, final RLottieDrawable oldValue, RLottieDrawable newValue) {
                 final Integer count = bitmapUseCounts.get(key);
                 if (count == null || count == 0) {
-                    if (oldValue instanceof AnimatedFileDrawable) {
-                        ((AnimatedFileDrawable) oldValue).recycle();
-                    }
-                    if (oldValue instanceof RLottieDrawable) {
-                        ((RLottieDrawable) oldValue).recycle();
-                    }
+                    oldValue.recycle();
                 }
             }
         };
@@ -1836,9 +1818,9 @@ public class ImageLoader {
         AndroidUtilities.createEmptyFile(new File(cachePath, ".nomedia"));
         mediaDirs.put(FileLoader.MEDIA_DIR_CACHE, cachePath);
 
-        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+        FileLoader.delegateFactory = (a) -> {
             final int currentAccount = a;
-            FileLoader.getInstance(a).setDelegate(new FileLoader.FileLoaderDelegate() {
+            return new FileLoader.FileLoaderDelegate() {
                 @Override
                 public void fileUploadProgressChanged(FileUploadOperation operation, final String location, long uploadedSize, long totalSize, final boolean isEncrypted) {
                     fileProgresses.put(location, new long[]{uploadedSize, totalSize});
@@ -1898,8 +1880,9 @@ public class ImageLoader {
                         AndroidUtilities.runOnUIThread(() -> NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.fileLoadProgressChanged, location, uploadedSize, totalSize));
                     }
                 }
-            });
-        }
+            };
+        };
+
         FileLoader.setMediaDirs(mediaDirs);
 
         BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -1958,29 +1941,6 @@ public class ImageLoader {
         testWebFile.remove(url);
     }
 
-    @TargetApi(26)
-    private static void moveDirectory(File source, File target) {
-        if (!source.exists() || (!target.exists() && !target.mkdir())) {
-            return;
-        }
-        try (Stream<Path> files = Files.list(source.toPath())) {
-            files.forEach(path -> {
-                File dest = new File(target, path.getFileName().toString());
-                if (Files.isDirectory(path)) {
-                    moveDirectory(path.toFile(), dest);
-                } else {
-                    try {
-                        Files.move(path, dest.toPath());
-                    } catch (Exception e) {
-                        FileLog.e(e);
-                    }
-                }
-            });
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-    }
-
     public SparseArray<File> createMediaPaths() {
         SparseArray<File> mediaDirs = new SparseArray<>();
         File cachePath = AndroidUtilities.getCacheDir();
@@ -1992,112 +1952,67 @@ public class ImageLoader {
             }
         }
         AndroidUtilities.createEmptyFile(new File(cachePath, ".nomedia"));
-
         mediaDirs.put(FileLoader.MEDIA_DIR_CACHE, cachePath);
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("cache path = " + cachePath);
         }
 
         try {
-            if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-                File path = Environment.getExternalStorageDirectory();
-                if (Build.VERSION.SDK_INT >= 19 && !TextUtils.isEmpty(SharedConfig.storageCacheDir)) {
-                    ArrayList<File> dirs = AndroidUtilities.getRootDirs();
-                    if (dirs != null) {
-                        for (int a = 0, N = dirs.size(); a < N; a++) {
-                            File dir = dirs.get(a);
-                            if (dir.getAbsolutePath().startsWith(SharedConfig.storageCacheDir)) {
-                                path = dir;
-                                break;
-                            }
+            telegramPath = EnvUtil.getTelegramPath();
+
+            if (telegramPath.isDirectory()) {
+                try {
+                    File imagePath = new File(telegramPath, "images");
+                    FileUtil.initDir(imagePath);
+                    if (imagePath.isDirectory() && canMoveFiles(cachePath, imagePath, FileLoader.MEDIA_DIR_IMAGE)) {
+                        mediaDirs.put(FileLoader.MEDIA_DIR_IMAGE, imagePath);
+                        if (BuildVars.LOGS_ENABLED) {
+                            FileLog.d("image path = " + imagePath);
                         }
                     }
+                } catch (Exception e) {
+                    FileLog.e(e);
                 }
 
-                if (Build.VERSION.SDK_INT >= 30) {
-                    File newPath = ApplicationLoader.applicationContext.getExternalFilesDir(null);
-                    telegramPath = new File(newPath, "Telegram");
-//                    File oldPath = new File(path, "Telegram");
-//                    long moveStart = System.currentTimeMillis();
-//                    moveDirectory(oldPath, telegramPath);
-//                    long dt = System.currentTimeMillis() - moveStart;
-//                    FileLog.d("move time = " + dt);
-                } else {
-                    telegramPath = new File(path, "Telegram");
-                }
-                telegramPath.mkdirs();
-
-                if (Build.VERSION.SDK_INT >= 19 && !telegramPath.isDirectory()) {
-                    ArrayList<File> dirs = AndroidUtilities.getDataDirs();
-                    for (int a = 0, N = dirs.size(); a < N; a++) {
-                        File dir = dirs.get(a);
-                        if (dir.getAbsolutePath().startsWith(SharedConfig.storageCacheDir)) {
-                            path = dir;
-                            telegramPath = new File(path, "Telegram");
-                            telegramPath.mkdirs();
-                            break;
+                try {
+                    File videoPath = new File(telegramPath, "videos");
+                    FileUtil.initDir(videoPath);
+                    if (videoPath.isDirectory() && canMoveFiles(cachePath, videoPath, FileLoader.MEDIA_DIR_VIDEO)) {
+                        mediaDirs.put(FileLoader.MEDIA_DIR_VIDEO, videoPath);
+                        if (BuildVars.LOGS_ENABLED) {
+                            FileLog.d("video path = " + videoPath);
                         }
                     }
+                } catch (Exception e) {
+                    FileLog.e(e);
                 }
 
-                if (telegramPath.isDirectory()) {
-                    try {
-                        File imagePath = new File(telegramPath, "Telegram Images");
-                        imagePath.mkdir();
-                        if (imagePath.isDirectory() && canMoveFiles(cachePath, imagePath, FileLoader.MEDIA_DIR_IMAGE)) {
-                            mediaDirs.put(FileLoader.MEDIA_DIR_IMAGE, imagePath);
-                            if (BuildVars.LOGS_ENABLED) {
-                                FileLog.d("image path = " + imagePath);
-                            }
+                try {
+                    File audioPath = new File(telegramPath, "audios");
+                    FileUtil.initDir(audioPath);
+                    if (audioPath.isDirectory() && canMoveFiles(cachePath, audioPath, FileLoader.MEDIA_DIR_AUDIO)) {
+                        AndroidUtilities.createEmptyFile(new File(audioPath, ".nomedia"));
+                        mediaDirs.put(FileLoader.MEDIA_DIR_AUDIO, audioPath);
+                        if (BuildVars.LOGS_ENABLED) {
+                            FileLog.d("audio path = " + audioPath);
                         }
-                    } catch (Exception e) {
-                        FileLog.e(e);
                     }
-
-                    try {
-                        File videoPath = new File(telegramPath, "Telegram Video");
-                        videoPath.mkdir();
-                        if (videoPath.isDirectory() && canMoveFiles(cachePath, videoPath, FileLoader.MEDIA_DIR_VIDEO)) {
-                            mediaDirs.put(FileLoader.MEDIA_DIR_VIDEO, videoPath);
-                            if (BuildVars.LOGS_ENABLED) {
-                                FileLog.d("video path = " + videoPath);
-                            }
-                        }
-                    } catch (Exception e) {
-                        FileLog.e(e);
-                    }
-
-                    try {
-                        File audioPath = new File(telegramPath, "Telegram Audio");
-                        audioPath.mkdir();
-                        if (audioPath.isDirectory() && canMoveFiles(cachePath, audioPath, FileLoader.MEDIA_DIR_AUDIO)) {
-                            AndroidUtilities.createEmptyFile(new File(audioPath, ".nomedia"));
-                            mediaDirs.put(FileLoader.MEDIA_DIR_AUDIO, audioPath);
-                            if (BuildVars.LOGS_ENABLED) {
-                                FileLog.d("audio path = " + audioPath);
-                            }
-                        }
-                    } catch (Exception e) {
-                        FileLog.e(e);
-                    }
-
-                    try {
-                        File documentPath = new File(telegramPath, "Telegram Documents");
-                        documentPath.mkdir();
-                        if (documentPath.isDirectory() && canMoveFiles(cachePath, documentPath, FileLoader.MEDIA_DIR_DOCUMENT)) {
-                            AndroidUtilities.createEmptyFile(new File(documentPath, ".nomedia"));
-                            mediaDirs.put(FileLoader.MEDIA_DIR_DOCUMENT, documentPath);
-                            if (BuildVars.LOGS_ENABLED) {
-                                FileLog.d("documents path = " + documentPath);
-                            }
-                        }
-                    } catch (Exception e) {
-                        FileLog.e(e);
-                    }
+                } catch (Exception e) {
+                    FileLog.e(e);
                 }
-            } else {
-                if (BuildVars.LOGS_ENABLED) {
-                    FileLog.d("this Android can't rename files");
+
+                try {
+                    File documentPath = new File(telegramPath, "documents");
+                    FileUtil.initDir(documentPath);
+                    if (documentPath.isDirectory() && canMoveFiles(cachePath, documentPath, FileLoader.MEDIA_DIR_DOCUMENT)) {
+                        AndroidUtilities.createEmptyFile(new File(documentPath, ".nomedia"));
+                        mediaDirs.put(FileLoader.MEDIA_DIR_DOCUMENT, documentPath);
+                        if (BuildVars.LOGS_ENABLED) {
+                            FileLog.d("documents path = " + documentPath);
+                        }
+                    }
+                } catch (Exception e) {
+                    FileLog.e(e);
                 }
             }
             SharedConfig.checkSaveToGalleryFiles();
@@ -2245,7 +2160,7 @@ public class ImageLoader {
 
     public boolean isInMemCache(String key, boolean animated) {
         if (animated) {
-            return getFromLottieCahce(key) != null;
+            return lottieMemCache.get(key) != null;
         } else {
             return getFromMemCache(key) != null;
         }
@@ -2560,13 +2475,13 @@ public class ImageLoader {
                     boolean isEncrypted = imageLocation.isEncrypted();
                     CacheImage img = new CacheImage();
                     if (!currentKeyQuality) {
-                        if (imageLocation.imageType == FileLoader.IMAGE_TYPE_ANIMATION || MessageObject.isGifDocument(imageLocation.webFile) || MessageObject.isGifDocument(imageLocation.document) || MessageObject.isRoundVideoDocument(imageLocation.document) || MessageObject.isVideoSticker(imageLocation.document)) {
+                        if (imageLocation.imageType == FileLoader.IMAGE_TYPE_ANIMATION || MessageObject.isGifDocument(imageLocation.webFile) || MessageObject.isGifDocument(imageLocation.document) || MessageObject.isRoundVideoDocument(imageLocation.document)) {
                             img.imageType = FileLoader.IMAGE_TYPE_ANIMATION;
                         } else if (imageLocation.path != null) {
                             String location = imageLocation.path;
                             if (!location.startsWith("vthumb") && !location.startsWith("thumb")) {
                                 String trueExt = getHttpUrlExtension(location, "jpg");
-                                if (trueExt.equals("webm") || trueExt.equals("mp4") || trueExt.equals("gif")) {
+                                if (trueExt.equals("mp4") || trueExt.equals("gif")) {
                                     img.imageType = FileLoader.IMAGE_TYPE_ANIMATION;
                                 } else if ("tgs".equals(ext)) {
                                     img.imageType = FileLoader.IMAGE_TYPE_LOTTIE;
@@ -2615,8 +2530,10 @@ public class ImageLoader {
                             TLRPC.Document document = imageLocation.document;
                             if (document instanceof TLRPC.TL_documentEncrypted) {
                                 cacheFile = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE), url);
-                            } else if (MessageObject.isVideoDocument(document)) {
+                            } else if (MessageObject.isVideoDocument(document) || MessageObject.isGifDocument(document)) {
                                 cacheFile = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_VIDEO), url);
+                            } else if (MessageObject.isStickerDocument(document)) {
+                                cacheFile = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE), url);
                             } else {
                                 cacheFile = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_DOCUMENT), url);
                             }
@@ -2772,8 +2689,8 @@ public class ImageLoader {
         if (mediaKey != null) {
             ImageLocation mediaLocation = imageReceiver.getMediaLocation();
             Drawable drawable;
-            if (useLottieMemChache(mediaLocation)) {
-                drawable = getFromLottieCahce(mediaKey);
+            if (mediaLocation != null && (MessageObject.isAnimatedStickerDocument(mediaLocation.document, true) || mediaLocation.imageType == FileLoader.IMAGE_TYPE_LOTTIE)) {
+                drawable = lottieMemCache.get(mediaKey);
             } else {
                 drawable = memCache.get(mediaKey);
                 if (drawable != null) {
@@ -2805,8 +2722,8 @@ public class ImageLoader {
         if (!imageSet && imageKey != null) {
             ImageLocation imageLocation = imageReceiver.getImageLocation();
             Drawable drawable;
-            if (useLottieMemChache(imageLocation)) {
-                drawable = getFromLottieCahce(imageKey);
+            if (imageLocation != null && (MessageObject.isAnimatedStickerDocument(imageLocation.document, true) || imageLocation.imageType == FileLoader.IMAGE_TYPE_LOTTIE)) {
+                drawable = lottieMemCache.get(imageKey);
             } else {
                 drawable = memCache.get(imageKey);
                 if (drawable != null) {
@@ -2839,8 +2756,8 @@ public class ImageLoader {
         if (thumbKey != null) {
             ImageLocation thumbLocation = imageReceiver.getThumbLocation();
             Drawable drawable;
-            if (useLottieMemChache(thumbLocation)) {
-                drawable = getFromLottieCahce(thumbKey);
+            if (thumbLocation != null && (MessageObject.isAnimatedStickerDocument(thumbLocation.document, true) || thumbLocation.imageType == FileLoader.IMAGE_TYPE_LOTTIE)) {
+                drawable = lottieMemCache.get(thumbKey);
             } else {
                 drawable = memCache.get(thumbKey);
                 if (drawable != null) {
@@ -3051,21 +2968,6 @@ public class ImageLoader {
             createLoadOperationForImageReceiver(imageReceiver, thumbKey, thumbUrl, thumbExt, thumbLocation, thumbFilter, 0, thumbCacheType, ImageReceiver.TYPE_THUMB, thumbSet ? 2 : 1, guid);
             createLoadOperationForImageReceiver(imageReceiver, imageKey, imageUrl, imageExt, imageLocation, imageFilter, imageReceiver.getSize(), imageCacheType, ImageReceiver.TYPE_IMAGE, 0, guid);
         }
-    }
-
-    private BitmapDrawable getFromLottieCahce(String imageKey) {
-        BitmapDrawable drawable = lottieMemCache.get(imageKey);
-        if (drawable instanceof AnimatedFileDrawable) {
-            if (((AnimatedFileDrawable) drawable).isRecycled()) {
-                lottieMemCache.remove(imageKey);
-                drawable = null;
-            }
-        }
-        return drawable;
-    }
-
-    private boolean useLottieMemChache(ImageLocation imageLocation) {
-        return imageLocation != null && (MessageObject.isAnimatedStickerDocument(imageLocation.document, true) || imageLocation.imageType == FileLoader.IMAGE_TYPE_LOTTIE || MessageObject.isVideoSticker(imageLocation.document));
     }
 
     private void httpFileLoadError(final String location) {

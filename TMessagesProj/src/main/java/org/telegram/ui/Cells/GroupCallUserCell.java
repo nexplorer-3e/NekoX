@@ -460,7 +460,7 @@ public class GroupCallUserCell extends FrameLayout {
             avatarDrawable.setInfo(currentUser);
 
             nameTextView.setText(UserObject.getUserName(currentUser));
-            nameTextView.setRightDrawable(currentUser != null && currentUser.verified ? new VerifiedDrawable(getContext()) : null);
+            nameTextView.setRightDrawable(currentUser != null && currentUser.verifiedExtended() ? new VerifiedDrawable(getContext()) : null);
             avatarImageView.getImageReceiver().setCurrentAccount(account.getCurrentAccount());
             if (uploadingAvatar != null) {
                 hasAvatar = true;
@@ -477,7 +477,7 @@ public class GroupCallUserCell extends FrameLayout {
 
             if (currentChat != null) {
                 nameTextView.setText(currentChat.title);
-                nameTextView.setRightDrawable(currentChat.verified ? new VerifiedDrawable(getContext()) : null);
+                nameTextView.setRightDrawable(currentChat.verifiedExtended() ? new VerifiedDrawable(getContext()) : null);
                 avatarImageView.getImageReceiver().setCurrentAccount(account.getCurrentAccount());
                 if (uploadingAvatar != null) {
                     hasAvatar = true;

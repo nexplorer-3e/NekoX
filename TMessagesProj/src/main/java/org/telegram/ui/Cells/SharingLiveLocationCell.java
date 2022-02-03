@@ -19,7 +19,7 @@ import android.text.TextUtils;
 import android.view.Gravity;
 import android.widget.FrameLayout;
 
-import com.google.android.gms.maps.model.LatLng;
+import org.osmdroid.util.GeoPoint;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ContactsController;
@@ -143,7 +143,7 @@ public class SharingLiveLocationCell extends FrameLayout {
         distanceTextView.setText(address);
     }
 
-    public void setDialog(MessageObject messageObject, Location userLocation, boolean userLocationDenied) {
+    public void setDialog(MessageObject messageObject, Location userLocation) {
         long fromId = messageObject.getFromChatId();
         if (messageObject.isForwarded()) {
             fromId = MessageObject.getPeerId(messageObject.messageOwner.fwd_from.from_id);
@@ -158,7 +158,7 @@ public class SharingLiveLocationCell extends FrameLayout {
             name = messageObject.messageOwner.media.title;
 
             Drawable drawable = getResources().getDrawable(R.drawable.pin);
-            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_location_sendLocationIcon), PorterDuff.Mode.MULTIPLY));
+            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_location_sendLocationIcon), PorterDuff.Mode.SRC_IN));
             int color = getThemedColor(Theme.key_location_placeLocationBackground);
             Drawable circle = Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(42), color, color);
             CombinedDrawable combinedDrawable = new CombinedDrawable(circle, drawable);
@@ -198,10 +198,8 @@ public class SharingLiveLocationCell extends FrameLayout {
         } else {
             if (address != null) {
                 distanceTextView.setText(address);
-            } else if (!userLocationDenied) {
-                distanceTextView.setText(LocaleController.getString("Loading", R.string.Loading));
             } else {
-                distanceTextView.setText("");
+                distanceTextView.setText(LocaleController.getString("Loading", R.string.Loading));
             }
         }
     }
@@ -224,9 +222,9 @@ public class SharingLiveLocationCell extends FrameLayout {
             }
         }
 
-        LatLng position = info.marker.getPosition();
-        location.setLatitude(position.latitude);
-        location.setLongitude(position.longitude);
+        GeoPoint position = info.marker.getPosition();
+        location.setLatitude(position.getLatitude());
+        location.setLongitude(position.getLongitude());
 
         String time = LocaleController.formatLocationUpdateDate(info.object.edit_date != 0 ? info.object.edit_date : info.object.date);
         if (userLocation != null) {

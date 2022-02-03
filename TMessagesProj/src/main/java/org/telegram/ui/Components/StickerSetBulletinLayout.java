@@ -30,7 +30,8 @@ public class StickerSetBulletinLayout extends Bulletin.TwoLineLayout {
     public static final int TYPE_ADDED_TO_FAVORITES = 5;
 
     @IntDef(value = {TYPE_EMPTY, TYPE_REMOVED, TYPE_ARCHIVED, TYPE_ADDED, TYPE_REMOVED_FROM_RECENT, TYPE_REMOVED_FROM_FAVORITES, TYPE_ADDED_TO_FAVORITES})
-    public @interface Type {}
+    public @interface Type {
+    }
 
     public StickerSetBulletinLayout(@NonNull Context context, TLObject setObject, @Type int type) {
         this(context, setObject, type, null, null);
@@ -89,7 +90,7 @@ public class StickerSetBulletinLayout extends Bulletin.TwoLineLayout {
                 imageLocation = ImageLocation.getForSticker(thumb, sticker, thumbVersion);
             }
 
-            if (object instanceof TLRPC.Document && MessageObject.isAnimatedStickerDocument(sticker, true) ||  MessageObject.isVideoSticker(sticker)) {
+            if (object instanceof TLRPC.Document && MessageObject.isAnimatedStickerDocument(sticker, true)) {
                 imageView.setImage(ImageLocation.getForDocument(sticker), "50_50", imageLocation, null, 0, setObject);
             } else if (imageLocation != null && imageLocation.imageType == FileLoader.IMAGE_TYPE_LOTTIE) {
                 imageView.setImage(imageLocation, "50_50", "tgs", null, setObject);

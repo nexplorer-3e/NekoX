@@ -25,6 +25,9 @@ import java.util.HashMap;
 
 import androidx.collection.LongSparseArray;
 
+import cn.hutool.core.util.StrUtil;
+import tw.nekomimi.nekogram.NekoConfig;
+
 public class DownloadController extends BaseController implements NotificationCenter.NotificationCenterDelegate {
 
     public interface FileDownloadProgressListener {
@@ -208,16 +211,16 @@ public class DownloadController extends BaseController implements NotificationCe
     public int currentMobilePreset;
     public int currentWifiPreset;
     public int currentRoamingPreset;
-    
-    private static volatile DownloadController[] Instance = new DownloadController[UserConfig.MAX_ACCOUNT_COUNT];
+
+    private static SparseArray<DownloadController> Instance = new SparseArray<>();
 
     public static DownloadController getInstance(int num) {
-        DownloadController localInstance = Instance[num];
+        DownloadController localInstance = Instance.get(num);
         if (localInstance == null) {
             synchronized (DownloadController.class) {
-                localInstance = Instance[num];
+                localInstance = Instance.get(num);
                 if (localInstance == null) {
-                    Instance[num] = localInstance = new DownloadController(num);
+                    Instance.put(num, localInstance = new DownloadController(num));
                 }
             }
         }
@@ -569,6 +572,17 @@ public class DownloadController extends BaseController implements NotificationCe
     }
 
     public boolean canDownloadMedia(MessageObject messageObject) {
+        if (messageObject.getDocument() != null) {
+            String documentName = messageObject.getDocument().file_name;
+            if (StrUtil.isNotBlank(documentName)) {
+                if ((NekoConfig.disableAutoDownloadingWin32Executable.Bool() &&
+                        documentName.toLowerCase().matches(".*\\.(cmd|bat|com|exe|lnk|msi|ps1|reg|vb|vbe|vbs|vbscript)")
+                ) || (NekoConfig.disableAutoDownloadingArchive.Bool() &&
+                        documentName.toLowerCase().matches(".*\\.(apk|zip|7z|tar|gz|zst|iso|xz|lha|lzh)")
+                )
+                ) return false;
+            }
+        }
         return canDownloadMedia(messageObject.messageOwner) == 1;
     }
 

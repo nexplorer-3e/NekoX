@@ -33,11 +33,13 @@ import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.style.CharacterStyle;
 import android.util.SparseArray;
+import android.widget.Toast;
 
-import androidx.collection.LongSparseArray;
 import androidx.core.content.pm.ShortcutInfoCompat;
 import androidx.core.content.pm.ShortcutManagerCompat;
 import androidx.core.graphics.drawable.IconCompat;
+
+import androidx.collection.LongSparseArray;
 
 import org.telegram.SQLite.SQLiteCursor;
 import org.telegram.SQLite.SQLiteDatabase;
@@ -74,6 +76,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.ui.PinnedStickerHelper;
+
 @SuppressWarnings("unchecked")
 public class MediaDataController extends BaseController {
     private static Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.+?)\\*\\*"),
@@ -83,15 +88,16 @@ public class MediaDataController extends BaseController {
 
     public static String SHORTCUT_CATEGORY = "org.telegram.messenger.SHORTCUT_SHARE";
 
-    private static volatile MediaDataController[] Instance = new MediaDataController[UserConfig.MAX_ACCOUNT_COUNT];
+    private static SparseArray<MediaDataController> Instance = new SparseArray<>();
 
     public static MediaDataController getInstance(int num) {
-        MediaDataController localInstance = Instance[num];
+        MediaDataController localInstance = Instance.get(num);
         if (localInstance == null) {
             synchronized (MediaDataController.class) {
-                localInstance = Instance[num];
+                localInstance = Instance.get(num);
                 if (localInstance == null) {
-                    Instance[num] = localInstance = new MediaDataController(num);
+                    Instance.put(num, localInstance = new MediaDataController(num));
+
                 }
             }
         }
@@ -425,8 +431,12 @@ public class MediaDataController extends BaseController {
     }
 
     public ArrayList<TLRPC.Document> getRecentStickers(int type) {
+        return getRecentStickers(type, 0);
+    }
+
+    public ArrayList<TLRPC.Document> getRecentStickers(int type, int padding) {
         ArrayList<TLRPC.Document> arrayList = recentStickers[type];
-        return new ArrayList<>(arrayList.subList(0, Math.min(arrayList.size(), 20)));
+        return new ArrayList<>(arrayList.subList(0, Math.min(arrayList.size(), NekoConfig.maxRecentStickerCount.Int() + padding)));
     }
 
     public ArrayList<TLRPC.Document> getRecentStickersNoCopy(int type) {
@@ -488,7 +498,7 @@ public class MediaDataController extends BaseController {
                     AndroidUtilities.runOnUIThread(() -> getMediaDataController().loadRecents(MediaDataController.TYPE_FAVE, false, false, true));
                 }
             });
-            maxCount = getMessagesController().maxFaveStickersCount;
+            maxCount = NekoConfig.unlimitedFavedStickers.Bool() ? Integer.MAX_VALUE : getMessagesController().maxFaveStickersCount;
         } else {
             if (type == TYPE_IMAGE && remove) {
                 NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_STICKER, document, StickerSetBulletinLayout.TYPE_REMOVED_FROM_RECENT);
@@ -883,6 +893,9 @@ public class MediaDataController extends BaseController {
     }
 
     public void loadRecents(int type, boolean gif, boolean cache, boolean force) {
+        if (NekoConfig.unlimitedFavedStickers.Bool() && type == TYPE_FAVE && !cache) {
+            return;
+        }
         if (gif) {
             if (loadingRecentGifs) {
                 return;
@@ -1052,7 +1065,7 @@ public class MediaDataController extends BaseController {
                         if (type == TYPE_GREETINGS) {
                             maxCount = 200;
                         } else if (type == TYPE_FAVE) {
-                            maxCount = getMessagesController().maxFaveStickersCount;
+                            maxCount = NekoConfig.unlimitedFavedStickers.Bool() ? Integer.MAX_VALUE : getMessagesController().maxFaveStickersCount;
                         } else {
                             maxCount = getMessagesController().maxRecentStickersCount;
                         }
@@ -1212,7 +1225,7 @@ public class MediaDataController extends BaseController {
     }
 
     public void loadFeaturedStickers(boolean cache, boolean force) {
-        if (loadingFeaturedStickers) {
+        if (loadingFeaturedStickers || NekoConfig.disableTrending.Bool()) {
             return;
         }
         loadingFeaturedStickers = true;
@@ -1519,7 +1532,7 @@ public class MediaDataController extends BaseController {
                 archivedStickersCount[type] = count;
                 getNotificationCenter().postNotificationName(NotificationCenter.archivedStickersCountDidLoad, type);
             }
-        } else {
+        } else if(!getUserConfig().getCurrentUser().bot)  {
             TLRPC.TL_messages_getArchivedStickers req = new TLRPC.TL_messages_getArchivedStickers();
             req.limit = 0;
             req.masks = type == TYPE_MASK;
@@ -1541,7 +1554,18 @@ public class MediaDataController extends BaseController {
             processLoadedStickers(type, newStickerArray, false, (int) (System.currentTimeMillis() / 1000), res.hash);
         } else {
             LongSparseArray<TLRPC.TL_messages_stickerSet> newStickerSets = new LongSparseArray<>();
-            for (int a = 0; a < res.sets.size(); a++) {
+            // NekoX: Pin Sticker
+            if (NekoConfig.enableStickerPin.Bool() && type == MediaDataController.TYPE_IMAGE) {
+                PinnedStickerHelper ins = PinnedStickerHelper.getInstance(UserConfig.selectedAccount);
+                if (ins.reorderPinnedStickersForSS(res.sets, true))
+                    AndroidUtilities.runOnUIThread(() -> {
+                        if (BuildVars.DEBUG_VERSION) {
+                            Toast.makeText(ApplicationLoader.applicationContext, "Reorder loaded stickers, sync now. Pinned: " + ins.pinnedList.size(), Toast.LENGTH_SHORT).show();
+                        }
+                        ins.sendOrderSyncForSS(res.sets);
+                    });
+            }
+            for (int a = 0; a < res.sets.size(); a++) { // reload all sitckers here
                 TLRPC.StickerSet stickerSet = res.sets.get(a);
 
                 TLRPC.TL_messages_stickerSet oldSet = stickerSetsById.get(stickerSet.id);
@@ -1557,10 +1581,10 @@ public class MediaDataController extends BaseController {
                     }
                     continue;
                 }
+                // oldset == null, new sticker comes here
 
                 newStickerArray.add(null);
                 int index = a;
-
                 TLRPC.TL_messages_getStickerSet req = new TLRPC.TL_messages_getStickerSet();
                 req.stickerset = new TLRPC.TL_inputStickerSetID();
                 req.stickerset.id = stickerSet.id;
@@ -1741,7 +1765,7 @@ public class MediaDataController extends BaseController {
                 }
                 processLoadedStickers(type, newStickerArray, true, date, hash);
             });
-        } else {
+        } else if(!getUserConfig().getCurrentUser().bot)  {
             if (type == TYPE_FEATURED) {
                 TLRPC.TL_messages_allStickers response = new TLRPC.TL_messages_allStickers();
                 response.hash = loadFeaturedHash;
@@ -2050,6 +2074,10 @@ public class MediaDataController extends BaseController {
 
         int type = stickerSet.masks ? TYPE_MASK : TYPE_IMAGE;
 
+        if (NekoConfig.enableStickerPin.Bool() && type == MediaDataController.TYPE_IMAGE && (toggle == 0 || toggle == 1)) {
+            PinnedStickerHelper.getInstance(currentAccount).removePinnedStickerLocal(stickerSet.id);
+        }
+
         stickerSet.archived = toggle == 1;
 
         int currentIndex = 0;
@@ -2073,6 +2101,8 @@ public class MediaDataController extends BaseController {
         putStickersToCache(type, stickerSets[type], loadDate[type], loadHash[type]);
         getNotificationCenter().postNotificationName(NotificationCenter.stickersDidLoad, type);
 
+        if (context == null && baseFragment != null) context = baseFragment.getParentActivity();
+
         if (toggle == 2) {
             if (!cancelRemovingStickerSet(stickerSet.id)) {
                 toggleStickerSetInternal(context, toggle, baseFragment, showSettings, stickerSetObject, stickerSet, type, showTooltip);
@@ -2081,7 +2111,11 @@ public class MediaDataController extends BaseController {
             toggleStickerSetInternal(context, toggle, baseFragment, showSettings, stickerSetObject, stickerSet, type, false);
         } else {
             StickerSetBulletinLayout bulletinLayout = new StickerSetBulletinLayout(context, stickerSetObject, toggle);
-            int finalCurrentIndex = currentIndex;
+            int finalCurrentIndex = NekoConfig.enableStickerPin.Bool() && type == TYPE_IMAGE && PinnedStickerHelper.getInstance(UserConfig.selectedAccount).isPinned(stickerSet.id)
+                    ? PinnedStickerHelper.getInstance(UserConfig.selectedAccount).pinnedList.size()
+                    : currentIndex;
+            // NekoX: Pin Sticker, Fix undo for Archiving and Deleting
+            Context finalContext = context;
             Bulletin.UndoButton undoButton = new Bulletin.UndoButton(context, false).setUndoAction(() -> {
                 stickerSet.archived = false;
 
@@ -2094,7 +2128,7 @@ public class MediaDataController extends BaseController {
                 loadHash[type] = calcStickersHash(stickerSets[type]);
                 putStickersToCache(type, stickerSets[type], loadDate[type], loadHash[type]);
                 getNotificationCenter().postNotificationName(NotificationCenter.stickersDidLoad, type);
-            }).setDelayedAction(() -> toggleStickerSetInternal(context, toggle, baseFragment, showSettings, stickerSetObject, stickerSet, type, false));
+            }).setDelayedAction(() -> toggleStickerSetInternal(finalContext, toggle, baseFragment, showSettings, stickerSetObject, stickerSet, type, false));
             bulletinLayout.setButton(undoButton);
             removingStickerSetsUndos.put(stickerSet.id, undoButton::undo);
             Bulletin.make(baseFragment, bulletinLayout, Bulletin.DURATION_LONG).show();
@@ -2493,13 +2527,17 @@ public class MediaDataController extends BaseController {
 
 
     public void loadMedia(long dialogId, int count, int max_id, int min_id, int type, int fromCache, int classGuid, int requestIndex) {
+        loadMedia(dialogId, count, max_id, min_id, type, fromCache, classGuid, requestIndex, false);
+    }
+
+    public void loadMedia(long dialogId, int count, int max_id, int min_id, int type, int fromCache, int classGuid, int requestIndex, boolean skipPhotos) {
         boolean isChannel = DialogObject.isChatDialog(dialogId) && ChatObject.isChannel(-dialogId, currentAccount);
 
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("load media did " + dialogId + " count = " + count + " max_id " + max_id + " type = " + type + " cache = " + fromCache + " classGuid = " + classGuid);
         }
         if ((fromCache != 0 || DialogObject.isEncryptedDialog(dialogId))) {
-            loadMediaDatabase(dialogId, count, max_id, min_id, type, classGuid, isChannel, fromCache, requestIndex);
+            loadMediaDatabase(dialogId, count, max_id, min_id, type, classGuid, isChannel, fromCache, requestIndex, skipPhotos);
         } else {
             TLRPC.TL_messages_search req = new TLRPC.TL_messages_search();
             req.limit = count;
@@ -2511,6 +2549,9 @@ public class MediaDataController extends BaseController {
             }
 
             if (type == MEDIA_PHOTOVIDEO) {
+                req.filter = skipPhotos
+                        ? new TLRPC.TL_inputMessagesFilterVideo()
+                        : new TLRPC.TL_inputMessagesFilterPhotoVideo();
                 req.filter = new TLRPC.TL_inputMessagesFilterPhotoVideo();
             } else if (type == MEDIA_PHOTOS_ONLY) {
                 req.filter = new TLRPC.TL_inputMessagesFilterPhotos();
@@ -2543,7 +2584,7 @@ public class MediaDataController extends BaseController {
                         topReached = res.messages.size() == 0;
                     }
 
-                    processLoadedMedia(res, dialogId, count, max_id, min_id, type, 0, classGuid, isChannel, topReached, requestIndex);
+                    processLoadedMedia(res, dialogId, count, max_id, min_id, type, 0, classGuid, isChannel, topReached, requestIndex, skipPhotos);
                 }
             });
             getConnectionsManager().bindRequestToGuid(reqId, classGuid);
@@ -2730,7 +2771,7 @@ public class MediaDataController extends BaseController {
             }
             if (isVoice) {
                 return MEDIA_AUDIO;
-            } else if (isVideo && !isAnimated && !isSticker) {
+            } else if (isVideo && !isAnimated) {
                 return MEDIA_PHOTOVIDEO;
             } else if (isSticker) {
                 return -1;
@@ -2762,7 +2803,7 @@ public class MediaDataController extends BaseController {
         }
     }
 
-    private void processLoadedMedia(TLRPC.messages_Messages res, long dialogId, int count, int max_id, int min_id, int type, int fromCache, int classGuid, boolean isChannel, boolean topReached, int requestIndex) {
+    private void processLoadedMedia(TLRPC.messages_Messages res, long dialogId, int count, int max_id, int min_id, int type, int fromCache, int classGuid, boolean isChannel, boolean topReached, int requestIndex, boolean skipPhotos) {
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("process load media did " + dialogId + " count = " + count + " max_id=" + max_id + " min_id=" + min_id + " type = " + type + " cache = " + fromCache + " classGuid = " + classGuid);
         }
@@ -2770,7 +2811,7 @@ public class MediaDataController extends BaseController {
             if (fromCache == 2) {
                 return;
             }
-            loadMedia(dialogId, count, max_id, min_id, type, 0, classGuid, requestIndex);
+            loadMedia(dialogId, count, max_id, min_id, type, 0, classGuid, requestIndex, skipPhotos);
         } else {
             if (fromCache == 0) {
                 ImageLoader.saveMessagesThumbs(res.messages);
@@ -2787,6 +2828,11 @@ public class MediaDataController extends BaseController {
                 ArrayList<MessageObject> objects = new ArrayList<>();
                 for (int a = 0; a < res.messages.size(); a++) {
                     TLRPC.Message message = res.messages.get(a);
+
+                    if (skipPhotos && message.media != null && message.media.photo != null) {
+                        continue;
+                    }
+
                     MessageObject messageObject = new MessageObject(currentAccount, message, usersDict, true, true);
                     messageObject.createStrippedThumb();
                     objects.add(messageObject);
@@ -2864,7 +2910,7 @@ public class MediaDataController extends BaseController {
         });
     }
 
-    private void loadMediaDatabase(long uid, int count, int max_id, int min_id, int type, int classGuid, boolean isChannel, int fromCache, int requestIndex) {
+    private void loadMediaDatabase(long uid, int count, int max_id, int min_id, int type, int classGuid, boolean isChannel, int fromCache, int requestIndex, boolean skipPhotos) {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -2969,6 +3015,11 @@ public class MediaDataController extends BaseController {
                             if (DialogObject.isEncryptedDialog(uid)) {
                                 message.random_id = cursor.longValue(2);
                             }
+
+                            if (skipPhotos && message.media != null && message.media.photo != null) {
+                                continue;
+                            }
+
                             if (reverseMessages) {
                                 res.messages.add(0, message);
                             } else {
@@ -3003,7 +3054,7 @@ public class MediaDataController extends BaseController {
                 } finally {
                     Runnable task = this;
                     AndroidUtilities.runOnUIThread(() -> getMessagesStorage().completeTaskForGuid(task, classGuid));
-                    processLoadedMedia(res, uid, count, max_id, min_id, type, fromCache, classGuid, isChannel, topReached, requestIndex);
+                    processLoadedMedia(res, uid, count, max_id, min_id, type, fromCache, classGuid, isChannel, topReached, requestIndex, skipPhotos);
                 }
             }
         };
@@ -5072,7 +5123,7 @@ public class MediaDataController extends BaseController {
                 }
             }
             if (threadId == 0) {
-                draftPreferences.edit().remove("" + dialogId).remove("r_" + dialogId).commit();
+                draftPreferences.edit().remove("" + dialogId).remove("r_" + dialogId).apply();
             } else {
                 draftPreferences.edit().remove("t_" + dialogId + "_" + threadId).remove("rt_" + dialogId + "_" + threadId).commit();
             }
@@ -5121,7 +5172,7 @@ public class MediaDataController extends BaseController {
             editor.putString(threadId == 0 ? ("r_" + dialogId) : ("rt_" + dialogId + "_" + threadId), Utilities.bytesToHex(serializedData.toByteArray()));
             serializedData.cleanup();
         }
-        editor.commit();
+        editor.apply();
         if (fromServer && threadId == 0) {
             if (draft != null && draft.reply_to_msg_id != 0 && replyToMessage == null) {
                 TLRPC.User user = null;
@@ -5202,7 +5253,7 @@ public class MediaDataController extends BaseController {
                 threads2.put(threadId, message);
                 SerializedData serializedData = new SerializedData(message.getObjectSize());
                 message.serializeToStream(serializedData);
-                draftPreferences.edit().putString(threadId == 0 ? ("r_" + dialogId) : ("rt_" + dialogId + "_" + threadId), Utilities.bytesToHex(serializedData.toByteArray())).commit();
+                draftPreferences.edit().putString(threadId == 0 ? ("r_" + dialogId) : ("rt_" + dialogId + "_" + threadId), Utilities.bytesToHex(serializedData.toByteArray())).apply();
                 getNotificationCenter().postNotificationName(NotificationCenter.newDraftReceived, dialogId);
                 serializedData.cleanup();
             }
@@ -5213,7 +5264,7 @@ public class MediaDataController extends BaseController {
         drafts.clear();
         draftMessages.clear();
         draftsFolderIds.clear();
-        draftPreferences.edit().clear().commit();
+        draftPreferences.edit().clear().apply();
         if (notify) {
             getMessagesController().sortDialogs(null);
             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
@@ -5246,7 +5297,7 @@ public class MediaDataController extends BaseController {
                 }
             }
             if (threadId == 0) {
-                draftPreferences.edit().remove("" + dialogId).remove("r_" + dialogId).commit();
+                draftPreferences.edit().remove("" + dialogId).remove("r_" + dialogId).apply();
                 getMessagesController().sortDialogs(null);
                 getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
             } else {

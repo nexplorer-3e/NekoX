@@ -444,7 +444,7 @@ public class ChatAttachAlertPollLayout extends ChatAttachAlert.AttachAlertLayout
 
     @Override
     int getCurrentItemTop() {
-        if (listView.getChildCount() <= 1) {
+        if (listView.getChildCount() <= 0) {
             return Integer.MAX_VALUE;
         }
         View child = listView.getChildAt(1);
@@ -454,7 +454,7 @@ public class ChatAttachAlertPollLayout extends ChatAttachAlert.AttachAlertLayout
         RecyclerListView.Holder holder = (RecyclerListView.Holder) listView.findContainingViewHolder(child);
         int top = (int) child.getY() - AndroidUtilities.dp(8);
         int newOffset = top > 0 && holder != null && holder.getAdapterPosition() == 1 ? top : 0;
-        if (top >= 0 && holder != null && holder.getAdapterPosition() == 1) {
+        if (top >= 0 && holder != null && holder.getAdapterPosition() == 0) {
             newOffset = top;
         }
         return newOffset + AndroidUtilities.dp(25);
@@ -792,8 +792,8 @@ public class ChatAttachAlertPollLayout extends ChatAttachAlert.AttachAlertLayout
                     textCell.setColors(null, Theme.key_windowBackgroundWhiteBlueText4);
                     Drawable drawable1 = mContext.getResources().getDrawable(R.drawable.poll_add_circle);
                     Drawable drawable2 = mContext.getResources().getDrawable(R.drawable.poll_add_plus);
-                    drawable1.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_switchTrackChecked), PorterDuff.Mode.MULTIPLY));
-                    drawable2.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_checkboxCheck), PorterDuff.Mode.MULTIPLY));
+                    drawable1.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_switchTrackChecked), PorterDuff.Mode.SRC_IN));
+                    drawable2.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_checkboxCheck), PorterDuff.Mode.SRC_IN));
                     CombinedDrawable combinedDrawable = new CombinedDrawable(drawable1, drawable2);
                     textCell.setTextAndIcon(LocaleController.getString("AddAnOption", R.string.AddAnOption), combinedDrawable, false);
                     break;
@@ -810,10 +810,6 @@ public class ChatAttachAlertPollLayout extends ChatAttachAlert.AttachAlertLayout
                         checkCell.setTextAndCheck(LocaleController.getString("PollQuiz", R.string.PollQuiz), quizPoll, false);
                         checkCell.setEnabled(quizOnly == 0, null);
                     }
-                }
-                case 9: {
-                    View view = (View) holder.itemView;
-                    view.requestLayout();
                 }
             }
         }

@@ -513,11 +513,7 @@ public class ChatPullingDownDrawable implements NotificationCenter.NotificationC
         }
         ArrayList<TLRPC.Dialog> dialogs;
         if (filterId != 0) {
-            MessagesController.DialogFilter filter = messagesController.dialogFiltersById.get(filterId);
-            if (filter == null) {
-                return null;
-            }
-            dialogs = filter.dialogs;
+            dialogs = messagesController.dialogFiltersById.get(filterId).dialogs;
         } else {
             dialogs = messagesController.getDialogs(folderId);
         }

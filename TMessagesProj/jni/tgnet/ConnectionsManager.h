@@ -71,6 +71,8 @@ public:
     void updateDcSettings(uint32_t datacenterId, bool workaround);
     void setPushConnectionEnabled(bool value);
     void applyDnsConfig(NativeByteBuffer *buffer, std::string phone, int32_t date);
+    void moveToDatacenter(uint32_t datacenterId);
+
     int64_t checkProxy(std::string address, uint16_t port, std::string username, std::string password, std::string secret, onRequestTimeFunc requestTimeFunc, jobject ptr1);
 
 #ifdef ANDROID
@@ -80,6 +82,7 @@ public:
 
 private:
     static void *ThreadProc(void *data);
+    static std::vector<ConnectionsManager*> _instances;
 
     void initDatacenters();
     void loadConfig();
@@ -95,7 +98,6 @@ private:
     void clearRequestsForDatacenter(Datacenter *datacenter, HandshakeType type);
     void registerForInternalPushUpdates();
     void processRequestQueue(uint32_t connectionType, uint32_t datacenterId);
-    void moveToDatacenter(uint32_t datacenterId);
     void authorizeOnMovingDatacenter();
     void authorizedOnMovingDatacenter();
     Datacenter *getDatacenterWithId(uint32_t datacenterId);
@@ -251,7 +253,8 @@ private:
 
 #ifdef ANDROID
 extern JavaVM *javaVm;
-extern JNIEnv *jniEnv[MAX_ACCOUNT_COUNT];
+//extern JNIEnv *jniEnv[MAX_ACCOUNT_COUNT];
+extern std::vector<JNIEnv*> jniEnv;
 extern jclass jclass_ByteBuffer;
 extern jmethodID jclass_ByteBuffer_allocateDirect;
 #endif

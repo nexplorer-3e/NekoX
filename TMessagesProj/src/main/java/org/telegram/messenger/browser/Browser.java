@@ -19,6 +19,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 
+import androidx.browser.customtabs.CustomTabColorSchemeParams;
+import androidx.browser.customtabs.CustomTabsCallback;
+import androidx.browser.customtabs.CustomTabsClient;
+import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.browser.customtabs.CustomTabsServiceConnection;
+import androidx.browser.customtabs.CustomTabsSession;
+
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -26,17 +33,11 @@ import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.CustomTabsCopyReceiver;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.ShareBroadcastReceiver;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
-import org.telegram.messenger.support.customtabs.CustomTabsCallback;
-import org.telegram.messenger.support.customtabs.CustomTabsClient;
-import org.telegram.messenger.support.customtabs.CustomTabsIntent;
-import org.telegram.messenger.support.customtabs.CustomTabsServiceConnection;
-import org.telegram.messenger.support.customtabs.CustomTabsSession;
 import org.telegram.messenger.support.customtabsclient.shared.CustomTabsHelper;
 import org.telegram.messenger.support.customtabsclient.shared.ServiceConnection;
 import org.telegram.messenger.support.customtabsclient.shared.ServiceConnectionCallback;
@@ -175,7 +176,7 @@ public class Browser {
         if (equals) {
             return url.equals("telegra.ph") || url.equals("te.legra.ph") || url.equals("graph.org");
         }
-        return url.matches("^(https?://)?(te\\.?legra\\.ph|graph\\.org).*"); // telegra.ph, te.legra.ph, graph.org
+        return url.contains("telegra.ph") || url.contains("te.legra.ph") || url.contains("graph.org");
     }
 
     public static void openUrl(final Context context, Uri uri, final boolean allowCustom, boolean tryTelegraph) {
@@ -316,11 +317,21 @@ public class Browser {
                     CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(getSession());
                     builder.addMenuItem(LocaleController.getString("CopyLink", R.string.CopyLink), copy);
 
-                    builder.setToolbarColor(Theme.getColor(Theme.key_actionBarBrowser));
+                    boolean dark = false;
+                    if (Theme.getActiveTheme().isDark()) {
+                        dark = true;
+                    } else if (AndroidUtilities.computePerceivedBrightness(Theme.getColor(Theme.key_windowBackgroundWhite)) < 0.721f) {
+                        dark = true;
+                    }
+                    builder.setColorScheme(dark ? CustomTabsIntent.COLOR_SCHEME_DARK : CustomTabsIntent.COLOR_SCHEME_LIGHT);
+                    CustomTabColorSchemeParams params = new CustomTabColorSchemeParams.Builder()
+                            .setToolbarColor(Theme.getColor(Theme.key_actionBarBrowser))
+                            .build();
+                    builder.setDefaultColorSchemeParams(params);
                     builder.setShowTitle(true);
                     builder.setActionButton(BitmapFactory.decodeResource(context.getResources(), R.drawable.abc_ic_menu_share_mtrl_alpha), LocaleController.getString("ShareFile", R.string.ShareFile), PendingIntent.getBroadcast(ApplicationLoader.applicationContext, 0, share, 0), true);
                     CustomTabsIntent intent = builder.build();
-                    intent.setUseNewTask();
+                    intent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     intent.launchUrl(context, uri);
                     return;
                 }
@@ -336,6 +347,7 @@ public class Browser {
             }
             intent.putExtra(android.provider.Browser.EXTRA_CREATE_NEW_TAB, true);
             intent.putExtra(android.provider.Browser.EXTRA_APPLICATION_ID, context.getPackageName());
+            intent.putExtra("internal", true);
             context.startActivity(intent);
         } catch (Exception e) {
             FileLog.e(e);
@@ -383,7 +395,14 @@ public class Browser {
 
             }
             return true;
-        } else if ("tg".equals(uri.getScheme())) {
+        } else if ("tg".equals(uri.getScheme()) ||
+                "vmess".equals(uri.getScheme()) ||
+                "vmesss1".equals(uri.getScheme()) ||
+                "ss".equals(uri.getScheme()) ||
+                "ssr".equals(uri.getScheme()) ||
+                "ws".equals(uri.getScheme()) ||
+                "wss".equals(uri.getScheme()) ||
+                "trojan".equals(uri.getScheme())) {
             return true;
         } else if ("telegram.dog".equals(host)) {
             String path = uri.getPath();

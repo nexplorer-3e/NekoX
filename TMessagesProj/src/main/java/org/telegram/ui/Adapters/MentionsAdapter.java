@@ -20,6 +20,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.recyclerview.widget.RecyclerView;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
@@ -29,6 +31,7 @@ import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
@@ -1374,7 +1377,7 @@ public class MentionsAdapter extends RecyclerListView.SelectionAdapter implement
     }
 
     public boolean isLongClickEnabled() {
-        return searchResultHashtags != null || searchResultCommands != null;
+        return searchResultHashtags != null || searchResultCommands != null || searchResultUsernames != null;
     }
 
     public boolean isBotCommands() {

@@ -22,29 +22,39 @@ import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.telephony.TelephonyManager;
-import android.text.TextUtils;
+import android.util.Log;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.firebase.messaging.FirebaseMessaging;
+import androidx.multidex.MultiDex;
 
 import org.telegram.messenger.voip.VideoCapturerDevice;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.ForegroundDetector;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.LinkedList;
 
-import androidx.multidex.MultiDex;
+import tw.nekomimi.nekogram.ExternalGcm;
+import tw.nekomimi.nekogram.NekoXConfig;
+import tw.nekomimi.nekogram.parts.SignturesKt;
+import tw.nekomimi.nekogram.utils.FileUtil;
+
+import static android.os.Build.VERSION.SDK_INT;
 
 public class ApplicationLoader extends Application {
+    private static PendingIntent pendingIntent;
 
     @SuppressLint("StaticFieldLeak")
     public static volatile Context applicationContext;
+
     public static volatile NetworkInfo currentNetworkInfo;
     public static volatile Handler applicationHandler;
 
@@ -63,28 +73,146 @@ public class ApplicationLoader extends Application {
 
     public static boolean hasPlayServices;
 
+
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         MultiDex.install(this);
+        try {
+            applicationContext = getApplicationContext();
+        } catch (Throwable ignore) {
+        }
+        if (SDK_INT >= Build.VERSION_CODES.P) {
+            Reflection.unseal(base);
+        }
+        Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> {
+            Log.e("nekox", "from " + thread.toString(), error);
+        });
     }
 
-    public static File getFilesDirFixed() {
-        for (int a = 0; a < 10; a++) {
-            File path = ApplicationLoader.applicationContext.getFilesDir();
-            if (path != null) {
-                return path;
+    /**
+     * @author weishu
+     * @date 2018/6/7.
+     */
+    public static class Reflection {
+        private static final String TAG = "Reflection";
+
+        private static Object sVmRuntime;
+        private static Method setHiddenApiExemptions;
+
+        static {
+            if (SDK_INT >= Build.VERSION_CODES.P) {
+                try {
+                    Method forName = Class.class.getDeclaredMethod("forName", String.class);
+                    Method getDeclaredMethod = Class.class.getDeclaredMethod("getDeclaredMethod", String.class, Class[].class);
+
+                    Class<?> vmRuntimeClass = (Class<?>) forName.invoke(null, "dalvik.system.VMRuntime");
+                    Method getRuntime = (Method) getDeclaredMethod.invoke(vmRuntimeClass, "getRuntime", null);
+                    setHiddenApiExemptions = (Method) getDeclaredMethod.invoke(vmRuntimeClass, "setHiddenApiExemptions", new Class[]{String[].class});
+                    sVmRuntime = getRuntime.invoke(null);
+                } catch (Throwable e) {
+                    FileLog.e("reflect bootstrap failed:", e);
+                }
             }
+
+        }
+
+        private static int UNKNOWN = -9999;
+
+        private static final int ERROR_SET_APPLICATION_FAILED = -20;
+
+        private static final int ERROR_EXEMPT_FAILED = -21;
+
+        private static int unsealed = UNKNOWN;
+
+        public static int unseal(Context context) {
+            if (SDK_INT < 28) {
+                // Below Android P, ignore
+                return 0;
+            }
+
+            // try exempt API first.
+            if (exemptAll()) {
+                return 0;
+            } else {
+                return ERROR_EXEMPT_FAILED;
+            }
+        }
+
+        /**
+         * make the method exempted from hidden API check.
+         *
+         * @param method the method signature prefix.
+         * @return true if success.
+         */
+        public static boolean exempt(String method) {
+            return exempt(new String[]{method});
+        }
+
+        /**
+         * make specific methods exempted from hidden API check.
+         *
+         * @param methods the method signature prefix, such as "Ldalvik/system", "Landroid" or even "L"
+         * @return true if success
+         */
+        public static boolean exempt(String... methods) {
+            if (sVmRuntime == null || setHiddenApiExemptions == null) {
+                return false;
+            }
+
+            try {
+                setHiddenApiExemptions.invoke(sVmRuntime, new Object[]{methods});
+                return true;
+            } catch (Throwable e) {
+                return false;
+            }
+        }
+
+        /**
+         * Make all hidden API exempted.
+         *
+         * @return true if success.
+         */
+        public static boolean exemptAll() {
+            return exempt(new String[]{"L"});
+        }
+    }
+
+    @SuppressLint("SdCardPath")
+    public static File getDataDirFixed() {
+        try {
+            File path = applicationContext.getFilesDir();
+            if (path != null) {
+                return path.getParentFile();
+            }
+        } catch (Exception ignored) {
         }
         try {
             ApplicationInfo info = applicationContext.getApplicationInfo();
-            File path = new File(info.dataDir, "files");
-            path.mkdirs();
-            return path;
-        } catch (Exception e) {
-            FileLog.e(e);
+            return new File(info.dataDir);
+        } catch (Exception ignored) {
         }
-        return new File("/data/data/org.telegram.messenger/files");
+        return new File("/data/data/" + BuildConfig.APPLICATION_ID + "/");
+    }
+
+    public static File getFilesDirFixed() {
+
+        File filesDir = new File(getDataDirFixed(), "files");
+
+        FileUtil.initDir(filesDir);
+
+        return filesDir;
+
+    }
+
+    public static File getCacheDirFixed() {
+
+        File filesDir = new File(getDataDirFixed(), "cache");
+
+        FileUtil.initDir(filesDir);
+
+        return filesDir;
+
     }
 
     public static void postInitApplication() {
@@ -93,11 +221,10 @@ public class ApplicationLoader extends Application {
         }
         applicationInited = true;
 
-        try {
-            LocaleController.getInstance(); //TODO improve
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        SharedConfig.loadConfig();
+        UserConfig.getInstance(0).loadConfig();
+
+        LinkedList<Runnable> postRun = new LinkedList<>();
 
         try {
             connectivityManager = (ConnectivityManager) ApplicationLoader.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -111,9 +238,14 @@ public class ApplicationLoader extends Application {
                     }
 
                     boolean isSlow = isConnectionSlow();
-                    for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+                    for (int a : SharedConfig.activeAccounts) {
                         ConnectionsManager.getInstance(a).checkConnection();
                         FileLoader.getInstance(a).onNetworkChanged(isSlow);
+                    }
+
+                    if (SharedConfig.loginingAccount != -1) {
+                        ConnectionsManager.getInstance(SharedConfig.loginingAccount).checkConnection();
+                        FileLoader.getInstance(SharedConfig.loginingAccount).onNetworkChanged(isSlow);
                     }
                 }
             };
@@ -142,33 +274,51 @@ public class ApplicationLoader extends Application {
             e.printStackTrace();
         }
 
-        SharedConfig.loadConfig();
-        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) { //TODO improve account
-            UserConfig.getInstance(a).loadConfig();
-            MessagesController.getInstance(a);
-            if (a == 0) {
-                SharedConfig.pushStringStatus = "__FIREBASE_GENERATING_SINCE_" + ConnectionsManager.getInstance(a).getCurrentTime() + "__";
-            } else {
-                ConnectionsManager.getInstance(a);
-            }
-            TLRPC.User user = UserConfig.getInstance(a).getCurrentUser();
-            if (user != null) {
-                MessagesController.getInstance(a).putUser(user, true);
-                SendMessagesHelper.getInstance(a).checkUnsentMessages();
-            }
+        for (int a : SharedConfig.activeAccounts) {
+            final int finalA = a;
+            Runnable initRunnable = () -> loadAccount(finalA);
+            if (finalA == UserConfig.selectedAccount) initRunnable.run();
+            else postRun.add(initRunnable);
         }
 
-        ApplicationLoader app = (ApplicationLoader) ApplicationLoader.applicationContext;
-        app.initPlayServices();
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("app initied");
         }
-
-        MediaController.getInstance();
-        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) { //TODO improve account
-            ContactsController.getInstance(a).checkAppAccount();
-            DownloadController.getInstance(a);
+        for (Runnable runnable : postRun) {
+            Utilities.stageQueue.postRunnable(runnable);
         }
+        Utilities.stageQueue.postRunnable(ExternalGcm::initPlayServices);
+    }
+
+    private static final HashSet<Integer> loadedAccounts = new HashSet<>();
+
+    public static void loadAccount(int account) {
+        if (!loadedAccounts.add(account)) return;
+        UserConfig inst = UserConfig.getInstance(account);
+        inst.loadConfig();
+        if (!inst.isClientActivated()) {
+            if (SharedConfig.activeAccounts.remove(account)) {
+                SharedConfig.saveAccounts();
+            }
+        }
+
+        MessagesController.getInstance(account);
+        if (account == 0) {
+            SharedConfig.pushStringStatus = "__FIREBASE_GENERATING_SINCE_" + ConnectionsManager.getInstance(account).getCurrentTime() + "__";
+        } else {
+            ConnectionsManager.getInstance(account);
+        }
+        TLRPC.User user = UserConfig.getInstance(account).getCurrentUser();
+        if (user != null) {
+            MessagesController.getInstance(account).putUser(user, true);
+        }
+        Utilities.stageQueue.postRunnable(() -> {
+            Theme.init(account);
+            SendMessagesHelper.getInstance(account).checkUnsentMessages();
+            ContactsController.getInstance(account).checkAppAccount();
+            DownloadController.getInstance(account);
+        });
+
         ChatThemeController.init();
     }
 
@@ -178,10 +328,14 @@ public class ApplicationLoader extends Application {
 
     @Override
     public void onCreate() {
+
         try {
             applicationContext = getApplicationContext();
         } catch (Throwable ignore) {
+        }
 
+        if (BuildVars.isPlay && ExternalGcm.checkSplit(this)) {
+            return; // Skip app initialization.
         }
 
         super.onCreate();
@@ -191,6 +345,13 @@ public class ApplicationLoader extends Application {
         }
         if (applicationContext == null) {
             applicationContext = getApplicationContext();
+        }
+
+
+        try {
+            Class.forName("org.robolectric.android.internal.AndroidTestEnvironment");
+            return;
+        } catch (ClassNotFoundException ignored) {
         }
 
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
@@ -211,30 +372,66 @@ public class ApplicationLoader extends Application {
 
         applicationHandler = new Handler(applicationContext.getMainLooper());
 
-        AndroidUtilities.runOnUIThread(ApplicationLoader::startPushService);
+        org.osmdroid.config.Configuration.getInstance().setUserAgentValue("Telegram-FOSS ( NekoX ) " + BuildConfig.VERSION_NAME);
+        org.osmdroid.config.Configuration.getInstance().setOsmdroidBasePath(new File(ApplicationLoader.applicationContext.getCacheDir(), "osmdroid"));
+
+        startPushService();
+
     }
 
     public static void startPushService() {
-        SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
+        Utilities.stageQueue.postRunnable(ApplicationLoader::startPushServiceInternal);
+    }
+
+    private static void startPushServiceInternal() {
+        if (ExternalGcm.checkPlayServices()) {
+            return;
+        }
+        SharedPreferences preferences = MessagesController.getNotificationsSettings(UserConfig.selectedAccount);
         boolean enabled;
         if (preferences.contains("pushService")) {
-            enabled = preferences.getBoolean("pushService", true);
+            enabled = preferences.getBoolean("pushService", false);
         } else {
             enabled = MessagesController.getMainSettings(UserConfig.selectedAccount).getBoolean("keepAliveService", false);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean("pushService", enabled);
+            editor.putBoolean("pushConnection", enabled);
+            editor.apply();
+            ConnectionsManager.getInstance(UserConfig.selectedAccount).setPushConnectionEnabled(enabled);
         }
         if (enabled) {
-            try {
-                applicationContext.startService(new Intent(applicationContext, NotificationsService.class));
-            } catch (Throwable ignore) {
+            AndroidUtilities.runOnUIThread(() -> {
+                try {
+                    Log.d("TFOSS", "Trying to start push service every 10 minutes");
+                    // Telegram-FOSS: unconditionally enable push service
+                    AlarmManager am = (AlarmManager) applicationContext.getSystemService(Context.ALARM_SERVICE);
+                    Intent i = new Intent(applicationContext, NotificationsService.class);
+                    pendingIntent = PendingIntent.getBroadcast(applicationContext, 0, i, 0);
 
-            }
-        } else {
+                    am.cancel(pendingIntent);
+                    am.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 10 * 60 * 1000, pendingIntent);
+
+                    Log.d("TFOSS", "Starting push service...");
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        applicationContext.startForegroundService(new Intent(applicationContext, NotificationsService.class));
+                    } else {
+                        applicationContext.startService(new Intent(applicationContext, NotificationsService.class));
+                    }
+                } catch (Throwable e) {
+                    Log.d("TFOSS", "Failed to start push service");
+                }
+            });
+
+        } else AndroidUtilities.runOnUIThread(() -> {
             applicationContext.stopService(new Intent(applicationContext, NotificationsService.class));
 
             PendingIntent pintent = PendingIntent.getService(applicationContext, 0, new Intent(applicationContext, NotificationsService.class), 0);
-            AlarmManager alarm = (AlarmManager)applicationContext.getSystemService(Context.ALARM_SERVICE);
+            AlarmManager alarm = (AlarmManager) applicationContext.getSystemService(Context.ALARM_SERVICE);
             alarm.cancel(pintent);
-        }
+            if (pendingIntent != null) {
+                alarm.cancel(pendingIntent);
+            }
+        });
     }
 
     @Override
@@ -247,62 +444,6 @@ public class ApplicationLoader extends Application {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void initPlayServices() {
-        AndroidUtilities.runOnUIThread(() -> {
-            if (hasPlayServices = checkPlayServices()) {
-                final String currentPushString = SharedConfig.pushString;
-                if (!TextUtils.isEmpty(currentPushString)) {
-                    if (BuildVars.DEBUG_PRIVATE_VERSION && BuildVars.LOGS_ENABLED) {
-                        FileLog.d("GCM regId = " + currentPushString);
-                    }
-                } else {
-                    if (BuildVars.LOGS_ENABLED) {
-                        FileLog.d("GCM Registration not found.");
-                    }
-                }
-                Utilities.globalQueue.postRunnable(() -> {
-                    try {
-                        SharedConfig.pushStringGetTimeStart = SystemClock.elapsedRealtime();
-                        FirebaseMessaging.getInstance().getToken()
-                                .addOnCompleteListener(task -> {
-                                    SharedConfig.pushStringGetTimeEnd = SystemClock.elapsedRealtime();
-                                    if (!task.isSuccessful()) {
-                                        if (BuildVars.LOGS_ENABLED) {
-                                            FileLog.d("Failed to get regid");
-                                        }
-                                        SharedConfig.pushStringStatus = "__FIREBASE_FAILED__";
-                                        GcmPushListenerService.sendRegistrationToServer(null);
-                                        return;
-                                    }
-                                    String token = task.getResult();
-                                    if (!TextUtils.isEmpty(token)) {
-                                        GcmPushListenerService.sendRegistrationToServer(token);
-                                    }
-                                });
-                    } catch (Throwable e) {
-                        FileLog.e(e);
-                    }
-                });
-            } else {
-                if (BuildVars.LOGS_ENABLED) {
-                    FileLog.d("No valid Google Play Services APK found.");
-                }
-                SharedConfig.pushStringStatus = "__NO_GOOGLE_PLAY_SERVICES__";
-                GcmPushListenerService.sendRegistrationToServer(null);
-            }
-        }, 1000);
-    }
-
-    private boolean checkPlayServices() {
-        try {
-            int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
-            return resultCode == ConnectionResult.SUCCESS;
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-        return true;
     }
 
     private static void ensureCurrentNetworkGet(boolean force) {

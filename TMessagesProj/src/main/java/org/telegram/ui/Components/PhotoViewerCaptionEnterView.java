@@ -28,14 +28,12 @@ import android.text.TextWatcher;
 import android.text.style.ImageSpan;
 import android.util.TypedValue;
 import android.view.ActionMode;
-import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.ExtractedText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -198,17 +196,20 @@ public class PhotoViewerCaptionEnterView extends FrameLayout implements Notifica
                 rectangle.bottom += AndroidUtilities.dp(1000);
                 return super.requestRectangleOnScreen(rectangle);
             }
+
         };
-        messageEditText.setOnFocusChangeListener((view, focused) -> {
-            if (focused) {
-                try {
-                    messageEditText.setSelection(messageEditText.length(), messageEditText.length());
-                } catch (Exception ignore) {}
+
+        messageEditText.setDelegate(new EditTextCaption.EditTextCaptionDelegate() {
+            @Override
+            public void onSpansChanged() {
+                messageEditText.invalidateEffects();
+            }
+
+            @Override
+            public long getCurrentChat() {
+                return 0;
             }
         });
-        messageEditText.setSelectAllOnFocus(false);
-
-        messageEditText.setDelegate(() -> messageEditText.invalidateEffects());
         messageEditText.setWindowView(windowView);
         messageEditText.setHint(LocaleController.getString("AddCaption", R.string.AddCaption));
         messageEditText.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
@@ -664,12 +665,12 @@ public class PhotoViewerCaptionEnterView extends FrameLayout implements Notifica
             if (sizeNotifierLayout != null) {
                 emojiPadding = currentHeight;
                 sizeNotifierLayout.requestLayout();
-                emojiIconDrawable.setIcon(R.drawable.input_keyboard, true);
+                emojiIconDrawable.setIcon(R.drawable.baseline_keyboard_24, true);
                 onWindowSizeChanged();
             }
         } else {
             if (emojiButton != null) {
-                emojiIconDrawable.setIcon(R.drawable.input_smile, true);
+                emojiIconDrawable.setIcon(R.drawable.baseline_emoticon_24, true);
             }
             if (sizeNotifierLayout != null) {
                 if (animated && SharedConfig.smoothKeyboard && show == 0 && emojiView != null) {
@@ -729,10 +730,22 @@ public class PhotoViewerCaptionEnterView extends FrameLayout implements Notifica
     }
 
     public void openKeyboard() {
-        messageEditText.requestFocus();
+        int currentSelection;
+        try {
+            currentSelection = messageEditText.getSelectionStart();
+        } catch (Exception e) {
+            currentSelection = messageEditText.length();
+            FileLog.e(e);
+        }
+        MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 0, 0, 0);
+        messageEditText.onTouchEvent(event);
+        event.recycle();
+        event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP, 0, 0, 0);
+        messageEditText.onTouchEvent(event);
+        event.recycle();
         AndroidUtilities.showKeyboard(messageEditText);
         try {
-            messageEditText.setSelection(messageEditText.length(), messageEditText.length());
+            messageEditText.setSelection(currentSelection);
         } catch (Exception e) {
             FileLog.e(e);
         }
@@ -760,10 +773,10 @@ public class PhotoViewerCaptionEnterView extends FrameLayout implements Notifica
         if (height > AndroidUtilities.dp(50) && keyboardVisible && !AndroidUtilities.isInMultiwindow && !forceFloatingEmoji) {
             if (isWidthGreater) {
                 keyboardHeightLand = height;
-                MessagesController.getGlobalEmojiSettings().edit().putInt("kbd_height_land3", keyboardHeightLand).commit();
+                MessagesController.getGlobalEmojiSettings().edit().putInt("kbd_height_land3", keyboardHeightLand).apply();
             } else {
                 keyboardHeight = height;
-                MessagesController.getGlobalEmojiSettings().edit().putInt("kbd_height", keyboardHeight).commit();
+                MessagesController.getGlobalEmojiSettings().edit().putInt("kbd_height", keyboardHeight).apply();
             }
         }
 

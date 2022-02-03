@@ -168,8 +168,8 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
     private int param;
     private Object currentParentObject;
     private boolean canceledLoading;
-    private static PorterDuffColorFilter selectedColorFilter = new PorterDuffColorFilter(0xffdddddd, PorterDuff.Mode.MULTIPLY);
-    private static PorterDuffColorFilter selectedGroupColorFilter = new PorterDuffColorFilter(0xffbbbbbb, PorterDuff.Mode.MULTIPLY);
+    private static PorterDuffColorFilter selectedColorFilter = new PorterDuffColorFilter(0xffdddddd, PorterDuff.Mode.SRC_IN);
+    private static PorterDuffColorFilter selectedGroupColorFilter = new PorterDuffColorFilter(0xffbbbbbb, PorterDuff.Mode.SRC_IN);
     private boolean forceLoding;
 
     private int currentLayerNum;
@@ -419,7 +419,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             currentCacheType = 0;
             staticThumbDrawable = thumb;
             currentAlpha = 1.0f;
-            previousAlpha = 1f;
             currentSize = 0;
 
             if (staticThumbDrawable instanceof SvgHelper.SvgDrawable) {
@@ -585,7 +584,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         if (staticThumbDrawable instanceof SvgHelper.SvgDrawable) {
             ((SvgHelper.SvgDrawable) staticThumbDrawable).setParent(this);
         }
-        updateDrawableRadius(staticThumbDrawable);
 
         if (delegate != null) {
             delegate.didSetImage(this, currentImageDrawable != null || currentThumbDrawable != null || staticThumbDrawable != null || currentMediaDrawable != null, currentImageDrawable == null && currentMediaDrawable == null, false);
@@ -660,6 +658,10 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
     }
 
     public void setImageBitmap(Drawable bitmap) {
+        setImageBitmap(bitmap, true);
+    }
+
+    public void setImageBitmap(Drawable bitmap, boolean notify) {
         ImageLoader.getInstance().cancelLoadingForImageReceiver(this, true);
 
         if (crossfadeWithOldImage) {
@@ -707,7 +709,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         if (bitmap instanceof AnimatedFileDrawable) {
             AnimatedFileDrawable fileDrawable = (AnimatedFileDrawable) bitmap;
             fileDrawable.setParentView(parentView);
-            fileDrawable.setUseSharedQueue(useSharedAnimationQueue || fileDrawable.isWebmSticker);
+            fileDrawable.setUseSharedQueue(useSharedAnimationQueue);
             if (allowStartAnimation && currentOpenedLayerFlags == 0) {
                 fileDrawable.start();
             }
@@ -720,7 +722,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             }
             fileDrawable.setAllowDecodeSingleFrame(true);
         }
-        thumbShader = null;
         staticThumbDrawable = bitmap;
         updateDrawableRadius(bitmap);
         currentMediaLocation = null;
@@ -757,7 +758,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             setImageBackup.clear();
         }
 
-        if (delegate != null) {
+        if (notify && delegate != null) {
             delegate.didSetImage(this, currentThumbDrawable != null || staticThumbDrawable != null, true, false);
         }
         if (parentView != null) {
@@ -815,18 +816,14 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
     }
 
     private void updateDrawableRadius(Drawable drawable) {
-        if (drawable == null) {
-            return;
-        }
         if ((hasRoundRadius() || gradientShader != null) && drawable instanceof BitmapDrawable) {
-            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
-            if (bitmapDrawable instanceof RLottieDrawable) {
+            if (drawable instanceof RLottieDrawable) {
 
-            } else if (bitmapDrawable instanceof AnimatedFileDrawable) {
+            } else if (drawable instanceof AnimatedFileDrawable) {
                 AnimatedFileDrawable animatedFileDrawable = (AnimatedFileDrawable) drawable;
                 animatedFileDrawable.setRoundRadius(roundRadius);
-            } else if (bitmapDrawable.getBitmap() != null) {
-                setDrawableShader(drawable, new BitmapShader(bitmapDrawable.getBitmap(), Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
+            } else {
+                setDrawableShader(drawable, new BitmapShader(((BitmapDrawable) drawable).getBitmap(), Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
             }
         } else {
             setDrawableShader(drawable, null);
@@ -902,10 +899,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         }
         AnimatedFileDrawable animatedFileDrawable = getAnimation();
         if (animatedFileDrawable != null && allowStartAnimation && currentOpenedLayerFlags == 0) {
-            animatedFileDrawable.start();
-            if (parentView != null) {
-                parentView.invalidate();
-            }
+            animatedFileDrawable.stop();
         }
         if (NotificationCenter.getGlobalInstance().isAnimationInProgress()) {
             didReceivedNotification(NotificationCenter.stopAllHeavyOperations, currentAccount, 512);
@@ -994,9 +988,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
                 } else {
                     bitmapW = bitmapDrawable.getIntrinsicWidth();
                     bitmapH = bitmapDrawable.getIntrinsicHeight();
-                }
-                if (parentView != null) {
-                    parentView.invalidate();
                 }
             } else {
                 Bitmap bitmap = bitmapDrawable.getBitmap();
@@ -1425,7 +1416,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
                 shaderToUse = thumbShader;
                 orientation = thumbOrientation;
             }
-
             if (drawable != null) {
                 if (crossfadeAlpha != 0) {
                     if (previousAlpha != 1f && (drawable == currentImageDrawable || drawable == currentMediaDrawable) && staticThumbDrawable != null) {
@@ -1486,10 +1476,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
                 result = true;
             } else {
                 checkAlphaAnimation(animationNotReady);
-            }
-
-            if (drawable == null && animationNotReady && parentView != null) {
-                parentView.invalidate();
             }
         } catch (Exception e) {
             FileLog.e(e);
@@ -2087,11 +2073,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             if (!(drawable instanceof AnimatedFileDrawable)) {
                 ImageLoader.getInstance().incrementUseCount(currentImageKey);
             } else {
-                AnimatedFileDrawable animatedFileDrawable = (AnimatedFileDrawable) drawable;
-                animatedFileDrawable.setStartEndTime(startTime, endTime);
-                if (animatedFileDrawable.isWebmSticker) {
-                    ImageLoader.getInstance().incrementUseCount(currentImageKey);
-                }
+                ((AnimatedFileDrawable) drawable).setStartEndTime(startTime, endTime);
             }
             currentImageDrawable = drawable;
             if (drawable instanceof ExtendedBitmapDrawable) {
@@ -2107,18 +2089,13 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
                     allowCorssfade = staticThumbDrawable instanceof LoadingStickerDrawable || staticThumbDrawable instanceof SvgHelper.SvgDrawable || staticThumbDrawable instanceof Emoji.EmojiDrawable;
                 }
                 if (allowCorssfade && (currentThumbDrawable != null || staticThumbDrawable != null || forceCrossfade)) {
-                    if (currentThumbDrawable != null && staticThumbDrawable != null) {
-                        previousAlpha = currentAlpha;
-                    } else {
-                        previousAlpha = 1f;
-                    }
+                    previousAlpha = currentAlpha;
                     currentAlpha = 0.0f;
                     lastUpdateAlphaTime = System.currentTimeMillis();
                     crossfadeWithThumb = crossfadeImage != null || currentThumbDrawable != null || staticThumbDrawable != null;
                 }
             } else {
                 currentAlpha = 1.0f;
-                previousAlpha = 1f;
             }
         } else if (type == TYPE_MEDIA) {
             if (!key.equals(currentMediaKey)) {
@@ -2127,11 +2104,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             if (!(drawable instanceof AnimatedFileDrawable)) {
                 ImageLoader.getInstance().incrementUseCount(currentMediaKey);
             } else {
-                AnimatedFileDrawable animatedFileDrawable = (AnimatedFileDrawable) drawable;
-                animatedFileDrawable.setStartEndTime(startTime, endTime);
-                if (animatedFileDrawable.isWebmSticker) {
-                    ImageLoader.getInstance().incrementUseCount(currentImageKey);
-                }
+                ((AnimatedFileDrawable) drawable).setStartEndTime(startTime, endTime);
             }
             currentMediaDrawable = drawable;
             updateDrawableRadius(drawable);
@@ -2140,18 +2113,13 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
                 boolean allowCorssfade = true;
                 if (!memCache && !forcePreview || forceCrossfade) {
                     if (currentThumbDrawable == null && staticThumbDrawable == null || currentAlpha == 1.0f || forceCrossfade) {
-                        if (currentThumbDrawable != null && staticThumbDrawable != null) {
-                            previousAlpha = currentAlpha;
-                        } else {
-                            previousAlpha = 1f;
-                        }
+                        previousAlpha = currentAlpha;
                         currentAlpha = 0.0f;
                         lastUpdateAlphaTime = System.currentTimeMillis();
                         crossfadeWithThumb = crossfadeImage != null || currentThumbDrawable != null || staticThumbDrawable != null;
                     }
                 } else {
                     currentAlpha = 1.0f;
-                    previousAlpha = 1f;
                 }
             }
         } else if (type == TYPE_THUMB) {
@@ -2181,16 +2149,13 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             if (!memCache && crossfadeAlpha != 2) {
                 if (currentParentObject instanceof MessageObject && ((MessageObject) currentParentObject).isRoundVideo() && ((MessageObject) currentParentObject).isSending()) {
                     currentAlpha = 1.0f;
-                    previousAlpha = 1f;
                 } else {
                     currentAlpha = 0.0f;
-                    previousAlpha = 1f;
                     lastUpdateAlphaTime = System.currentTimeMillis();
                     crossfadeWithThumb = staticThumbDrawable != null;
                 }
             } else {
                 currentAlpha = 1.0f;
-                previousAlpha = 1f;
             }
         }
         if (delegate != null) {
@@ -2198,15 +2163,13 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         }
         if (drawable instanceof AnimatedFileDrawable) {
             AnimatedFileDrawable fileDrawable = (AnimatedFileDrawable) drawable;
+            fileDrawable.setParentView(parentView);
             fileDrawable.setUseSharedQueue(useSharedAnimationQueue);
             if (allowStartAnimation && currentOpenedLayerFlags == 0) {
                 fileDrawable.start();
             }
             fileDrawable.setAllowDecodeSingleFrame(allowDecodeSingleFrame);
             animationReadySent = false;
-            if (parentView != null) {
-                parentView.invalidate();
-            }
         } else if (drawable instanceof RLottieDrawable) {
             RLottieDrawable fileDrawable = (RLottieDrawable) drawable;
             fileDrawable.addParentView(parentView);
@@ -2273,18 +2236,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
                 }
             } else if (image instanceof AnimatedFileDrawable) {
                 AnimatedFileDrawable fileDrawable = (AnimatedFileDrawable) image;
-                if (fileDrawable.isWebmSticker) {
-                    boolean canDelete = ImageLoader.getInstance().decrementUseCount(key);
-                    if (!ImageLoader.getInstance().isInMemCache(key, true)) {
-                        if (canDelete) {
-                            fileDrawable.recycle();
-                        }
-                    } else if (canDelete) {
-                        fileDrawable.stop();
-                    }
-                } else {
-                    fileDrawable.recycle();
-                }
+                fileDrawable.recycle();
             } else if (image instanceof BitmapDrawable) {
                 Bitmap bitmap = ((BitmapDrawable) image).getBitmap();
                 boolean canDelete = ImageLoader.getInstance().decrementUseCount(key);
@@ -2369,9 +2321,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
                 AnimatedFileDrawable animatedFileDrawable = getAnimation();
                 if (allowStartAnimation && animatedFileDrawable != null) {
                     animatedFileDrawable.start();
-                    if (parentView != null) {
-                        parentView.invalidate();
-                    }
                 }
             }
         }

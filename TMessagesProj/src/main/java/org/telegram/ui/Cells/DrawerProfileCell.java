@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -32,31 +33,42 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.palette.graphics.Palette;
+
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.UserObject;
-import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserObject;
+import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.AudioPlayerAlert;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.EmojiTextView;
+import org.telegram.ui.Components.FireworksEffect;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RLottieImageView;
 import org.telegram.ui.Components.SnowflakesEffect;
+
+import tw.nekomimi.nekogram.NekoConfig;
 
 public class DrawerProfileCell extends FrameLayout {
 
     private BackupImageView avatarImageView;
     private TextView nameTextView;
-    private TextView phoneTextView;
+    private AudioPlayerAlert.ClippingTextViewSwitcher phoneTextView;
     private ImageView shadowView;
-    private ImageView arrowView;
+    protected ImageView arrowView;
+    private final ImageReceiver imageReceiver;
     private RLottieImageView darkThemeView;
     private RLottieDrawable sunDrawable;
 
@@ -67,12 +79,63 @@ public class DrawerProfileCell extends FrameLayout {
     private Integer currentColor;
     private Integer currentMoonColor;
     private SnowflakesEffect snowflakesEffect;
+    private FireworksEffect fireworksEffect;
     private boolean accountsShown;
     private int darkThemeBackgroundColor;
     public static boolean switchingTheme;
 
+    private Bitmap lastBitmap;
+    private TLRPC.User user;
+    private boolean allowInvalidate = true;
+
     public DrawerProfileCell(Context context) {
         super(context);
+
+        imageReceiver = new ImageReceiver(this);
+        imageReceiver.setCrossfadeWithOldImage(true);
+        imageReceiver.setForceCrossfade(true);
+        imageReceiver.setDelegate((imageReceiver, set, thumb, memCache) -> {
+            if (NekoConfig.avatarBackgroundDarken.Bool() || NekoConfig.avatarBackgroundBlur.Bool()) {
+                if (thumb || allowInvalidate) {
+                    return;
+                }
+                ImageReceiver.BitmapHolder bmp = imageReceiver.getBitmapSafe();
+                if (bmp != null) {
+                    new Thread(() -> {
+                        if (lastBitmap != null) {
+                            imageReceiver.setCrossfadeWithOldImage(false);
+                            imageReceiver.setImageBitmap(new BitmapDrawable(null, lastBitmap), false);
+                        }
+                        int width = NekoConfig.avatarBackgroundBlur.Bool() ? 150 : bmp.bitmap.getWidth();
+                        int height = NekoConfig.avatarBackgroundBlur.Bool() ? 150 : bmp.bitmap.getHeight();
+                        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                        Canvas canvas = new Canvas(bitmap);
+                        canvas.drawBitmap(bmp.bitmap, null, new Rect(0, 0, width, height), new Paint(Paint.FILTER_BITMAP_FLAG));
+                        if (NekoConfig.avatarBackgroundBlur.Bool()) {
+                            try {
+                                Utilities.stackBlurBitmap(bitmap, 3);
+                            } catch (Exception e) {
+                                FileLog.e(e);
+                            }
+                        }
+                        if (NekoConfig.avatarBackgroundDarken.Bool()) {
+                            final Palette palette = Palette.from(bmp.bitmap).generate();
+                            Paint paint = new Paint();
+                            paint.setColor((palette.getDarkMutedColor(0xFF547499) & 0x00FFFFFF) | 0x44000000);
+                            canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), paint);
+                        }
+                        AndroidUtilities.runOnUIThread(() -> {
+                            allowInvalidate = true;
+                            imageReceiver.setCrossfadeWithOldImage(true);
+                            imageReceiver.setImageBitmap(new BitmapDrawable(null, bitmap), false);
+                            lastBitmap = bitmap;
+                        });
+                    }).start();
+                }
+            } else {
+                lastBitmap = null;
+            }
+        });
 
         shadowView = new ImageView(context);
         shadowView.setVisibility(INVISIBLE);
@@ -84,7 +147,7 @@ public class DrawerProfileCell extends FrameLayout {
         avatarImageView.getImageReceiver().setRoundRadius(AndroidUtilities.dp(32));
         addView(avatarImageView, LayoutHelper.createFrame(64, 64, Gravity.LEFT | Gravity.BOTTOM, 16, 0, 0, 67));
 
-        nameTextView = new TextView(context);
+        nameTextView = new EmojiTextView(context);
         nameTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         nameTextView.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
         nameTextView.setLines(1);
@@ -94,12 +157,18 @@ public class DrawerProfileCell extends FrameLayout {
         nameTextView.setEllipsize(TextUtils.TruncateAt.END);
         addView(nameTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM, 16, 0, 76, 28));
 
-        phoneTextView = new TextView(context);
-        phoneTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        phoneTextView.setLines(1);
-        phoneTextView.setMaxLines(1);
-        phoneTextView.setSingleLine(true);
-        phoneTextView.setGravity(Gravity.LEFT);
+        phoneTextView = new AudioPlayerAlert.ClippingTextViewSwitcher(context) {
+            @Override
+            protected TextView createTextView() {
+                TextView textView = new TextView(context);
+                textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+                textView.setLines(1);
+                textView.setMaxLines(1);
+                textView.setSingleLine(true);
+                textView.setGravity(Gravity.LEFT);
+                return textView;
+            }
+        };
         addView(phoneTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM, 16, 0, 76, 9));
 
         arrowView = new ImageView(context);
@@ -180,11 +249,13 @@ public class DrawerProfileCell extends FrameLayout {
             }
             switchTheme(themeInfo, toDark);
         });
-        addView(darkThemeView, LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.BOTTOM, 0, 0, 6, 90));
+        addView(darkThemeView, LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.BOTTOM, 0, 10, 6, 90));
 
-        if (Theme.getEventType() == 0) {
+        if (Theme.getEventType() == 0 || NekoConfig.actionBarDecoration.Int() == 1) {
             snowflakesEffect = new SnowflakesEffect(0);
             snowflakesEffect.setColorKey(Theme.key_chats_menuName);
+        } else if (NekoConfig.actionBarDecoration.Int() == 2) {
+            fireworksEffect = new FireworksEffect();
         }
     }
 
@@ -204,16 +275,22 @@ public class DrawerProfileCell extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int heightBase = NekoConfig.largeAvatarInDrawer.Int() == 2 ? MeasureSpec.getSize(widthMeasureSpec) : AndroidUtilities.dp(148);
         if (Build.VERSION.SDK_INT >= 21) {
-            super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(148) + AndroidUtilities.statusBarHeight, MeasureSpec.EXACTLY));
+            heightBase -= NekoConfig.largeAvatarInDrawer.Int() == 2 ? AndroidUtilities.statusBarHeight : 0;
+            super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(heightBase + AndroidUtilities.statusBarHeight, MeasureSpec.EXACTLY));
         } else {
             try {
-                super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(148), MeasureSpec.EXACTLY));
+                super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(heightBase, MeasureSpec.EXACTLY));
             } catch (Exception e) {
-                setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), AndroidUtilities.dp(148));
+                setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), heightBase);
                 FileLog.e(e);
             }
         }
+    }
+
+    private boolean useAdb() {
+        return NekoConfig.largeAvatarInDrawer.Int() > 0 && ImageLocation.isUserHasPhoto(user);
     }
 
     @Override
@@ -223,8 +300,7 @@ public class DrawerProfileCell extends FrameLayout {
         boolean useImageBackground = !backgroundKey.equals(Theme.key_chats_menuTopBackground) && Theme.isCustomTheme() && !Theme.isPatternWallpaper() && backgroundDrawable != null && !(backgroundDrawable instanceof ColorDrawable) && !(backgroundDrawable instanceof GradientDrawable);
         boolean drawCatsShadow = false;
         int color;
-        int darkBackColor = 0;
-        if (!useImageBackground && Theme.hasThemeKey(Theme.key_chats_menuTopShadowCats)) {
+        if (!useAdb() && !useImageBackground && Theme.hasThemeKey(Theme.key_chats_menuTopShadowCats)) {
             color = Theme.getColor(Theme.key_chats_menuTopShadowCats);
             drawCatsShadow = true;
         } else {
@@ -236,28 +312,26 @@ public class DrawerProfileCell extends FrameLayout {
         }
         if (currentColor == null || currentColor != color) {
             currentColor = color;
-            shadowView.getDrawable().setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
-        }
-        color = Theme.getColor(Theme.key_chats_menuName);
-        if (currentMoonColor == null || currentMoonColor != color) {
-            currentMoonColor = color;
-            sunDrawable.beginApplyLayerColors();
-            sunDrawable.setLayerColor("Sunny.**", currentMoonColor);
-            sunDrawable.setLayerColor("Path 6.**", currentMoonColor);
-            sunDrawable.setLayerColor("Path.**", currentMoonColor);
-            sunDrawable.setLayerColor("Path 5.**", currentMoonColor);
-            sunDrawable.commitApplyLayerColors();
+            shadowView.getDrawable().setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
         }
         nameTextView.setTextColor(Theme.getColor(Theme.key_chats_menuName));
-        if (useImageBackground) {
-            phoneTextView.setTextColor(Theme.getColor(Theme.key_chats_menuPhone));
+        phoneTextView.getTextView().setTextColor(Theme.getColor(Theme.key_chats_menuName));
+
+        if (useAdb()) {
+            phoneTextView.getTextView().setTextColor(Theme.getColor(Theme.key_chats_menuPhone));
+            if (shadowView.getVisibility() != VISIBLE) {
+                shadowView.setVisibility(VISIBLE);
+            }
+            imageReceiver.setImageCoords(0, 0, getWidth(), getHeight());
+            imageReceiver.draw(canvas);
+        } else if (useImageBackground) {
+            phoneTextView.getTextView().setTextColor(Theme.getColor(Theme.key_chats_menuPhone));
             if (shadowView.getVisibility() != VISIBLE) {
                 shadowView.setVisibility(VISIBLE);
             }
             if (backgroundDrawable instanceof ColorDrawable || backgroundDrawable instanceof GradientDrawable) {
                 backgroundDrawable.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
                 backgroundDrawable.draw(canvas);
-                darkBackColor = Theme.getColor(Theme.key_listSelector);
             } else if (backgroundDrawable instanceof BitmapDrawable) {
                 Bitmap bitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
                 float scaleX = (float) getMeasuredWidth() / (float) bitmap.getWidth();
@@ -274,37 +348,28 @@ public class DrawerProfileCell extends FrameLayout {
                 } catch (Throwable e) {
                     FileLog.e(e);
                 }
-                darkBackColor = (Theme.getServiceMessageColor() & 0x00ffffff) | 0x50000000;
             }
         } else {
-            int visibility = drawCatsShadow? VISIBLE : INVISIBLE;
+            int visibility = drawCatsShadow ? VISIBLE : INVISIBLE;
             if (shadowView.getVisibility() != visibility) {
                 shadowView.setVisibility(visibility);
             }
-            phoneTextView.setTextColor(Theme.getColor(Theme.key_chats_menuPhoneCats));
             super.onDraw(canvas);
-            darkBackColor = Theme.getColor(Theme.key_listSelector);
-        }
-
-        if (darkBackColor != 0) {
-            if (darkBackColor != darkThemeBackgroundColor) {
-                backPaint.setColor(darkThemeBackgroundColor = darkBackColor);
-                if (Build.VERSION.SDK_INT >= 21) {
-                    Theme.setSelectorDrawableColor(darkThemeView.getBackground(), darkThemeBackgroundColor = darkBackColor, true);
-                }
-            }
-            if (useImageBackground && backgroundDrawable instanceof BitmapDrawable) {
-                canvas.drawCircle(darkThemeView.getX() + darkThemeView.getMeasuredWidth() / 2, darkThemeView.getY() + darkThemeView.getMeasuredHeight() / 2, AndroidUtilities.dp(17), backPaint);
-            }
         }
 
         if (snowflakesEffect != null) {
             snowflakesEffect.onDraw(this, canvas);
+        } else if (fireworksEffect != null) {
+            fireworksEffect.onDraw(this, canvas);
         }
     }
 
     public boolean isInAvatar(float x, float y) {
-        return x >= avatarImageView.getLeft() && x <= avatarImageView.getRight() && y >= avatarImageView.getTop() && y <= avatarImageView.getBottom();
+        if (useAdb()) {
+            return y <= arrowView.getTop();
+        } else {
+            return x >= avatarImageView.getLeft() && x <= avatarImageView.getRight() && y >= avatarImageView.getTop() && y <= avatarImageView.getBottom();
+        }
     }
 
     public boolean hasAvatar() {
@@ -323,17 +388,44 @@ public class DrawerProfileCell extends FrameLayout {
         setArrowState(animated);
     }
 
+    // called by onBindViewHolder
     public void setUser(TLRPC.User user, boolean accounts) {
         if (user == null) {
             return;
         }
+        this.user = user;
         accountsShown = accounts;
         setArrowState(false);
         nameTextView.setText(UserObject.getUserName(user));
-        phoneTextView.setText(PhoneFormat.getInstance().format("+" + user.phone));
+        if (!NekoConfig.hidePhone.Bool()) {
+            phoneTextView.setText(PhoneFormat.getInstance().format("+" + user.phone));
+        } else if (!TextUtils.isEmpty(user.username)) {
+            phoneTextView.setText("@" + user.username);
+        } else {
+            phoneTextView.setText(LocaleController.getString("MobileHidden", R.string.MobileHidden));
+        }
         AvatarDrawable avatarDrawable = new AvatarDrawable(user);
         avatarDrawable.setColor(Theme.getColor(Theme.key_avatar_backgroundInProfileBlue));
         avatarImageView.setForUserOrChat(user, avatarDrawable);
+        if (NekoConfig.largeAvatarInDrawer.Int() > 0) {
+            ImageLocation imageLocation = ImageLocation.getForUser(user, ImageLocation.TYPE_BIG);
+            allowInvalidate = !useAdb() || !(NekoConfig.avatarBackgroundDarken.Bool() || NekoConfig.avatarBackgroundBlur.Bool());
+            imageReceiver.setImage(imageLocation, "512_512", null, null, new ColorDrawable(0x00000000), 0, null, user, 1);
+            avatarImageView.setVisibility(INVISIBLE);
+        } else {
+            avatarImageView.setVisibility(VISIBLE);
+        }
+        if (NekoConfig.largeAvatarInDrawer.Int() == 2) {
+            // add shadow
+            nameTextView.setShadowLayer(6.0f, 2.0f, 2.0f, Color.BLACK);
+            phoneTextView.getTextView().setShadowLayer(6.0f, 2.0f, 2.0f, Color.BLACK);
+
+            // correct the position of night button
+            LayoutParams lp = NekoConfig.largeAvatarInDrawer.Int() == 2 ?
+                    LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.TOP, 0, AndroidUtilities.statusBarHeight / getResources().getDisplayMetrics().density, 6, 0) :
+                    LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.BOTTOM, 0, 10, 6, 90);
+            darkThemeView.setLayoutParams(lp);
+        }
 
         applyBackground(true);
     }
@@ -365,4 +457,13 @@ public class DrawerProfileCell extends FrameLayout {
         arrowView.setContentDescription(accountsShown ? LocaleController.getString("AccDescrHideAccounts", R.string.AccDescrHideAccounts) : LocaleController.getString("AccDescrShowAccounts", R.string.AccDescrShowAccounts));
     }
 
+    @Override
+    public void invalidate() {
+        if (allowInvalidate) super.invalidate();
+    }
+
+    @Override
+    public void invalidate(int l, int t, int r, int b) {
+        if (allowInvalidate) super.invalidate(l, t, r, b);
+    }
 }

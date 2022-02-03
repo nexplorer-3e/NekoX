@@ -45,7 +45,6 @@ import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Adapters.FiltersView;
@@ -74,6 +73,11 @@ import org.telegram.ui.Components.StickerEmptyView;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
+
+import kotlin.Unit;
+import tw.nekomimi.nekogram.ui.BottomBuilder;
+import tw.nekomimi.nekogram.utils.AlertUtil;
+import tw.nekomimi.nekogram.utils.ProxyUtil;
 
 public class FilteredSearchView extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
 
@@ -1063,21 +1067,29 @@ public class FilteredSearchView extends FrameLayout implements NotificationCente
             @Override
             public void onLinkPress(String urlFinal, boolean longPress) {
                 if (longPress) {
-                    BottomSheet.Builder builder = new BottomSheet.Builder(parentActivity);
-                    builder.setTitle(urlFinal);
-                    builder.setItems(new CharSequence[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy)}, (dialog, which) -> {
-                        if (which == 0) {
-                            openUrl(urlFinal);
-                        } else if (which == 1) {
-                            String url = urlFinal;
-                            if (url.startsWith("mailto:")) {
-                                url = url.substring(7);
-                            } else if (url.startsWith("tel:")) {
-                                url = url.substring(4);
-                            }
-                            AndroidUtilities.addToClipboard(url);
-                        }
-                    });
+                    BottomBuilder builder = new BottomBuilder(parentActivity);
+                    builder.addTitle(urlFinal);
+                    builder.addItems(
+                            new String[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy), LocaleController.getString("ShareQRCode", R.string.ShareQRCode)},
+                            new int[]{R.drawable.baseline_open_in_browser_24, R.drawable.baseline_content_copy_24, R.drawable.wallet_qr}, (which, text, __) -> {
+                                if (which == 0 || which == 2) {
+                                    if (which == 0) {
+                                        openUrl(urlFinal);
+                                    } else {
+                                        ProxyUtil.showQrDialog(parentActivity, urlFinal);
+                                    }
+                                } else if (which == 1) {
+                                    String url1 = urlFinal;
+                                    if (url1.startsWith("mailto:")) {
+                                        url1 = url1.substring(7);
+                                    } else if (url1.startsWith("tel:")) {
+                                        url1 = url1.substring(4);
+                                    }
+                                    AndroidUtilities.addToClipboard(url1);
+                                    AlertUtil.showToast(LocaleController.getString("LinkCopied", R.string.LinkCopied));
+                                }
+                                return Unit.INSTANCE;
+                            });
                     parentFragment.showDialog(builder.create());
                 } else {
                     openUrl(urlFinal);

@@ -39,7 +39,6 @@ import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
-import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SvgHelper;
 import org.telegram.messenger.UserConfig;
@@ -58,6 +57,8 @@ import org.telegram.ui.PhotoViewer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
+
+import tw.nekomimi.nekogram.NekoConfig;
 
 public class ContextLinkCell extends FrameLayout implements DownloadController.FileDownloadProgressListener {
 
@@ -265,10 +266,10 @@ public class ContextLinkCell extends FrameLayout implements DownloadController.F
                 if (inlineResult.send_message instanceof TLRPC.TL_botInlineMessageMediaVenue || inlineResult.send_message instanceof TLRPC.TL_botInlineMessageMediaGeo) {
                     double lat = inlineResult.send_message.geo.lat;
                     double lon = inlineResult.send_message.geo._long;
-                    if (MessagesController.getInstance(currentAccount).mapProvider == 2) {
+                    if (NekoConfig.mapPreviewProvider.Int() == 0) {
                         webFile = WebFile.createWithGeoPoint(inlineResult.send_message.geo, 72, 72, 15, Math.min(2, (int) Math.ceil(AndroidUtilities.density)));
                     } else {
-                        urlLocation = AndroidUtilities.formapMapUrl(currentAccount, lat, lon, 72, 72, true, 15, -1);
+                        urlLocation = AndroidUtilities.formapMapUrl(false, lat, lon, 72, 72, true, 15);
                     }
                 }
             }

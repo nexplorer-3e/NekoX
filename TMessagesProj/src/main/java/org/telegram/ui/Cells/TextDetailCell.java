@@ -25,13 +25,13 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.LocaleController;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.EmojiTextView;
 import org.telegram.ui.Components.LayoutHelper;
 
 public class TextDetailCell extends FrameLayout {
 
     private final TextView textView;
     private final TextView valueTextView;
-    private final TextView showMoreTextView = null;
     private final ImageView imageView;
     private boolean needDivider;
     private boolean contentDescriptionValueFirst;
@@ -39,7 +39,7 @@ public class TextDetailCell extends FrameLayout {
     public TextDetailCell(Context context) {
         super(context);
 
-        textView = new TextView(context);
+        textView = new EmojiTextView(context);
         textView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         textView.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
@@ -50,7 +50,7 @@ public class TextDetailCell extends FrameLayout {
         textView.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         addView(textView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT, 23, 8, 23, 0));
 
-        valueTextView = new TextView(context);
+        valueTextView = new EmojiTextView(context);
         valueTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         valueTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         valueTextView.setLines(1);
@@ -67,10 +67,7 @@ public class TextDetailCell extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(
-            MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(60) + (needDivider ? 1 : 0), MeasureSpec.EXACTLY)
-        );
+        super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(60) + (needDivider ? 1 : 0), MeasureSpec.EXACTLY));
     }
 
     public void setTextAndValue(String text, String value, boolean divider) {
@@ -120,13 +117,7 @@ public class TextDetailCell extends FrameLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         if (needDivider) {
-            canvas.drawLine(
-                LocaleController.isRTL ? 0 : AndroidUtilities.dp(20),
-                getMeasuredHeight() - 1,
-                getMeasuredWidth() - (LocaleController.isRTL ? AndroidUtilities.dp(20) : 0),
-                getMeasuredHeight() - 1,
-                Theme.dividerPaint
-            );
+            canvas.drawLine(0, getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight() - 1, Theme.dividerPaint);
         }
     }
 

@@ -8,13 +8,6 @@
 
 package org.telegram.messenger;
 
-import java.io.File;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -27,12 +20,25 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.text.Spannable;
 import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.ImageSpan;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
+
+import tw.nekomimi.nekogram.EmojiProvider;
+import tw.nekomimi.nekogram.NekoXConfig;
+import tw.nekomimi.nekogram.NekoConfig;
 
 public class Emoji {
 
@@ -94,19 +100,43 @@ public class Emoji {
 
     private static void loadEmojiInternal(final byte page, final short page2) {
         try {
-            int imageResize;
+            float scale;
+            int imageResize = 1;
             if (AndroidUtilities.density <= 1.0f) {
+                scale = 2.0f;
                 imageResize = 2;
+            } else if (AndroidUtilities.density <= 1.5f) {
+                scale = 2.0f;
+            } else if (AndroidUtilities.density <= 2.0f) {
+                scale = 2.0f;
             } else {
-                imageResize = 1;
+                scale = 2.0f;
             }
 
             String imageName;
             File imageFile;
 
+            try {
+                for (int a = 13; a < 16; a++) {
+                    imageName = String.format(Locale.US, "v%d_emoji%.01fx_%d.png", a, scale, page);
+                    imageFile = ApplicationLoader.applicationContext.getFileStreamPath(imageName);
+                    if (imageFile.exists()) {
+                        imageFile.delete();
+                    }
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
             Bitmap bitmap = null;
             try {
-                InputStream is = ApplicationLoader.applicationContext.getAssets().open("emoji/" + String.format(Locale.US, "%d_%d.png", page, page2));
+                InputStream is;
+                String entry = "emoji/" + String.format(Locale.US, "%d_%d.png", page, page2);
+                if (NekoConfig.useCustomEmoji.Bool()) {
+                    entry = "custom_emoji/" + entry;
+                    is = new FileInputStream(new File(ApplicationLoader.applicationContext.getFilesDir(), entry));
+                } else {
+                    is = ApplicationLoader.applicationContext.getAssets().open(entry);
+                }
                 BitmapFactory.Options opts = new BitmapFactory.Options();
                 opts.inJustDecodeBounds = false;
                 opts.inSampleSize = imageResize;
@@ -146,7 +176,8 @@ public class Emoji {
             if (ch >= 0xD83C && ch <= 0xD83E) {
                 if (ch == 0xD83C && a < length - 1) {
                     ch = emoji.charAt(a + 1);
-                    if (ch == 0xDE2F || ch == 0xDC04 || ch == 0xDE1A || ch == 0xDD7F) {
+                    if (ch == 0xDE2F || ch == 0xDC04 || ch == 0xDE1A || ch == 0xDD7F ||
+                            ch == 0xDFF3 || ch == 0xDF2B || ch == 0xDC41 || ch == 0xDD75 || ch == 0xDFCC || ch == 0xDFCB) {
                         emoji = emoji.substring(0, a + 2) + "\uFE0F" + emoji.substring(a + 2);
                         length++;
                         a += 2;
@@ -158,7 +189,7 @@ public class Emoji {
                 }
             } else if (ch == 0x20E3) {
                 return emoji;
-            } else if (ch >= 0x203C && ch <= 0x3299) {
+            } else if (ch >= 0x0023 && ch <= 0x3299) {
                 if (EmojiData.emojiToFE0FMap.containsKey(ch)) {
                     emoji = emoji.substring(0, a + 1) + "\uFE0F" + emoji.substring(a + 1);
                     length++;
@@ -225,6 +256,7 @@ public class Emoji {
         private boolean fullSize = false;
         private static Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
         private static Rect rect = new Rect();
+        private static TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
         public EmojiDrawable(DrawableInfo i) {
             info = i;
@@ -246,16 +278,6 @@ public class Emoji {
 
         @Override
         public void draw(Canvas canvas) {
-            /*if (MessagesController.getInstance().useSystemEmoji) {
-                //textPaint.setTextSize(getBounds().width());
-                canvas.drawText(EmojiData.data[info.page][info.emojiIndex], getBounds().left, getBounds().bottom, textPaint);
-                return;
-            }*/
-            if (!isLoaded()) {
-                loadEmoji(info.page, info.page2);
-                canvas.drawRect(getBounds(), placeholderPaint);
-                return;
-            }
 
             Rect b;
             if (fullSize) {
@@ -264,9 +286,32 @@ public class Emoji {
                 b = getBounds();
             }
 
-            if (!canvas.quickReject(b.left, b.top, b.right, b.bottom, Canvas.EdgeType.AA)) {
-                canvas.drawBitmap(emojiBmp[info.page][info.page2], null, b, paint);
+            if (!NekoConfig.useSystemEmoji.Bool() && EmojiProvider.containsEmoji) {
+                if (!isLoaded()) {
+                    loadEmoji(info.page, info.page2);
+                    canvas.drawRect(getBounds(), placeholderPaint);
+                } else if (!canvas.quickReject(b.left, b.top, b.right, b.bottom, Canvas.EdgeType.AA)) {
+                    canvas.drawBitmap(emojiBmp[info.page][info.page2], null, b, paint);
+                }
+                return;
             }
+
+            String emoji = fixEmoji(EmojiData.data[info.page][info.emojiIndex]);
+
+            if (!NekoConfig.useSystemEmoji.Bool() && EmojiProvider.isFont) {
+                try {
+                    textPaint.setTypeface(EmojiProvider.getFont());
+                } catch (RuntimeException ignored) {
+                }
+            } else if (NekoConfig.useSystemEmoji.Bool()) {
+                try {
+                    textPaint.setTypeface(NekoXConfig.getSystemEmojiTypeface());
+                } catch (RuntimeException ignored) {
+                }
+            }
+
+            textPaint.setTextSize(b.height() * 0.8f);
+            canvas.drawText(emoji, 0, emoji.length(), b.left, b.bottom - b.height() * 0.225f, textPaint);
         }
 
         @Override
@@ -285,6 +330,9 @@ public class Emoji {
         }
 
         public boolean isLoaded() {
+            if (!EmojiProvider.containsEmoji || NekoConfig.useSystemEmoji.Bool()) {
+                return true;
+            }
             return emojiBmp[info.page][info.page2] != null;
         }
 
@@ -321,7 +369,7 @@ public class Emoji {
     }
 
     public static CharSequence replaceEmoji(CharSequence cs, Paint.FontMetricsInt fontMetrics, int size, boolean createNew, int[] emojiOnly) {
-        if (SharedConfig.useSystemEmoji || cs == null || cs.length() == 0) {
+        if (cs == null || cs.length() == 0) {
             return cs;
         }
         Spannable s;
@@ -714,4 +762,43 @@ public class Emoji {
         }
         preferences.edit().putString("color", stringBuilder.toString()).commit();
     }
+
+    /**
+     * NekoX: This function tries to fix incomplete emoji display shown in AvatarDrawable
+     * In AvatarDrawable, only the first char is used to draw "avatar".
+     * @return The first char or the first emoji
+     */
+    public static String getFirstCharSafely(String source) {
+        source = source.trim();
+        if (source.length() <= 1)
+            return source;
+        StringBuilder sb = new StringBuilder();
+        boolean nextEmoji = false;
+        int code = source.codePointAt(0);
+        sb.appendCodePoint(code); // append the first "char"
+        for (int offset = code > 0xFFFF ? 2 : 1; offset < source.length(); offset++) {
+            code = source.codePointAt(offset);
+            if (code > 0xFFFF) offset++;
+            if (nextEmoji || code == 0xFE0F || code == 0x20E3 || (code >= 0x1F3FB && code <= 0x1F3FF)) {
+                // 0xFE0F: VARIATION SELECTOR-16, 20E3: Keycap,  0x1F3FB ~ 0x1F3FF: skin tone
+                sb.appendCodePoint(code);
+                nextEmoji = false;
+                continue;
+            } else if ((code >= 0x1F1E6 && code <= 0x1F1FF)) {
+                sb.appendCodePoint(code);
+                break;
+                // 0x1F1E6 ~ 0x1F1FF: regional indicator symbol letter a to z
+                // These unicode are also used in the first "char" of country flag emoji, so break immediately to prevent appending two emoji
+            } else if (code == 0x200D) {
+                // 0x200D: ZWJ
+                sb.appendCodePoint(code);
+                nextEmoji = true;
+                continue;
+            }
+            if (!nextEmoji)
+                break;
+        }
+        return sb.toString();
+    }
+
 }

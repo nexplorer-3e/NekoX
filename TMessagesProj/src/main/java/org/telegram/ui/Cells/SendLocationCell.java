@@ -38,7 +38,6 @@ public class SendLocationCell extends FrameLayout {
     private ImageView imageView;
     private long dialogId;
     private RectF rect;
-    private boolean live;
     private final Theme.ResourcesProvider resourcesProvider;
 
     private Runnable invalidateRunnable = new Runnable() {
@@ -53,7 +52,6 @@ public class SendLocationCell extends FrameLayout {
     public SendLocationCell(Context context, boolean live, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
-        this.live = live;
 
         imageView = new ImageView(context);
 
@@ -62,7 +60,7 @@ public class SendLocationCell extends FrameLayout {
         if (live) {
             rect = new RectF();
             Drawable drawable = new ShareLocationDrawable(context, 4);
-            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_location_sendLiveLocationIcon), PorterDuff.Mode.MULTIPLY));
+            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_location_sendLiveLocationIcon), PorterDuff.Mode.SRC_IN));
             CombinedDrawable combinedDrawable = new CombinedDrawable(circle, drawable);
             combinedDrawable.setCustomSize(AndroidUtilities.dp(42), AndroidUtilities.dp(42));
             imageView.setBackgroundDrawable(combinedDrawable);
@@ -70,7 +68,7 @@ public class SendLocationCell extends FrameLayout {
             setWillNotDraw(false);
         } else {
             Drawable drawable = getResources().getDrawable(R.drawable.pin);
-            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_location_sendLocationIcon), PorterDuff.Mode.MULTIPLY));
+            drawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_location_sendLocationIcon), PorterDuff.Mode.SRC_IN));
             CombinedDrawable combinedDrawable = new CombinedDrawable(circle, drawable);
             combinedDrawable.setCustomSize(AndroidUtilities.dp(42), AndroidUtilities.dp(42));
             combinedDrawable.setIconSize(AndroidUtilities.dp(24), AndroidUtilities.dp(24));
@@ -104,9 +102,7 @@ public class SendLocationCell extends FrameLayout {
             accurateTextView.setAlpha(value ? 1.0f : 0.5f);
             imageView.setAlpha(value ? 1.0f : 0.5f);
         }
-        if (live) {
-            checkText();
-        }
+        checkText();
     }
 
     @Override
@@ -135,9 +131,7 @@ public class SendLocationCell extends FrameLayout {
 
     public void setDialogId(long did) {
         dialogId = did;
-        if (live) {
-            checkText();
-        }
+        checkText();
     }
 
     private void checkText() {
