@@ -248,7 +248,8 @@ jobs:
       - v2ray
       - shadowsocks
       - shadowsocksr
-    strategy:
+      - telegram-bot-api
+      strategy:
       matrix:
         flavor:
           - MiniRelease
@@ -352,6 +353,11 @@ jobs:
         with:
           name: NekoX-${{ matrix.flavor }}-x86
           path: ${{ env.APK_FILE_X86 }}
+      - name: Download Telegram Bot API Binary
+        uses: actions/download-artifact@master
+        with:
+          name: telegram-bot-api-binary
+          path: .
       - name: Send Build
         if: github.event.inputs.upload != 'y'
         run: |
