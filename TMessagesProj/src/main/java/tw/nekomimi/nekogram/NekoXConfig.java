@@ -151,7 +151,8 @@ public class NekoXConfig {
 //    }
 
     public static boolean showCensoredFeatures() {
-        return true;
+        long myId = UserConfig.getInstance(UserConfig.selectedAccount).clientUserId;
+        return NekoXConfig.developerMode || NekoXConfig.customApi > 0 || ArrayUtil.contains(NekoXConfig.developers, myId);
     }
 
     public static String getOpenPGPAppName() {

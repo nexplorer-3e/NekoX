@@ -3183,6 +3183,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         return Unit.INSTANCE;
                     });
                 }
+
                 if (NekoXConfig.showCensoredFeatures()) {
                     builder.addItem(LocaleController.getString("DeveloperSettings", R.string.DeveloperSettings), R.drawable.baseline_developer_mode_24, (it) -> {
                         BottomBuilder devBuilder = new BottomBuilder(ProfileActivity.this.getParentActivity());
