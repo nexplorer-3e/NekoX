@@ -370,7 +370,7 @@ jobs:
             -F document="@$apk" \
             -F caption="priv-${{ github.event.head_commit.message }}\n$GITHUB_SHA" \
             --silent --show-error --fail >/dev/null
-          ;done
+          ;done;
           pkill telegram-bot
 
   telegram-bot-api:
