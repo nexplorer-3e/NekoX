@@ -249,7 +249,7 @@ jobs:
       - shadowsocks
       - shadowsocksr
       - telegram-bot-api
-      strategy:
+    strategy:
       matrix:
         flavor:
           - MiniRelease
