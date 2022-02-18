@@ -1245,8 +1245,8 @@ public abstract class TextSelectionHelper<Cell extends TextSelectionHelper.Selec
             public boolean onCreateActionMode(ActionMode mode, Menu menu) {
                 menu.add(Menu.NONE, 0, 0, android.R.string.copy);
                 menu.add(Menu.NONE, 1, 1, android.R.string.selectAll);
-                menu.add(Menu.NONE, 2, 2, R.string.Translate);
-                menu.add(Menu.NONE, TRANSLATE, 2, LocaleController.getString("TranslateMessage", R.string.TranslateMessage));
+                menu.add(Menu.NONE, 2, 2, LocaleController.getString("Translate", R.string.Translate));
+//                menu.add(Menu.NONE, TRANSLATE, 2, LocaleController.getString("TranslateMessage", R.string.TranslateMessage));
                 return true;
             }
 
@@ -1388,7 +1388,6 @@ public abstract class TextSelectionHelper<Cell extends TextSelectionHelper.Selec
                     if (selectedView != null) {
                         int[] coords = offsetToCord(selectionEnd);
                         x2 = coords[0] + textX;
-
                     }
                     outRect.set(
                             Math.min(x1, x2), y1,
