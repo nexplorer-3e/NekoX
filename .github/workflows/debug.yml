@@ -3,7 +3,7 @@ name: Debug build
 on:
   push:
     branches:
-      - luvletter
+      - dev
     paths-ignore:
       - '**.md'
       - '.github/**'
@@ -151,8 +151,6 @@ jobs:
           echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
           sha256sum TMessagesProj/luvletter2333.jks
           export NATIVE_TARGET="${{ matrix.flavor }}"
-          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
-          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
           ./run libs native
   v2ray:
     name: Native Build (V2ray)
