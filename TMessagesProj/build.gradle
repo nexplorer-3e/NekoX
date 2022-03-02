@@ -195,7 +195,6 @@ android {
             multiDexEnabled true
             zipAlignEnabled true
             signingConfig signingConfigs.releasePriv
-            versionNameSuffix "-priv"
             ndk.debugSymbolLevel = "FULL"
         }
 
@@ -221,7 +220,7 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             matchingFallbacks = ["release", "debug"]
             signingConfig signingConfigs.releasePriv
-            versionNameSuffix "-priv"
+            versionNameSuffix "-na"
         }
 
         foss {
