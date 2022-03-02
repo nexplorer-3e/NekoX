@@ -3039,7 +3039,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
 
         boolean noforward = getMessagesController().isChatNoForwards(currentChat);
 
-        if (currentEncryptedChat == null || !noforward) {
+        if (currentEncryptedChat == null || NekoXConfig.disableFlagSecure && !noforward) {
             actionModeOtherItem.addSubItem(nkbtn_forward_noquote, R.drawable.baseline_fast_forward_24, LocaleController.getString("NoQuoteForward", R.string.NoQuoteForward));
             actionModeOtherItem.addSubItem(star, R.drawable.baseline_favorite_20, LocaleController.getString("AddToFavorites", R.string.AddToFavorites));
             actionModeOtherItem.addSubItem(save_to, R.drawable.msg_download, LocaleController.getString("SaveToMusic", R.string.SaveToMusic));

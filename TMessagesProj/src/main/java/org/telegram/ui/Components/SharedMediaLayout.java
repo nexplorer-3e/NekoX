@@ -115,7 +115,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import kotlin.Unit;
-import tw.nekomimi.nekogram.NekoXConfig;
 import tw.nekomimi.nekogram.ui.BottomBuilder;
 import tw.nekomimi.nekogram.utils.AlertUtil;
 import tw.nekomimi.nekogram.utils.ProxyUtil;
@@ -2250,7 +2249,6 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         }
     }
     private boolean hasNoforwardsMessage() {
-        if (NekoXConfig.disableFlagSecure) return false;
         boolean hasNoforwardsMessage = false;
         for (int a = 1; a >= 0; a--) {
             ArrayList<Integer> ids = new ArrayList<>();
