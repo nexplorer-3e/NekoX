@@ -3037,7 +3037,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             actionModeOtherItem.addSubItem(forward, R.drawable.baseline_forward_24, LocaleController.getString("Forward", R.string.Forward));
         }
 
-        boolean noforward = getMessagesController().isChatNoForwards(currentChat);
+        boolean noforward = getMessagesController().isChatNoForwardsWithOverride(currentChat);
 
         if (currentEncryptedChat == null || NekoXConfig.disableFlagSecure && !noforward) {
             actionModeOtherItem.addSubItem(nkbtn_forward_noquote, R.drawable.baseline_fast_forward_24, LocaleController.getString("NoQuoteForward", R.string.NoQuoteForward));
@@ -3060,7 +3060,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
 
         actionMode.getItem(nkactionbarbtn_reply).setVisibility(ChatObject.canSendMessages(currentChat) && selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 1 ? View.VISIBLE : View.GONE);
         actionMode.getItem(edit).setVisibility(canEditMessagesCount == 1 && selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 1 ? View.VISIBLE : View.GONE);
-        actionMode.getItem(copy).setVisibility(!getMessagesController().isChatNoForwardsWithOverride(currentChat) && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0 ? View.VISIBLE : View.GONE);
+        actionMode.getItem(copy).setVisibility(!noforward && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.getItem(delete).setVisibility(cantDeleteMessagesCount == 0 ? View.VISIBLE : View.GONE);
 
         actionModeOtherItem.setSubItemVisibility(star, selectedMessagesCanStarIds[0].size() + selectedMessagesCanStarIds[1].size() != 0);
@@ -9847,7 +9847,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     }
 
     private void openForward(boolean fromActionBar) {
-        if (getMessagesController().isChatNoForwards(currentChat) || hasSelectedNoforwardsMessage()) {
+        if (getMessagesController().isChatNoForwardsWithOverride(currentChat) || hasSelectedNoforwardsMessage()) {
             // We should update text if user changed locale without re-opening chat activity
             String str;
             if (getMessagesController().isChatNoForwards(currentChat)) {
@@ -21830,7 +21830,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                             icons.add(R.drawable.baseline_forward_24);
                         }
                         if (chatMode != MODE_SCHEDULED && !selectedObject.needDrawBluredPreview() && !selectedObject.isLiveLocation() && selectedObject.type != 16) {
-                            if (!noforward) {
+                            if (!noforwardOverride) {
                                 items.add(LocaleController.getString("NoQuoteForward", R.string.NoQuoteForward));
                                 options.add(nkbtn_forward_noquote);
                                 icons.add(R.drawable.baseline_fast_forward_24);
@@ -21838,7 +21838,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         }
                         if (chatMode != MODE_SCHEDULED) {
                             if (!UserObject.isUserSelf(currentUser) && NekoConfig.showAddToSavedMessages.Bool()) {
-                                if (!noforward) {
+                                if (!noforwardOverride) {
                                     items.add(LocaleController.getString("AddToSavedMessages", R.string.AddToSavedMessages));
                                     options.add(nkbtn_savemessage);
                                     icons.add(R.drawable.baseline_bookmark_24);
@@ -22641,7 +22641,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 }
             }
 
-            boolean showNoForwards = noforwards && message.messageOwner.action == null && message.isSent() && !message.isEditing() && chatMode != MODE_SCHEDULED;
+            boolean showNoForwards = noforwardsOverride && message.messageOwner.action == null && message.isSent() && !message.isEditing() && chatMode != MODE_SCHEDULED;
             scrimPopupContainerLayout.addView(popupLayout, LayoutHelper.createLinearRelatively(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT, isReactionsAvailable ? 16 : 0, 0, isReactionsAvailable ? 36 : 0, 0));
             scrimPopupContainerLayout.popupWindowLayout = popupLayout;
             if (showNoForwards) {
