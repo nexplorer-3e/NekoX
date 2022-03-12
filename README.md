@@ -139,8 +139,11 @@ rustup target install armv7-linux-androideabi aarch64-linux-android i686-linux-a
    B64_SIGNING_KEY: `base64 --encode <your_keystore_file>`
 
    KEYSTORE_PASS:
-   ```
-
+```properties
+keyAlias=
+keyPassword=
+storeFile=luvletter2333.jks
+storePassword=
 ```
 
    These codes are used to decode the signing key and keypass from secrets:
