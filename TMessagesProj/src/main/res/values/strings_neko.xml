@@ -144,5 +144,7 @@
     <string name="MutualContactDescription">This contact is a mutual contact.</string>
     <string name="showBottomActionsWhenSelecting">Show bottom actions when selecting</string>
     <string name="channelLabel">channel</string>
+    <string name="forceBlurInChat">Force enable Chat Blur</string>
+    <string name="ChatBlurAlphaValue">Chat Blur Alpha</string>
 
 </resources>
