@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -88,6 +89,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Adapters.SearchAdapterHelper;
 import org.telegram.ui.ArticleViewer;
+import org.telegram.ui.CalendarActivity;
 import org.telegram.ui.Cells.ChatActionCell;
 import org.telegram.ui.Cells.ContextLinkCell;
 import org.telegram.ui.Cells.DividerCell;
@@ -105,7 +107,6 @@ import org.telegram.ui.Cells.SharedPhotoVideoCell2;
 import org.telegram.ui.Cells.UserCell;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.DialogsActivity;
-import org.telegram.ui.CalendarActivity;
 import org.telegram.ui.PhotoViewer;
 import org.telegram.ui.ProfileActivity;
 
@@ -272,7 +273,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
 
     private void selectPinchPosition(int pinchCenterX, int pinchCenterY) {
         pinchCenterPosition = -1;
-        int y = pinchCenterY;
+        int y = pinchCenterY + mediaPages[0].listView.blurTopPadding;
         if (getY() != 0 && viewType == VIEW_TYPE_PROFILE_ACTIVITY) {
             y = 0;
         }
@@ -327,12 +328,28 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         }
     }
 
+    public void drawListForBlur(Canvas blurCanvas) {
+        for (int i = 0; i < mediaPages.length; i++) {
+            if (mediaPages[i] != null && mediaPages[i].getVisibility() == View.VISIBLE) {
+                for (int j = 0; j < mediaPages[i].listView.getChildCount(); j++) {
+                    View child = mediaPages[i].listView.getChildAt(j);
+                    if (child.getY() < mediaPages[i].listView.blurTopPadding + AndroidUtilities.dp(100)) {
+                        int restore = blurCanvas.save();
+                        blurCanvas.translate(mediaPages[i].getX() + child.getX(), getY() + mediaPages[i].getY() + mediaPages[i].listView.getY() + child.getY());
+                        child.draw(blurCanvas);
+                        blurCanvas.restoreToCount(restore);
+                    }
+                }
+            }
+        }
+    }
+
     private static class MediaPage extends FrameLayout {
         public long lastCheckScrollTime;
         public boolean fastScrollEnabled;
         public ObjectAnimator fastScrollAnimator;
-        private RecyclerListView listView;
-        private RecyclerListView animationSupportingListView;
+        private BlurredRecyclerView listView;
+        private BlurredRecyclerView animationSupportingListView;
         private GridLayoutManager animationSupportingLayoutManager;
         private FlickerLoadingView progressView;
         private StickerEmptyView emptyView;
@@ -454,7 +471,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
     private ArrayList<SharedPhotoVideoCell> cache = new ArrayList<>(10);
     private ArrayList<SharedAudioCell> audioCellCache = new ArrayList<>(10);
     private ArrayList<SharedAudioCell> audioCache = new ArrayList<>(10);
-    private ScrollSlidingTextTabStrip scrollSlidingTextTabStrip;
+    public ScrollSlidingTextTabStrip scrollSlidingTextTabStrip;
     private View shadowLine;
     private ChatActionCell floatingDateView;
     private AnimatorSet floatingDateAnimation;
@@ -1453,7 +1470,11 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         editText.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         searchItemState = 0;
 
-        actionModeLayout = new LinearLayout(context);
+        SizeNotifierFrameLayout sizeNotifierFrameLayout = null;
+        if (profileActivity != null && profileActivity.getFragmentView() instanceof SizeNotifierFrameLayout) {
+            sizeNotifierFrameLayout = (SizeNotifierFrameLayout) profileActivity.getFragmentView();
+        }
+        actionModeLayout = new BlurredLinearLayout(context, sizeNotifierFrameLayout);
         actionModeLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         actionModeLayout.setAlpha(0.0f);
         actionModeLayout.setClickable(true);
@@ -1587,6 +1608,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
 
                         }
                     }
+                    invalidateBlur();
                 }
             };
             addView(mediaPage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP, 0, 48, 0, 0));
@@ -1675,7 +1697,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                     return mediaPage.layoutManager.getSpanSizeForItem(position);
                 }
             });
-            mediaPages[a].listView = new RecyclerListView(context) {
+            mediaPages[a].listView = new BlurredRecyclerView(context) {
 
                 HashSet<SharedPhotoVideoCell2> excludeDrawViews = new HashSet<>();
                 ArrayList<SharedPhotoVideoCell2> drawingViews = new ArrayList<>();
@@ -1703,10 +1725,34 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                         int columnsOffset = 0;
                         float minY = getMeasuredHeight();
                         if (photoVideoChangeColumnsAnimation) {
-                            firstVisibleItemPosition = mediaPage.layoutManager.findFirstVisibleItemPosition();
-                            firstVisibleItemPosition2 = mediaPage.animationSupportingLayoutManager.findFirstVisibleItemPosition();
-                            lastVisibleItemPosition = mediaPage.layoutManager.findLastVisibleItemPosition();
-                            lastVisibleItemPosition2 = mediaPage.animationSupportingLayoutManager.findLastVisibleItemPosition();
+                            int max = -1;
+                            int min = -1;
+                            for (int i = 0; i < mediaPage.listView.getChildCount(); i++) {
+                                int p = mediaPage.listView.getChildAdapterPosition(mediaPage.listView.getChildAt(i));
+                                if (p >= 0 && (p > max || max == -1)) {
+                                    max = p;
+                                }
+                                if (p >= 0 && (p < min || min == -1)) {
+                                    min = p;
+                                }
+                            }
+                            firstVisibleItemPosition = min;
+                            lastVisibleItemPosition = max;
+
+                            max = -1;
+                            min = -1;
+                            for (int i = 0; i < mediaPage.animationSupportingListView.getChildCount(); i++) {
+                                int p = mediaPage.animationSupportingListView.getChildAdapterPosition(mediaPage.animationSupportingListView.getChildAt(i));
+                                if (p >= 0 && (p > max || max == -1)) {
+                                    max = p;
+                                }
+                                if (p >= 0 && (p < min || min == -1)) {
+                                    min = p;
+                                }
+                            }
+
+                            firstVisibleItemPosition2 = min;
+                            lastVisibleItemPosition2 = max;
 
                             if (firstVisibleItemPosition >= 0 && firstVisibleItemPosition2 >= 0 && pinchCenterPosition >= 0) {
                                 int rowsCount1 = (int) Math.ceil(photoVideoAdapter.getItemCount() / (float) mediaColumnsCount);
@@ -1961,10 +2007,10 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             mediaPages[a].listView.setPadding(0, AndroidUtilities.dp(2), 0, 0);
             mediaPages[a].listView.setItemAnimator(null);
             mediaPages[a].listView.setClipToPadding(false);
-            mediaPages[a].listView.setSectionsType(2);
+            mediaPages[a].listView.setSectionsType(RecyclerListView.SECTIONS_TYPE_DATE);
             mediaPages[a].listView.setLayoutManager(layoutManager);
             mediaPages[a].addView(mediaPages[a].listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-            mediaPages[a].animationSupportingListView = new RecyclerListView(context);
+            mediaPages[a].animationSupportingListView = new BlurredRecyclerView(context);
             mediaPages[a].animationSupportingListView.setLayoutManager(mediaPages[a].animationSupportingLayoutManager = new GridLayoutManager(context, 3) {
 
                 @Override
@@ -2077,6 +2123,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                     if (mediaPage.fastScrollHintView != null) {
                         mediaPage.invalidate();
                     }
+                    invalidateBlur();
                 }
             });
             mediaPages[a].listView.setOnItemLongClickListener((view, position) -> {
@@ -2212,6 +2259,10 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         if (hasMedia[0] >= 0) {
             loadFastScrollData(false);
         }
+    }
+
+    protected void invalidateBlur() {
+
     }
 
     public void setForwardRestrictedHint(HintView hintView) {
@@ -2428,7 +2479,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             if (pinchCenterPosition >= 0) {
                 for (int k = 0; k < mediaPages.length; k++) {
                     if (mediaPages[k].selectedType == 0) {
-                        mediaPages[k].animationSupportingLayoutManager.scrollToPositionWithOffset(pinchCenterPosition, pinchCenterOffset);
+                        mediaPages[k].animationSupportingLayoutManager.scrollToPositionWithOffset(pinchCenterPosition, pinchCenterOffset - mediaPages[k].animationSupportingListView.getPaddingTop());
                     }
                 }
             } else {
@@ -2469,7 +2520,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                                 if (view != null) {
                                     pinchCenterOffset = view.getTop();
                                 }
-                                mediaPages[k].layoutManager.scrollToPositionWithOffset(pinchCenterPosition, pinchCenterOffset);
+                                mediaPages[k].layoutManager.scrollToPositionWithOffset(pinchCenterPosition,  -mediaPages[k].listView.getPaddingTop() + pinchCenterOffset);
                             }
                         }
                     } else {
@@ -2522,7 +2573,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                                             pinchCenterOffset = view.getTop();
                                         }
                                     }
-                                    mediaPages[k].layoutManager.scrollToPositionWithOffset(pinchCenterPosition, pinchCenterOffset);
+                                    mediaPages[k].layoutManager.scrollToPositionWithOffset(pinchCenterPosition, -mediaPages[k].listView.getPaddingTop() + pinchCenterOffset);
                                 }
                             }
                         } else {
@@ -2605,7 +2656,30 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
     }
 
     private ScrollSlidingTextTabStrip createScrollingTextTabStrip(Context context) {
-        ScrollSlidingTextTabStrip scrollSlidingTextTabStrip = new ScrollSlidingTextTabStrip(context);
+        ScrollSlidingTextTabStrip scrollSlidingTextTabStrip = new ScrollSlidingTextTabStrip(context) {
+
+            protected Paint backgroundPaint;
+            public int backgroundColor = Color.TRANSPARENT;
+
+            @Override
+            protected void dispatchDraw(Canvas canvas) {
+                if (SharedConfig.chatBlurEnabled() && backgroundColor != Color.TRANSPARENT) {
+                    if (backgroundPaint == null) {
+                        backgroundPaint = new Paint();
+                    }
+                    backgroundPaint.setColor(backgroundColor);
+                    AndroidUtilities.rectTmp2.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
+                    drawBackgroundWithBlur(canvas, getY(), AndroidUtilities.rectTmp2, backgroundPaint);
+                }
+                super.dispatchDraw(canvas);
+            }
+
+            @Override
+            public void setBackgroundColor(int color) {
+                backgroundColor = color;
+                invalidate();
+            }
+        };
         if (initialTab != -1) {
             scrollSlidingTextTabStrip.setInitialTabId(initialTab);
             initialTab = -1;
@@ -2677,6 +2751,10 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             }
         });
         return scrollSlidingTextTabStrip;
+    }
+
+    protected void drawBackgroundWithBlur(Canvas canvas, float y, Rect rectTmp2, Paint backgroundPaint) {
+        canvas.drawRect(rectTmp2, backgroundPaint);
     }
 
     private boolean fillMediaData(int type) {
@@ -3963,9 +4041,9 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
 
                     int position = sharedMediaData[mediaPages[k].selectedType].startOffset + index;
                     if (index >= 0) {
-                        ((LinearLayoutManager) listView.getLayoutManager()).scrollToPositionWithOffset(position, offset);
+                        ((LinearLayoutManager) listView.getLayoutManager()).scrollToPositionWithOffset(position, -mediaPages[k].listView.getPaddingTop() + offset);
                         if (photoVideoChangeColumnsAnimation) {
-                            mediaPages[k].animationSupportingLayoutManager.scrollToPositionWithOffset(position, offset);
+                            mediaPages[k].animationSupportingLayoutManager.scrollToPositionWithOffset(position, -mediaPages[k].listView.getPaddingTop() + offset);
                         }
                     }
                 }
@@ -4019,6 +4097,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                                 valueAnimator.setDuration(250);
                                 valueAnimator.start();
                             }
+                            finalListView.invalidate();
                         }
                     }
                 } else {
@@ -4055,8 +4134,6 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                     }
                     animatorSet.start();
                 }
-
-
                 return true;
             }
         });
@@ -4694,6 +4771,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                         AndroidUtilities.openDocument(message, profileActivity.getParentActivity(), profileActivity);
                     } else if (!cell.isLoading()) {
                         MessageObject messageObject = cell.getMessage();
+                        messageObject.putInDownloadsStore = true;
                         profileActivity.getFileLoader().loadFile(document, messageObject, 0, 0);
                         cell.updateFileExistIcon(true);
                     } else {
