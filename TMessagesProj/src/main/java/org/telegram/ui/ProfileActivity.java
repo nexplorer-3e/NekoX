@@ -6637,7 +6637,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
             }
-            id = chatId;
+            if (NekoConfig.botChatId) {
+                if (ChatObject.isChannel(chat)) {
+                    id = -1000000000000L - chat.id;
+                } else {
+                    id = - chat.id;
+                }
+            } else {
+                id = chatId;
+            }
             if (changed) {
                 needLayout(true);
             }
@@ -6672,10 +6680,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             avatarImage.getImageReceiver().setVisible(!PhotoViewer.isShowingImage(photoBig), false);
             if (chat.photo != null && chat.photo.dc_id != 0) {
-                idTextView.setText("ID: " + chatId + ", DC: " + chat.photo.dc_id);
+                idTextView.setText("ID: " + id + ", DC: " + chat.photo.dc_id);
             } else {
-                idTextView.setText("ID: " + chatId);
+                idTextView.setText("ID: " + id);
             }
+            id = chatId;
         }
         if (id != 0) {
             long finalId = id;

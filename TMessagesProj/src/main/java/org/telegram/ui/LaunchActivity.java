@@ -2202,6 +2202,12 @@ public class LaunchActivity extends BasePermissionsActivity implements ActionBar
                                         newContactName = data.getQueryParameter("name");
                                         newContactPhone = data.getQueryParameter("phone");
                                         newContact = true;
+                                    } else if (url.startsWith("tg:meow") || url.startsWith("tg://meow") || url.startsWith("tg:nya") || url.startsWith("tg://nya") || url.startsWith("tg:miao") || url.startsWith("tg://miao")) {
+                                        try {
+                                            Toast.makeText(LaunchActivity.this, LocaleController.getString("Nya", R.string.Nya), Toast.LENGTH_SHORT).show();
+                                        } catch (Exception e) {
+                                            FileLog.e(e);
+                                        }
                                     } else {
                                         unsupportedUrl = url.replace("tg://", "").replace("tg:", "");
                                         int index;

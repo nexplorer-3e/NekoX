@@ -115,6 +115,7 @@ public class NekoConfig {
     public static ConfigItem ignoreMutedCount = addConfig("IgnoreMutedCount", configTypeBool, true);
     public static ConfigItem useDefaultTheme = addConfig("UseDefaultTheme", configTypeBool, false);
     public static ConfigItem showIdAndDc = addConfig("ShowIdAndDc", configTypeBool, false);
+    public static ConfigItem botChatId = addConfig("BotChatId", configTypeBool, false);
 
     public static ConfigItem googleCloudTranslateKey = addConfig("GoogleCloudTransKey", configTypeString, "");
     public static ConfigItem cachePath = addConfig("cache_path", configTypeString, "");

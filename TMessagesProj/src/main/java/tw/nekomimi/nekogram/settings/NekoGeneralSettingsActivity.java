@@ -163,6 +163,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
             (input) -> input.matches("^[A-za-z0-9.]{1,255}$") || input.isEmpty() ? input : (String) NekoConfig.customSavePath.defaultValue));
     private final AbstractConfigCell disableUndoRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableUndo));
     private final AbstractConfigCell showIdAndDcRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.showIdAndDc));
+    private final AbstractConfigCell botChatIdRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.botChatId));
     private final AbstractConfigCell inappCameraRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.inappCamera));
     private final AbstractConfigCell disableInstantCameraRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableInstantCamera));
     private final AbstractConfigCell hideProxySponsorChannelRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.hideProxySponsorChannel));
@@ -379,6 +380,8 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
                 if (chatBlurAlphaSeekbar != null)
                     chatBlurAlphaSeekbar.setEnabled(enabled);
                 ((ConfigCellCustom) chatBlurAlphaValueRow).enabled = enabled;
+            } else if (NekoConfig.showIdAndDc.getKey().equals(key)) {
+                botChatIdRow.enabled = showIdAndDcRow.isEnabled();
             }
         };
 
