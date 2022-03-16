@@ -392,7 +392,7 @@ jobs:
           ./telegram-bot-api-binary --api-id=21724 --api-hash=3e0cb5efcd52300aec5994fdfc5bdc16 --local 2>&1 > /dev/null &
           curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
            -X POST \
-           --form-string chat_id="-${{ secrets.TELEGRAM_RCHANNEL }}" \
+           --form-string chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
            -F text="==== ${{ github.event.inputs.tag }} ====" \
            --silent --show-error --fail >/dev/null
           mkdir apks
@@ -402,7 +402,7 @@ jobs:
               echo ">> Uploading $apk"
               curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument \
                 -X POST \
-                --form-string chat_id="-${{ secrets.TELEGRAM_RCHANNEL }}" \
+                --form-string chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
                 -F document="@$apk" \
                 --silent --show-error --fail >/dev/null
               sleep 1

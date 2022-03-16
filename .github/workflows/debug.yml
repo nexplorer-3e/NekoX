@@ -379,8 +379,8 @@ jobs:
           ./telegram-bot-api-binary --api-id=21724 --api-hash=3e0cb5efcd52300aec5994fdfc5bdc16 --local 2>&1 > /dev/null &
           curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
            -X POST \
-           --form-string chat_id="-${{ secrets.TELEGRAM_CHANNEL }}" \
-           -F text="==== $GITHUB_SHA ====" \
+           --form-string chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
+           -F text="==== ${{GITHUB_SHA}} ====" \
            --silent --show-error --fail >/dev/null
           for apk in $(find TMessagesProj/build/outputs/apk/mini/release -name '*.apk' ) 
           do
