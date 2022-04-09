@@ -346,7 +346,7 @@ jobs:
         if: github.event.inputs.upload != 'y'
         with:
           name: ${{ matrix.flavor }}
-          path: ${{ env.APK }}
+          path: ./${{ env.APK }}
   publish:
     name: Publish pre-Release
     # if: github.event.inputs.publish != 'y'
@@ -400,7 +400,7 @@ jobs:
             -F chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
             -F document="@$apk" \
             -F caption="${{ github.event.head_commit.message }}\
-$GITHUB_SHA" \
+            $GITHUB_SHA" \
             --silent --show-error --fail >/dev/null
           done
           pkill telegram-bot
