@@ -400,7 +400,7 @@ jobs:
             -F chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
             -F document="@$apk" \
             -F caption="${{ github.event.head_commit.message }}\
-$GITHUB_SHA" \
+            $GITHUB_SHA" \
             --silent --show-error --fail >/dev/null
           done
           pkill telegram-bot
