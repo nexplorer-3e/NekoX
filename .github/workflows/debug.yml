@@ -339,48 +339,59 @@ jobs:
           export DEBUG_BUILD=true
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
 
-          echo "APK_FILE=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk')" >> $GITHUB_ENV
-          echo "APK_FILE_ARMV7=$(find TMessagesProj/build/outputs/apk -name '*armeabi*.apk')" >> $GITHUB_ENV
-          echo "APK_FILE_X86=$(find TMessagesProj/build/outputs/apk -name '*x86-*.apk')" >> $GITHUB_ENV
-          echo "APK_FILE_X64=$(find TMessagesProj/build/outputs/apk -name '*x86_64*.apk')" >> $GITHUB_ENV
+          APK=$(find TMessagesProj/build/outputs/apk -name '*.apk')
+          APK=$(dirname $APK)
+          echo "APK=$APK" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts != 'y'
-        name: Upload apk (arm64-v8a)
+        if: github.event.inputs.upload != 'y'
         with:
-          name: NekoX-${{ matrix.flavor }}-arm64-v8a
-          path: ${{ env.APK_FILE }}
-      - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts != 'y'
-        name: Upload apk (armeabi-v7a)
+          name: ${{ matrix.flavor }}
+          path: ${{ env.APK }}
+  publish:
+    name: Publish pre-Release
+    # if: github.event.inputs.publish != 'y'
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Donwload Artifacts
+        uses: actions/download-artifact@v2
         with:
-          name: NekoX-${{ matrix.flavor }}-armeabi-v7a
-          path: ${{ env.APK_FILE_ARMV7 }}
-      - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts != 'y'
-        name: Upload apk (x86_64)
+          path: artifacts
+      - name: Release
+        run: |
+          wget -O ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.13.0/ghr_v0.13.0_linux_amd64.tar.gz
+          tar -xvf ghr.tar.gz
+          mv ghr*linux_amd64/ghr .
+          mkdir apks
+          find artifacts -name "*.apk" -exec cp {} apks \;
+          ./ghr -delete -t "${{ github.token }}" -b "${{ github.event.head_commit.message }}" -prerelease "$GITHUB_SHA" apks
+  upload:
+    name: Upload Release
+    # if: github.event.inputs.upload != 'y'
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - telegram-bot-api
+    steps:
+      - name: Donwload Artifacts
+        uses: actions/download-artifact@v2
         with:
-          name: NekoX-${{ matrix.flavor }}-x86_64
-          path: ${{ env.APK_FILE_X64 }}
-      - uses: actions/upload-artifact@v2
-        if: github.event.inputs.artifacts != 'y'
-        name: Upload apk (x86)
-        with:
-          name: NekoX-${{ matrix.flavor }}-x86
-          path: ${{ env.APK_FILE_X86 }}
+          path: artifacts
       - name: Download Telegram Bot API Binary
         uses: actions/download-artifact@master
         with:
           name: telegram-bot-api-binary
           path: .
-      - name: Send Build
-        if: github.event.inputs.upload != 'y'
+      - name: Release
         run: |
           chmod +x telegram-bot-api-binary
           ./telegram-bot-api-binary --api-id=21724 --api-hash=3e0cb5efcd52300aec5994fdfc5bdc16 --local 2>&1 > /dev/null &
           curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
            -X POST \
            --form-string chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
-           -F text="==== ${{  env.GITHUB_SHA  }} ====" \
+           -F text="==== $GITHUB_SHA ====" \
            --silent --show-error --fail >/dev/null
           for apk in $(find TMessagesProj/build/outputs/apk/mini/release -name '*.apk' ) 
           do
@@ -388,11 +399,11 @@ jobs:
             -X POST \
             -F chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
             -F document="@$apk" \
-            -F caption="${{ github.event.head_commit.message }}\n$GITHUB_SHA" \
+            -F caption="${{ github.event.head_commit.message }}\
+$GITHUB_SHA" \
             --silent --show-error --fail >/dev/null
           done
           pkill telegram-bot
-
   telegram-bot-api:
     name: Telegram Bot API
     runs-on: ubuntu-latest
