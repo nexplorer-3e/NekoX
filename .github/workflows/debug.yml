@@ -340,13 +340,14 @@ jobs:
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
 
           APK=$(find TMessagesProj/build/outputs/apk -name '*.apk')
-          APK=$(dirname $APK)
+          APK=$(dirname $APK)"/*"
           echo "APK=$APK" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v2
+          echo "\$APK set"
+      - uses: actions/upload-artifact@master
         if: github.event.inputs.upload != 'y'
         with:
           name: ${{ matrix.flavor }}
-          path: ./${{ env.APK }}
+          path: ${{ env.APK }}
   publish:
     name: Publish pre-Release
     # if: github.event.inputs.publish != 'y'

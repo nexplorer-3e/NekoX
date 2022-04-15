@@ -269,6 +269,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -338,6 +339,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private final static int nkbtn_PGPDecrypt = 2022;
     private final static int nkbtn_PGPImportPrivate = 2023;
     private final static int nkbtn_PGPImport = 2024;
+    private final static int nkbtn_copy_link_in_pm = 2025;
 
     protected TLRPC.Chat currentChat;
     protected TLRPC.User currentUser;
@@ -12335,7 +12337,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         }
     }
 
-    private void scrollToLastMessage(boolean skipSponsored) {
+    public void scrollToLastMessage(boolean skipSponsored) {
         if (chatListView.isFastScrollAnimationRunning()) {
             return;
         }
@@ -14651,6 +14653,30 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
                     if (videoPath == null) {
                         showAttachmentError();
+                    } else {
+                        File f = new File(videoPath);
+                        if (!f.canRead()) {
+                            // When the video file is located in a protected directory, and NekoX doesn't have the access permission to this directory, i.e. EACCES (Permission denied),
+                            //    copy it to the private temp directory
+                            FileLog.e("Failed to read input file " + videoPath + ", copy to private directory");
+                            try {
+                                final File file = AndroidUtilities.generateVideoPath();
+                                InputStream in = ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri);
+                                FileOutputStream fos = new FileOutputStream(file);
+                                byte[] buffer = new byte[8 * 1024];
+                                int lengthRead;
+                                while ((lengthRead = in.read(buffer)) > 0) {
+                                    fos.write(buffer, 0, lengthRead);
+                                    fos.flush();
+                                }
+                                in.close();
+                                fos.close();
+                                videoPath = file.getAbsolutePath();
+                            } catch (Exception ex) {
+                                FileLog.e(ex);
+                                showAttachmentError();
+                            }
+                        }
                     }
                     if (paused) {
                         startVideoEdit = videoPath;
@@ -14664,8 +14690,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                             SendMessagesHelper.prepareSendingPhoto(getAccountInstance(), null, uri, dialog_id, replyingMessageObject, getThreadMessage(), null, null, null, null, 0, editingMessageObject, notify, scheduleDate);
                         }, themeDelegate);
                     } else {
-                        fillEditingMediaWithCaption(null, null);
-                        SendMessagesHelper.prepareSendingPhoto(getAccountInstance(), null, uri, dialog_id, replyingMessageObject, getThreadMessage(), null, null, null, null, 0, editingMessageObject, true, 0);
+                        ArrayList<SendMessagesHelper.SendingMediaInfo> photos = new ArrayList<>();
+                        SendMessagesHelper.SendingMediaInfo info = new SendMessagesHelper.SendingMediaInfo();
+                        info.uri = uri;
+                        photos.add(info);
+                        openPhotosEditor(photos, null);
                     }
                 }
                 afterMessageSend();
@@ -21656,6 +21685,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                             options.add(22);
                             icons.add(R.drawable.baseline_link_24);
                         }
+                        if (!selectedObject.isSponsored() && chatMode != MODE_SCHEDULED && currentUser != null && selectedObject.getDialogId() != mergeDialogId) {
+                            items.add(LocaleController.getString("CopyLink", R.string.CopyLink));
+                            options.add(nkbtn_copy_link_in_pm);
+                            icons.add(R.drawable.baseline_link_24);
+                        }
                         if (type == 2) {
                             if (chatMode != MODE_SCHEDULED) {
                                 if (selectedObject.type == MessageObject.TYPE_POLL && !message.isPollClosed()) {
@@ -25015,8 +25049,19 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     MessageObject finalMessageObject = messageObject;
                     builder.addItems(
                             // TODO:                     builder.setItems(noforwards ? new CharSequence[] {LocaleController.getString("Open", R.string.Open)} : new CharSequence[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy)}, (dialog, which) -> {
-                            new String[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy), LocaleController.getString("ShareQRCode", R.string.ShareQRCode)},
-                            new int[]{R.drawable.baseline_open_in_browser_24, R.drawable.baseline_content_copy_24, R.drawable.wallet_qr}, (which, text, __) -> {
+                            new String[]{
+                                    LocaleController.getString("Open", R.string.Open),
+                                    LocaleController.getString("Copy", R.string.Copy),
+                                    LocaleController.getString("ShareQRCode", R.string.ShareQRCode),
+                                    LocaleController.getString("ShareMessages", R.string.ShareMessages)
+                            },
+                            new int[]{
+                                    R.drawable.baseline_open_in_browser_24,
+                                    R.drawable.baseline_content_copy_24,
+                                    R.drawable.wallet_qr,
+                                    R.drawable.baseline_share_24
+                            },
+                            (which, text, __) -> {
                                 if (which == 0) {
                                     if (str.startsWith("video?")) {
                                         didPressMessageUrl(url, false, finalMessageObject, finalCell);
@@ -25069,6 +25114,17 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                                     } else {
                                         undoView.showWithAction(0, UndoView.ACTION_LINK_COPIED, null);
                                     }
+                                } else if (which == 2) {
+                                    ProxyUtil.showQrDialog(getParentActivity(), str);
+                                } else if (which == 3) {
+                                    Intent intent = new Intent(Intent.ACTION_SEND);
+                                    intent.setType("text/plain");
+                                    intent.putExtra(Intent.EXTRA_TEXT, str);
+                                    try {
+                                        getParentActivity().startActivity(intent);
+                                    } catch (Exception e) {
+                                        AlertUtil.showToast(e);
+                                    }
                                 }
                                 return Unit.INSTANCE;
                             });
@@ -25084,8 +25140,19 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 builder.addTitle(urlFinal);
                 // TODO:                 builder.setItems(noforwards ? new CharSequence[] {LocaleController.getString("Open", R.string.Open)} : new CharSequence[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy)}, (dialog, which) -> {
                 builder.addItems(
-                        new String[]{LocaleController.getString("Open", R.string.Open), LocaleController.getString("Copy", R.string.Copy), LocaleController.getString("ShareQRCode", R.string.ShareQRCode)},
-                        new int[]{R.drawable.baseline_open_in_browser_24, R.drawable.baseline_content_copy_24, R.drawable.wallet_qr}, (which, text, __) -> {
+                        new String[]{
+                                LocaleController.getString("Open", R.string.Open),
+                                LocaleController.getString("Copy", R.string.Copy),
+                                LocaleController.getString("ShareQRCode", R.string.ShareQRCode),
+                                LocaleController.getString("ShareMessages", R.string.ShareMessages)
+                        },
+                        new int[]{
+                                R.drawable.baseline_open_in_browser_24,
+                                R.drawable.baseline_content_copy_24,
+                                R.drawable.wallet_qr,
+                                R.drawable.baseline_share_24
+                        },
+                        (which, text, __) -> {
                             if (which == 0) {
                                 processExternalUrl(1, urlFinal, false);
                             } else if (which == 1) {
@@ -25107,8 +25174,17 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                                 } else {
                                     undoView.showWithAction(0, UndoView.ACTION_LINK_COPIED, null);
                                 }
-                            } else {
+                            } else if (which == 2) {
                                 ProxyUtil.showQrDialog(getParentActivity(), urlFinal);
+                            } else if (which == 3) {
+                                Intent intent = new Intent(Intent.ACTION_SEND);
+                                intent.setType("text/plain");
+                                intent.putExtra(Intent.EXTRA_TEXT, urlFinal);
+                                try {
+                                    getParentActivity().startActivity(intent);
+                                } catch (Exception e) {
+                                    AlertUtil.showToast(e);
+                                }
                             }
                             return Unit.INSTANCE;
                         });
@@ -29367,6 +29443,18 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 if (!getMessagesController().checkCanOpenChat(args, ChatActivity.this))
                     return;
                 presentFragment(new ChatActivity(args), true);
+                break;
+
+            }
+            case nkbtn_copy_link_in_pm: {
+                try {
+                    String link_message = "tg://openmessage?user_id=" + currentUser.id + "&message_id=" + selectedObject.messageOwner.id;
+                    ClipboardManager clipboard = (ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("label", link_message);
+                    clipboard.setPrimaryClip(clip);
+                } catch (Exception e) {
+                    FileLog.e(e);
+                }
                 break;
 
             }
