@@ -16,8 +16,8 @@ on:
       artifacts:
         description: 'y, if drop artifacts'
         required: false
-      upload:
-        description: 'y if not push to dev channel'
+      publish:
+        description: 'y if not release'
         required: false
 
 jobs:
@@ -338,25 +338,21 @@ jobs:
           sha256sum TMessagesProj/luvletter2333.jks
           export DEBUG_BUILD=true
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
-
-          APK=$(find TMessagesProj/build/outputs/apk -name '*.apk')
-          APK=$(dirname $APK)"/*"
-          echo "APK=$APK" >> $GITHUB_ENV
-          echo "\$APK set"
-      - uses: actions/upload-artifact@master
+      - name: Upload artifacts  
+        uses: actions/upload-artifact@master
         if: github.event.inputs.upload != 'y'
         with:
           name: ${{ matrix.flavor }}
-          path: ${{ env.APK }}
+          path: TMessagesProj/build/outputs/apk/
   publish:
     name: Publish pre-Release
-    # if: github.event.inputs.publish != 'y'
+    if: github.event.inputs.publish != 'y'
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Donwload Artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
           path: artifacts
@@ -367,16 +363,16 @@ jobs:
           mv ghr*linux_amd64/ghr .
           mkdir apks
           find artifacts -name "*.apk" -exec cp {} apks \;
-          ./ghr -delete -t "${{ github.token }}" -b "${{ github.event.head_commit.message }}" -prerelease "$GITHUB_SHA" apks
+          ./ghr -delete -t "${{ github.token }}" -b "${{ github.event.head_commit.message }}" -prerelease "$(echo $GITHUB_SHA|sed -E 's,^(.{8}).*,\1,g')" apks
   upload:
     name: Upload Release
-    # if: github.event.inputs.upload != 'y'
+    if: github.event.inputs.artifacts != 'y'
     runs-on: ubuntu-latest
     needs:
       - build
       - telegram-bot-api
     steps:
-      - name: Donwload Artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
           path: artifacts
@@ -408,6 +404,7 @@ jobs:
   telegram-bot-api:
     name: Telegram Bot API
     runs-on: ubuntu-latest
+    if: github.event.inputs.artifacts != 'y'
     steps:
       - name: Checkout
         uses: actions/checkout@v2
