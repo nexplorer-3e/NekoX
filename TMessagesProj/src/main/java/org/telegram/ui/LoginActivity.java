@@ -623,7 +623,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 .setContentDescription(LocaleController.getString("ImportLogin", R.string.ImportLogin));
         menu.addSubItem(menu_custom_dc, R.drawable.baseline_sync_24, LocaleController.getString("CustomBackend", R.string.CustomBackend))
                 .setContentDescription(LocaleController.getString("CustomBackend", R.string.CustomBackend));
-//        otherItem.addSubItem(menu_custom_api, R.drawable.baseline_vpn_key_24, LocaleController.getString("CustomApi", R.string.CustomApi));
+        menu.addSubItem(menu_custom_api, R.drawable.baseline_vpn_key_24, LocaleController.getString("CustomApi", R.string.CustomApi));
 //        menu.addSubItem(menu_custom_dc, R.drawable.baseline_sync_24, LocaleController.getString("CustomBackend", R.string.CustomBackend));
 
         menu.setOnClickListener(v -> {
@@ -645,6 +645,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     phoneView.testBackendCheckBox.setVisibility(View.VISIBLE);
                 else
                     phoneView.testBackendCheckBox.setVisibility(View.GONE);
+            } else if (id == menu_custom_api) {
+                setCustomApi();
             }
         });
         menu.setContentDescription(LocaleController.getString(R.string.items_other));

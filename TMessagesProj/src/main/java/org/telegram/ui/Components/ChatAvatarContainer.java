@@ -304,6 +304,10 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
+        if (parentFragment != null && parentFragment.isThreadChat() && parentFragment.getThreadId() != 0) {
+            width -= AndroidUtilities.dp(48);
+            // leave some width for viewInChatItem
+        }
         int availableWidth = width - AndroidUtilities.dp((avatarImageView.getVisibility() == VISIBLE ? 54 : 0) + 16);
         avatarImageView.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(42), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(42), MeasureSpec.EXACTLY));
         titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(24), MeasureSpec.AT_MOST));
@@ -664,6 +668,10 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         } else {
             lastSubtitle = newSubtitle;
         }
+    }
+
+    public String getLastSubtitleColorKey() {
+        return lastSubtitleColorKey;
     }
 
     public void setChatAvatar(TLRPC.Chat chat) {
