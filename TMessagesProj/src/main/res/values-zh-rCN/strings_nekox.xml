@@ -283,4 +283,5 @@
     <string name="ConfirmSettings">操作确认</string>
     <string name="InteractionSettings">交互</string>
     <string name="nekoxPremiumGiftRemoved">高级礼品在 NekoX 中被移除。</string>
+    <string name="localPremium">本地大会员</string>
 </resources>
