@@ -624,7 +624,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean isPremiumUser(TLRPC.User currentUser) {
-        return !premiumLocked && currentUser.premium;
+        return NekoConfig.localPremium.Bool() || (!premiumLocked && currentUser.premium);
     }
 
     public boolean didPressTranscribeButtonEnough() {
@@ -1366,6 +1366,10 @@ public class MessagesController extends BaseController implements NotificationCe
             directPaymentsCurrency.clear();
             directPaymentsCurrency.addAll(currencySet);
         }
+
+        // FORK
+        if (NekoConfig.localPremium.Bool())
+            premiumLocked = false;
 
         loadPremiumFeaturesPreviewOrder(mainPreferences.getString("premiumFeaturesTypesToPosition", null));
         if (pendingSuggestions != null) {
@@ -2186,615 +2190,616 @@ public class MessagesController extends BaseController implements NotificationCe
                     if (value.value instanceof TLRPC.TL_jsonBool) {
                         if (premiumLocked != ((TLRPC.TL_jsonBool) value.value).value) {
                             premiumLocked = ((TLRPC.TL_jsonBool) value.value).value;
-                            editor.putBoolean("premiumLocked", premiumLocked);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "premium_bot_username": {
-                    if (value.value instanceof TLRPC.TL_jsonString) {
-                        String string = ((TLRPC.TL_jsonString) value.value).value;
-                        if (!string.equals(premiumBotUsername)) {
-                            premiumBotUsername = string;
-                            editor.putString("premiumBotUsername", premiumBotUsername);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "premium_invoice_slug": {
-                    if (value.value instanceof TLRPC.TL_jsonString) {
-                        String string = ((TLRPC.TL_jsonString) value.value).value;
-                        if (!string.equals(premiumInvoiceSlug)) {
-                            premiumInvoiceSlug = string;
-                            editor.putString("premiumInvoiceSlug", premiumInvoiceSlug);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "premium_promo_order": {
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray order = (TLRPC.TL_jsonArray) value.value;
-                        changed = savePremiumFeaturesPreviewOrder(editor, order.value);
-                    }
-                    break;
-                }
-                case "emojies_animated_zoom": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (animatedEmojisZoom != number.value) {
-                            animatedEmojisZoom = (float) number.value;
-                            editor.putFloat("animatedEmojisZoom", animatedEmojisZoom);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "getfile_experimental_params": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != getfileExperimentalParams) {
-                            getfileExperimentalParams = bool.value;
-                            editor.putBoolean("getfileExperimentalParams", getfileExperimentalParams);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "dialog_filters_enabled": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != filtersEnabled) {
-                            filtersEnabled = bool.value;
-                            editor.putBoolean("filtersEnabled", filtersEnabled);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "dialog_filters_tooltip": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != showFiltersTooltip) {
-                            showFiltersTooltip = bool.value;
-                            editor.putBoolean("showFiltersTooltip", showFiltersTooltip);
-                            changed = true;
-                            getNotificationCenter().postNotificationName(NotificationCenter.filterSettingsUpdated);
-                        }
-                    }
-                    break;
-                }
-                case "youtube_pip": {
-                    if (value.value instanceof TLRPC.TL_jsonString) {
-                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) value.value;
-                        if (!string.value.equals(youtubePipType)) {
-                            youtubePipType = string.value;
-                            editor.putString("youtubePipType", youtubePipType);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "background_connection": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != backgroundConnection) {
-                            backgroundConnection = bool.value;
-                            editor.putBoolean("backgroundConnection", backgroundConnection);
-                            changed = true;
-                            keelAliveChanged = true;
-                        }
-                    }
-                    break;
-                }
-                case "keep_alive_service": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != keepAliveService) {
-                            keepAliveService = bool.value;
-                            editor.putBoolean("keepAliveService", keepAliveService);
-                            changed = true;
-                            keelAliveChanged = true;
-                        }
-                    }
-                    break;
-                }
-                case "qr_login_camera": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != qrLoginCamera) {
-                            qrLoginCamera = bool.value;
-                            editor.putBoolean("qrLoginCamera", qrLoginCamera);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "save_gifs_with_stickers": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != saveGifsWithStickers) {
-                            saveGifsWithStickers = bool.value;
-                            editor.putBoolean("saveGifsWithStickers", saveGifsWithStickers);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "url_auth_domains": {
-                    HashSet<String> newDomains = new HashSet<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newDomains.add(string.value);
+                            if (NekoConfig.localPremium.Bool())
+                                        premiumLocked = false;
+                                    editor.putBoolean("premiumLocked", premiumLocked);
+                                    changed = true;
+                                }
                             }
+                            break;
                         }
-                    }
-                    if (!authDomains.equals(newDomains)) {
-                        authDomains = newDomains;
-                        editor.putStringSet("authDomains", authDomains);
-                        changed = true;
-                    }
-                    break;
-                }
-                case "autologin_domains": {
-                    HashSet<String> newDomains = new HashSet<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newDomains.add(string.value);
+                        case "premium_bot_username": {
+                            if (value.value instanceof TLRPC.TL_jsonString) {
+                                String string = ((TLRPC.TL_jsonString) value.value).value;
+                                if (!string.equals(premiumBotUsername)) {
+                                    premiumBotUsername = string;
+                                    editor.putString("premiumBotUsername", premiumBotUsername);
+                                    changed = true;
+                                }
                             }
+                            break;
                         }
-                    }
-                    if (!autologinDomains.equals(newDomains)) {
-                        autologinDomains = newDomains;
-                        editor.putStringSet("autologinDomains", autologinDomains);
-                        changed = true;
-                    }
-                    break;
-                }
-                case "autologin_token": {
-                    if (value.value instanceof TLRPC.TL_jsonString) {
-                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) value.value;
-                        if (!string.value.equals(autologinToken)) {
-                            autologinToken = string.value;
-                            editor.putString("autologinToken", autologinToken);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "emojies_send_dice": {
-                    HashSet<String> newEmojies = new HashSet<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newEmojies.add(string.value.replace("\uFE0F", ""));
+                        case "premium_invoice_slug": {
+                            if (value.value instanceof TLRPC.TL_jsonString) {
+                                String string = ((TLRPC.TL_jsonString) value.value).value;
+                                if (!string.equals(premiumInvoiceSlug)) {
+                                    premiumInvoiceSlug = string;
+                                    editor.putString("premiumInvoiceSlug", premiumInvoiceSlug);
+                                    changed = true;
+                                }
                             }
+                            break;
                         }
-                    }
-                    if (!diceEmojies.equals(newEmojies)) {
-                        diceEmojies = newEmojies;
-                        editor.putStringSet("diceEmojies", diceEmojies);
-                        changed = true;
-                    }
-                    break;
-                }
-                case "gif_search_emojies": {
-                    ArrayList<String> newEmojies = new ArrayList<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newEmojies.add(string.value.replace("\uFE0F", ""));
+                        case "premium_promo_order": {
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray order = (TLRPC.TL_jsonArray) value.value;
+                                changed = savePremiumFeaturesPreviewOrder(editor, order.value);
                             }
+                            break;
                         }
-                    }
-                    if (!gifSearchEmojies.equals(newEmojies)) {
-                        gifSearchEmojies = newEmojies;
-                        SerializedData serializedData = new SerializedData();
-                        serializedData.writeInt32(gifSearchEmojies.size());
-                        for (int b = 0, N2 = gifSearchEmojies.size(); b < N2; b++) {
-                            serializedData.writeString(gifSearchEmojies.get(b));
+                        case "emojies_animated_zoom": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (animatedEmojisZoom != number.value) {
+                                    animatedEmojisZoom = (float) number.value;
+                                    editor.putFloat("animatedEmojisZoom", animatedEmojisZoom);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                        editor.putString("gifSearchEmojies", Base64.encodeToString(serializedData.toByteArray(), Base64.DEFAULT));
-                        serializedData.cleanup();
-                        changed = true;
-                    }
-                    break;
-                }
-                case "emojies_send_dice_success": {
-                    try {
-                        HashMap<String, DiceFrameSuccess> newEmojies = new HashMap<>();
-                        if (value.value instanceof TLRPC.TL_jsonObject) {
-                            TLRPC.TL_jsonObject jsonObject = (TLRPC.TL_jsonObject) value.value;
-                            for (int b = 0, N2 = jsonObject.value.size(); b < N2; b++) {
-                                TLRPC.TL_jsonObjectValue val = jsonObject.value.get(b);
-                                if (val.value instanceof TLRPC.TL_jsonObject) {
-                                    TLRPC.TL_jsonObject jsonObject2 = (TLRPC.TL_jsonObject) val.value;
-                                    int n = Integer.MAX_VALUE;
-                                    int f = Integer.MAX_VALUE;
-                                    for (int c = 0, N3 = jsonObject2.value.size(); c < N3; c++) {
-                                        TLRPC.TL_jsonObjectValue val2 = jsonObject2.value.get(c);
-                                        if (val2.value instanceof TLRPC.TL_jsonNumber) {
-                                            if ("value".equals(val2.key)) {
-                                                n = (int) ((TLRPC.TL_jsonNumber) val2.value).value;
-                                            } else if ("frame_start".equals(val2.key)) {
-                                                f = (int) ((TLRPC.TL_jsonNumber) val2.value).value;
+                        case "getfile_experimental_params": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != getfileExperimentalParams) {
+                                    getfileExperimentalParams = bool.value;
+                                    editor.putBoolean("getfileExperimentalParams", getfileExperimentalParams);
+                                    changed = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "dialog_filters_enabled": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != filtersEnabled) {
+                                    filtersEnabled = bool.value;
+                                    editor.putBoolean("filtersEnabled", filtersEnabled);
+                                    changed = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "dialog_filters_tooltip": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != showFiltersTooltip) {
+                                    showFiltersTooltip = bool.value;
+                                    editor.putBoolean("showFiltersTooltip", showFiltersTooltip);
+                                    changed = true;
+                                    getNotificationCenter().postNotificationName(NotificationCenter.filterSettingsUpdated);
+                                }
+                            }
+                            break;
+                        }
+                        case "youtube_pip": {
+                            if (value.value instanceof TLRPC.TL_jsonString) {
+                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) value.value;
+                                if (!string.value.equals(youtubePipType)) {
+                                    youtubePipType = string.value;
+                                    editor.putString("youtubePipType", youtubePipType);
+                                    changed = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "background_connection": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != backgroundConnection) {
+                                    backgroundConnection = bool.value;
+                                    editor.putBoolean("backgroundConnection", backgroundConnection);
+                                    changed = true;
+                                    keelAliveChanged = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "keep_alive_service": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != keepAliveService) {
+                                    keepAliveService = bool.value;
+                                    editor.putBoolean("keepAliveService", keepAliveService);
+                                    changed = true;
+                                    keelAliveChanged = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "qr_login_camera": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != qrLoginCamera) {
+                                    qrLoginCamera = bool.value;
+                                    editor.putBoolean("qrLoginCamera", qrLoginCamera);
+                                    changed = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "save_gifs_with_stickers": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != saveGifsWithStickers) {
+                                    saveGifsWithStickers = bool.value;
+                                    editor.putBoolean("saveGifsWithStickers", saveGifsWithStickers);
+                                    changed = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "url_auth_domains": {
+                            HashSet<String> newDomains = new HashSet<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newDomains.add(string.value);
+                                    }
+                                }
+                            }
+                            if (!authDomains.equals(newDomains)) {
+                                authDomains = newDomains;
+                                editor.putStringSet("authDomains", authDomains);
+                                changed = true;
+                            }
+                            break;
+                        }
+                        case "autologin_domains": {
+                            HashSet<String> newDomains = new HashSet<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newDomains.add(string.value);
+                                    }
+                                }
+                            }
+                            if (!autologinDomains.equals(newDomains)) {
+                                autologinDomains = newDomains;
+                                editor.putStringSet("autologinDomains", autologinDomains);
+                                changed = true;
+                            }
+                            break;
+                        }
+                        case "autologin_token": {
+                            if (value.value instanceof TLRPC.TL_jsonString) {
+                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) value.value;
+                                if (!string.value.equals(autologinToken)) {
+                                    autologinToken = string.value;
+                                    editor.putString("autologinToken", autologinToken);
+                                    changed = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "emojies_send_dice": {
+                            HashSet<String> newEmojies = new HashSet<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newEmojies.add(string.value.replace("\uFE0F", ""));
+                                    }
+                                }
+                            }
+                            if (!diceEmojies.equals(newEmojies)) {
+                                diceEmojies = newEmojies;
+                                editor.putStringSet("diceEmojies", diceEmojies);
+                                changed = true;
+                            }
+                            break;
+                        }
+                        case "gif_search_emojies": {
+                            ArrayList<String> newEmojies = new ArrayList<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newEmojies.add(string.value.replace("\uFE0F", ""));
+                                    }
+                                }
+                            }
+                            if (!gifSearchEmojies.equals(newEmojies)) {
+                                gifSearchEmojies = newEmojies;
+                                SerializedData serializedData = new SerializedData();
+                                serializedData.writeInt32(gifSearchEmojies.size());
+                                for (int b = 0, N2 = gifSearchEmojies.size(); b < N2; b++) {
+                                    serializedData.writeString(gifSearchEmojies.get(b));
+                                }
+                                editor.putString("gifSearchEmojies", Base64.encodeToString(serializedData.toByteArray(), Base64.DEFAULT));
+                                serializedData.cleanup();
+                                changed = true;
+                            }
+                            break;
+                        }
+                        case "emojies_send_dice_success": {
+                            try {
+                                HashMap<String, DiceFrameSuccess> newEmojies = new HashMap<>();
+                                if (value.value instanceof TLRPC.TL_jsonObject) {
+                                    TLRPC.TL_jsonObject jsonObject = (TLRPC.TL_jsonObject) value.value;
+                                    for (int b = 0, N2 = jsonObject.value.size(); b < N2; b++) {
+                                        TLRPC.TL_jsonObjectValue val = jsonObject.value.get(b);
+                                        if (val.value instanceof TLRPC.TL_jsonObject) {
+                                            TLRPC.TL_jsonObject jsonObject2 = (TLRPC.TL_jsonObject) val.value;
+                                            int n = Integer.MAX_VALUE;
+                                            int f = Integer.MAX_VALUE;
+                                            for (int c = 0, N3 = jsonObject2.value.size(); c < N3; c++) {
+                                                TLRPC.TL_jsonObjectValue val2 = jsonObject2.value.get(c);
+                                                if (val2.value instanceof TLRPC.TL_jsonNumber) {
+                                                    if ("value".equals(val2.key)) {
+                                                        n = (int) ((TLRPC.TL_jsonNumber) val2.value).value;
+                                                    } else if ("frame_start".equals(val2.key)) {
+                                                        f = (int) ((TLRPC.TL_jsonNumber) val2.value).value;
+                                                    }
+                                                }
+                                            }
+                                            if (f != Integer.MAX_VALUE && n != Integer.MAX_VALUE) {
+                                                newEmojies.put(val.key.replace("\uFE0F", ""), new DiceFrameSuccess(f, n));
                                             }
                                         }
                                     }
-                                    if (f != Integer.MAX_VALUE && n != Integer.MAX_VALUE) {
-                                        newEmojies.put(val.key.replace("\uFE0F", ""), new DiceFrameSuccess(f, n));
+                                }
+                                if (!diceSuccess.equals(newEmojies)) {
+                                    diceSuccess = newEmojies;
+                                    SerializedData serializedData = new SerializedData();
+                                    serializedData.writeInt32(diceSuccess.size());
+                                    for (HashMap.Entry<String, DiceFrameSuccess> entry : diceSuccess.entrySet()) {
+                                        serializedData.writeString(entry.getKey());
+                                        DiceFrameSuccess frameSuccess = entry.getValue();
+                                        serializedData.writeInt32(frameSuccess.frame);
+                                        serializedData.writeInt32(frameSuccess.num);
                                     }
+                                    editor.putString("diceSuccess", Base64.encodeToString(serializedData.toByteArray(), Base64.DEFAULT));
+                                    serializedData.cleanup();
+                                    changed = true;
+                                }
+                            } catch (Exception e) {
+                                FileLog.e(e);
+                            }
+                            break;
+                        }
+                        case "autoarchive_setting_available": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != autoarchiveAvailable) {
+                                    autoarchiveAvailable = bool.value;
+                                    editor.putBoolean("autoarchiveAvailable", autoarchiveAvailable);
+                                    changed = true;
                                 }
                             }
+                            break;
                         }
-                        if (!diceSuccess.equals(newEmojies)) {
-                            diceSuccess = newEmojies;
-                            SerializedData serializedData = new SerializedData();
-                            serializedData.writeInt32(diceSuccess.size());
-                            for (HashMap.Entry<String, DiceFrameSuccess> entry : diceSuccess.entrySet()) {
-                                serializedData.writeString(entry.getKey());
-                                DiceFrameSuccess frameSuccess = entry.getValue();
-                                serializedData.writeInt32(frameSuccess.frame);
-                                serializedData.writeInt32(frameSuccess.num);
+                        case "groupcall_video_participants_max": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != groupCallVideoMaxParticipants) {
+                                    groupCallVideoMaxParticipants = (int) number.value;
+                                    editor.putInt("groipCallVideoMaxParticipants", groupCallVideoMaxParticipants);
+                                    changed = true;
+                                }
                             }
-                            editor.putString("diceSuccess", Base64.encodeToString(serializedData.toByteArray(), Base64.DEFAULT));
-                            serializedData.cleanup();
-                            changed = true;
+                            break;
                         }
-                    } catch (Exception e) {
-                        FileLog.e(e);
-                    }
-                    break;
-                }
-                case "autoarchive_setting_available": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != autoarchiveAvailable) {
-                            autoarchiveAvailable = bool.value;
-                            editor.putBoolean("autoarchiveAvailable", autoarchiveAvailable);
-                            changed = true;
+                        case "chat_read_mark_size_threshold": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != chatReadMarkSizeThreshold) {
+                                    chatReadMarkSizeThreshold = (int) number.value;
+                                    editor.putInt("chatReadMarkSizeThreshold", chatReadMarkSizeThreshold);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "groupcall_video_participants_max": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != groupCallVideoMaxParticipants) {
-                            groupCallVideoMaxParticipants = (int) number.value;
-                            editor.putInt("groipCallVideoMaxParticipants", groupCallVideoMaxParticipants);
-                            changed = true;
+                        case "chat_read_mark_expire_period": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != chatReadMarkExpirePeriod) {
+                                    chatReadMarkExpirePeriod = (int) number.value;
+                                    editor.putInt("chatReadMarkExpirePeriod", chatReadMarkExpirePeriod);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "chat_read_mark_size_threshold": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != chatReadMarkSizeThreshold) {
-                            chatReadMarkSizeThreshold = (int) number.value;
-                            editor.putInt("chatReadMarkSizeThreshold", chatReadMarkSizeThreshold);
-                            changed = true;
+                        case "inapp_update_check_delay": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != updateCheckDelay) {
+                                    updateCheckDelay = (int) number.value;
+                                    editor.putInt("updateCheckDelay", updateCheckDelay);
+                                    changed = true;
+                                }
+                            } else if (value.value instanceof TLRPC.TL_jsonString) {
+                                TLRPC.TL_jsonString number = (TLRPC.TL_jsonString) value.value;
+                                int delay = Utilities.parseInt(number.value);
+                                if (delay != updateCheckDelay) {
+                                    updateCheckDelay = delay;
+                                    editor.putInt("updateCheckDelay", updateCheckDelay);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "chat_read_mark_expire_period": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != chatReadMarkExpirePeriod) {
-                            chatReadMarkExpirePeriod = (int) number.value;
-                            editor.putInt("chatReadMarkExpirePeriod", chatReadMarkExpirePeriod);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "inapp_update_check_delay": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != updateCheckDelay) {
-                            updateCheckDelay = (int) number.value;
-                            editor.putInt("updateCheckDelay", updateCheckDelay);
-                            changed = true;
-                        }
-                    } else if (value.value instanceof TLRPC.TL_jsonString) {
-                        TLRPC.TL_jsonString number = (TLRPC.TL_jsonString) value.value;
-                        int delay = Utilities.parseInt(number.value);
-                        if (delay != updateCheckDelay) {
-                            updateCheckDelay = delay;
-                            editor.putInt("updateCheckDelay", updateCheckDelay);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "round_video_encoding": {
-                    if (value.value instanceof TLRPC.TL_jsonObject) {
-                        TLRPC.TL_jsonObject jsonObject = (TLRPC.TL_jsonObject) value.value;
-                        for (int b = 0, N2 = jsonObject.value.size(); b < N2; b++) {
-                            TLRPC.TL_jsonObjectValue value2 = jsonObject.value.get(b);
-                            switch (value2.key) {
-                                case "diameter": {
-                                    if (value2.value instanceof TLRPC.TL_jsonNumber) {
-                                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value2.value;
-                                        if (number.value != roundVideoSize) {
-                                            roundVideoSize = (int) number.value;
-                                            editor.putInt("roundVideoSize", roundVideoSize);
-                                            changed = true;
+                        case "round_video_encoding": {
+                            if (value.value instanceof TLRPC.TL_jsonObject) {
+                                TLRPC.TL_jsonObject jsonObject = (TLRPC.TL_jsonObject) value.value;
+                                for (int b = 0, N2 = jsonObject.value.size(); b < N2; b++) {
+                                    TLRPC.TL_jsonObjectValue value2 = jsonObject.value.get(b);
+                                    switch (value2.key) {
+                                        case "diameter": {
+                                            if (value2.value instanceof TLRPC.TL_jsonNumber) {
+                                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value2.value;
+                                                if (number.value != roundVideoSize) {
+                                                    roundVideoSize = (int) number.value;
+                                                    editor.putInt("roundVideoSize", roundVideoSize);
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        }
+                                        case "video_bitrate": {
+                                            if (value2.value instanceof TLRPC.TL_jsonNumber) {
+                                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value2.value;
+                                                if (number.value != roundVideoBitrate) {
+                                                    roundVideoBitrate = (int) number.value;
+                                                    editor.putInt("roundVideoBitrate", roundVideoBitrate);
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        }
+                                        case "audio_bitrate": {
+                                            if (value2.value instanceof TLRPC.TL_jsonNumber) {
+                                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value2.value;
+                                                if (number.value != roundAudioBitrate) {
+                                                    roundAudioBitrate = (int) number.value;
+                                                    editor.putInt("roundAudioBitrate", roundAudioBitrate);
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
                                         }
                                     }
-                                    break;
                                 }
-                                case "video_bitrate": {
-                                    if (value2.value instanceof TLRPC.TL_jsonNumber) {
-                                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value2.value;
-                                        if (number.value != roundVideoBitrate) {
-                                            roundVideoBitrate = (int) number.value;
-                                            editor.putInt("roundVideoBitrate", roundVideoBitrate);
-                                            changed = true;
-                                        }
+                            }
+                            break;
+                        }
+                        case "stickers_emoji_suggest_only_api": {
+                            if (value.value instanceof TLRPC.TL_jsonBool) {
+                                TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
+                                if (bool.value != suggestStickersApiOnly) {
+                                    suggestStickersApiOnly = bool.value;
+                                    editor.putBoolean("suggestStickersApiOnly", suggestStickersApiOnly);
+                                    changed = true;
+                                }
+                            }
+                            break;
+                        }
+                        case "export_regex": {
+                            HashSet<String> newExport = new HashSet<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newExport.add(string.value);
                                     }
-                                    break;
                                 }
-                                case "audio_bitrate": {
-                                    if (value2.value instanceof TLRPC.TL_jsonNumber) {
-                                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value2.value;
-                                        if (number.value != roundAudioBitrate) {
-                                            roundAudioBitrate = (int) number.value;
-                                            editor.putInt("roundAudioBitrate", roundAudioBitrate);
-                                            changed = true;
-                                        }
+                            }
+                            if (!exportUri.equals(newExport)) {
+                                exportUri = newExport;
+                                editor.putStringSet("exportUri2", exportUri);
+                                changed = true;
+                            }
+                            break;
+                        }
+                        case "export_group_urls": {
+                            HashSet<String> newExport = new HashSet<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newExport.add(string.value);
                                     }
-                                    break;
                                 }
                             }
-                        }
-                    }
-                    break;
-                }
-                case "stickers_emoji_suggest_only_api": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
-                        TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
-                        if (bool.value != suggestStickersApiOnly) {
-                            suggestStickersApiOnly = bool.value;
-                            editor.putBoolean("suggestStickersApiOnly", suggestStickersApiOnly);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "export_regex": {
-                    HashSet<String> newExport = new HashSet<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newExport.add(string.value);
+                            if (!exportGroupUri.equals(newExport)) {
+                                exportGroupUri = newExport;
+                                editor.putStringSet("exportGroupUri", exportGroupUri);
+                                changed = true;
                             }
+                            break;
                         }
-                    }
-                    if (!exportUri.equals(newExport)) {
-                        exportUri = newExport;
-                        editor.putStringSet("exportUri2", exportUri);
-                        changed = true;
-                    }
-                    break;
-                }
-                case "export_group_urls": {
-                    HashSet<String> newExport = new HashSet<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newExport.add(string.value);
+                        case "export_private_urls": {
+                            HashSet<String> newExport = new HashSet<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newExport.add(string.value);
+                                    }
+                                }
                             }
-                        }
-                    }
-                    if (!exportGroupUri.equals(newExport)) {
-                        exportGroupUri = newExport;
-                        editor.putStringSet("exportGroupUri", exportGroupUri);
-                        changed = true;
-                    }
-                    break;
-                }
-                case "export_private_urls": {
-                    HashSet<String> newExport = new HashSet<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newExport.add(string.value);
+                            if (!exportPrivateUri.equals(newExport)) {
+                                exportPrivateUri = newExport;
+                                editor.putStringSet("exportPrivateUri", exportPrivateUri);
+                                changed = true;
                             }
+                            break;
                         }
-                    }
-                    if (!exportPrivateUri.equals(newExport)) {
-                        exportPrivateUri = newExport;
-                        editor.putStringSet("exportPrivateUri", exportPrivateUri);
-                        changed = true;
-                    }
-                    break;
-                }
-                case "pending_suggestions": {
-                    HashSet<String> newSuggestions = new HashSet<>();
-                    if (value.value instanceof TLRPC.TL_jsonArray) {
-                        TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
-                        for (int b = 0, N2 = array.value.size(); b < N2; b++) {
-                            TLRPC.JSONValue val = array.value.get(b);
-                            if (val instanceof TLRPC.TL_jsonString) {
-                                TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
-                                newSuggestions.add(string.value);
+                        case "pending_suggestions": {
+                            HashSet<String> newSuggestions = new HashSet<>();
+                            if (value.value instanceof TLRPC.TL_jsonArray) {
+                                TLRPC.TL_jsonArray array = (TLRPC.TL_jsonArray) value.value;
+                                for (int b = 0, N2 = array.value.size(); b < N2; b++) {
+                                    TLRPC.JSONValue val = array.value.get(b);
+                                    if (val instanceof TLRPC.TL_jsonString) {
+                                        TLRPC.TL_jsonString string = (TLRPC.TL_jsonString) val;
+                                        newSuggestions.add(string.value);
+                                    }
+                                }
                             }
+                            if (!pendingSuggestions.equals(newSuggestions)) {
+                                pendingSuggestions = newSuggestions;
+                                editor.putStringSet("pendingSuggestions", pendingSuggestions);
+                                getNotificationCenter().postNotificationName(NotificationCenter.newSuggestionsAvailable);
+                                changed = true;
+                            }
+                            break;
                         }
-                    }
-                    if (!pendingSuggestions.equals(newSuggestions)) {
-                        pendingSuggestions = newSuggestions;
-                        editor.putStringSet("pendingSuggestions", pendingSuggestions);
-                        getNotificationCenter().postNotificationName(NotificationCenter.newSuggestionsAvailable);
-                        changed = true;
-                    }
-                    break;
-                }
-                case "emojies_sounds": {
-                    try {
-                        HashMap<String, EmojiSound> newEmojies = new HashMap<>();
-                        if (value.value instanceof TLRPC.TL_jsonObject) {
-                            TLRPC.TL_jsonObject jsonObject = (TLRPC.TL_jsonObject) value.value;
-                            for (int b = 0, N2 = jsonObject.value.size(); b < N2; b++) {
-                                TLRPC.TL_jsonObjectValue val = jsonObject.value.get(b);
-                                if (val.value instanceof TLRPC.TL_jsonObject) {
-                                    TLRPC.TL_jsonObject jsonObject2 = (TLRPC.TL_jsonObject) val.value;
-                                    long i = 0;
-                                    long ah = 0;
-                                    String fr = null;
-                                    for (int c = 0, N3 = jsonObject2.value.size(); c < N3; c++) {
-                                        TLRPC.TL_jsonObjectValue val2 = jsonObject2.value.get(c);
-                                        if (val2.value instanceof TLRPC.TL_jsonString) {
-                                            if ("id".equals(val2.key)) {
-                                                i = Utilities.parseLong(((TLRPC.TL_jsonString) val2.value).value);
-                                            } else if ("access_hash".equals(val2.key)) {
-                                                ah = Utilities.parseLong(((TLRPC.TL_jsonString) val2.value).value);
-                                            } else if ("file_reference_base64".equals(val2.key)) {
-                                                fr = ((TLRPC.TL_jsonString) val2.value).value;
+                        case "emojies_sounds": {
+                            try {
+                                HashMap<String, EmojiSound> newEmojies = new HashMap<>();
+                                if (value.value instanceof TLRPC.TL_jsonObject) {
+                                    TLRPC.TL_jsonObject jsonObject = (TLRPC.TL_jsonObject) value.value;
+                                    for (int b = 0, N2 = jsonObject.value.size(); b < N2; b++) {
+                                        TLRPC.TL_jsonObjectValue val = jsonObject.value.get(b);
+                                        if (val.value instanceof TLRPC.TL_jsonObject) {
+                                            TLRPC.TL_jsonObject jsonObject2 = (TLRPC.TL_jsonObject) val.value;
+                                            long i = 0;
+                                            long ah = 0;
+                                            String fr = null;
+                                            for (int c = 0, N3 = jsonObject2.value.size(); c < N3; c++) {
+                                                TLRPC.TL_jsonObjectValue val2 = jsonObject2.value.get(c);
+                                                if (val2.value instanceof TLRPC.TL_jsonString) {
+                                                    if ("id".equals(val2.key)) {
+                                                        i = Utilities.parseLong(((TLRPC.TL_jsonString) val2.value).value);
+                                                    } else if ("access_hash".equals(val2.key)) {
+                                                        ah = Utilities.parseLong(((TLRPC.TL_jsonString) val2.value).value);
+                                                    } else if ("file_reference_base64".equals(val2.key)) {
+                                                        fr = ((TLRPC.TL_jsonString) val2.value).value;
+                                                    }
+                                                }
+                                            }
+                                            if (i != 0 && ah != 0 && fr != null) {
+                                                newEmojies.put(val.key.replace("\uFE0F", ""), new EmojiSound(i, ah, fr));
                                             }
                                         }
                                     }
-                                    if (i != 0 && ah != 0 && fr != null) {
-                                        newEmojies.put(val.key.replace("\uFE0F", ""), new EmojiSound(i, ah, fr));
+                                }
+                                if (!emojiSounds.equals(newEmojies)) {
+                                    emojiSounds = newEmojies;
+                                    SerializedData serializedData = new SerializedData();
+                                    serializedData.writeInt32(emojiSounds.size());
+                                    for (HashMap.Entry<String, EmojiSound> entry : emojiSounds.entrySet()) {
+                                        serializedData.writeString(entry.getKey());
+                                        EmojiSound emojiSound = entry.getValue();
+                                        serializedData.writeInt64(emojiSound.id);
+                                        serializedData.writeInt64(emojiSound.accessHash);
+                                        serializedData.writeByteArray(emojiSound.fileReference);
                                     }
+                                    editor.putString("emojiSounds", Base64.encodeToString(serializedData.toByteArray(), Base64.DEFAULT));
+                                    serializedData.cleanup();
+                                    changed = true;
+                                }
+                            } catch (Exception e) {
+                                FileLog.e(e);
+                            }
+                            break;
+                        }
+                        case "ringtone_size_max": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != ringtoneSizeMax) {
+                                    ringtoneSizeMax = (int) number.value;
+                                    editor.putInt("ringtoneSizeMax", ringtoneSizeMax);
+                                    changed = true;
                                 }
                             }
+                            break;
                         }
-                        if (!emojiSounds.equals(newEmojies)) {
-                            emojiSounds = newEmojies;
-                            SerializedData serializedData = new SerializedData();
-                            serializedData.writeInt32(emojiSounds.size());
-                            for (HashMap.Entry<String, EmojiSound> entry : emojiSounds.entrySet()) {
-                                serializedData.writeString(entry.getKey());
-                                EmojiSound emojiSound = entry.getValue();
-                                serializedData.writeInt64(emojiSound.id);
-                                serializedData.writeInt64(emojiSound.accessHash);
-                                serializedData.writeByteArray(emojiSound.fileReference);
+                        case "ringtone_duration_max": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != ringtoneDurationMax) {
+                                    ringtoneDurationMax = (int) number.value;
+                                    editor.putInt("ringtoneDurationMax", ringtoneDurationMax);
+                                    changed = true;
+                                }
                             }
-                            editor.putString("emojiSounds", Base64.encodeToString(serializedData.toByteArray(), Base64.DEFAULT));
-                            serializedData.cleanup();
-                            changed = true;
+                            break;
                         }
-                    } catch (Exception e) {
-                        FileLog.e(e);
-                    }
-                    break;
-                }
-                case "ringtone_size_max": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != ringtoneSizeMax) {
-                            ringtoneSizeMax = (int) number.value;
-                            editor.putInt("ringtoneSizeMax", ringtoneSizeMax);
-                            changed = true;
+                        case "channels_limit_default": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != channelsLimitDefault) {
+                                    channelsLimitDefault = (int) number.value;
+                                    editor.putInt("channelsLimitDefault", channelsLimitDefault);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "ringtone_duration_max": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != ringtoneDurationMax) {
-                            ringtoneDurationMax = (int) number.value;
-                            editor.putInt("ringtoneDurationMax", ringtoneDurationMax);
-                            changed = true;
+                        case "channels_limit_premium": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != channelsLimitPremium) {
+                                    channelsLimitPremium = (int) number.value;
+                                    editor.putInt("channelsLimitPremium", channelsLimitPremium);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "channels_limit_default": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != channelsLimitDefault) {
-                            channelsLimitDefault = (int) number.value;
-                            editor.putInt("channelsLimitDefault", channelsLimitDefault);
-                            changed = true;
+                        case "saved_gifs_limit_default": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != savedGifsLimitDefault) {
+                                    savedGifsLimitDefault = (int) number.value;
+                                    editor.putInt("savedGifsLimitDefault", savedGifsLimitDefault);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "channels_limit_premium": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != channelsLimitPremium) {
-                            channelsLimitPremium = (int) number.value;
-                            editor.putInt("channelsLimitPremium", channelsLimitPremium);
-                            changed = true;
+                        case "saved_gifs_limit_premium": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != savedGifsLimitPremium) {
+                                    savedGifsLimitPremium = (int) number.value;
+                                    editor.putInt("savedGifsLimitPremium", savedGifsLimitPremium);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "saved_gifs_limit_default": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != savedGifsLimitDefault) {
-                            savedGifsLimitDefault = (int) number.value;
-                            editor.putInt("savedGifsLimitDefault", savedGifsLimitDefault);
-                            changed = true;
+                        case "stickers_faved_limit_default": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != stickersFavedLimitDefault) {
+                                    stickersFavedLimitDefault = (int) number.value;
+                                    editor.putInt("stickersFavedLimitDefault", stickersFavedLimitDefault);
+                                    changed = true;
+                                }
+                            }
+                            break;
                         }
-                    }
-                    break;
-                }
-                case "saved_gifs_limit_premium": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != savedGifsLimitPremium) {
-                            savedGifsLimitPremium = (int) number.value;
-                            editor.putInt("savedGifsLimitPremium", savedGifsLimitPremium);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "stickers_faved_limit_default": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != stickersFavedLimitDefault) {
-                            stickersFavedLimitDefault = (int) number.value;
-                            editor.putInt("stickersFavedLimitDefault", stickersFavedLimitDefault);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
-                case "stickers_faved_limit_premium": {
-                    if (value.value instanceof TLRPC.TL_jsonNumber) {
-                        TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
-                        if (number.value != stickersFavedLimitPremium) {
-                            stickersFavedLimitPremium = (int) number.value;
-                            editor.putInt("stickersFavedLimitPremium", stickersFavedLimitPremium);
-                            changed = true;
-                        }
-                    }
-                    break;
-                }
+                        case "stickers_faved_limit_premium": {
+                            if (value.value instanceof TLRPC.TL_jsonNumber) {
+                                TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
+                                if (number.value != stickersFavedLimitPremium) {
+                                    stickersFavedLimitPremium = (int) number.value;
+                                    editor.putInt("stickersFavedLimitPremium", stickersFavedLimitPremium);
+                                    changed = true;
+                                }
+                            }
+                            break;}
                 case "pinned_dialogs_count_max_default": {
                     if (value.value instanceof TLRPC.TL_jsonNumber) {
                         TLRPC.TL_jsonNumber number = (TLRPC.TL_jsonNumber) value.value;
