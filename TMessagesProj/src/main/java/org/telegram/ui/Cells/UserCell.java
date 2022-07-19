@@ -167,7 +167,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
             mutualView.setImageResource(R.drawable.ic_round_swap_horiz_24);
             mutualView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_player_actionBarSelector, resourcesProvider)));
             mutualView.setScaleType(ImageView.ScaleType.CENTER);
-            mutualView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, resourceProvider), PorterDuff.Mode.MULTIPLY));
+            mutualView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, resourcesProvider), PorterDuff.Mode.MULTIPLY));
             mutualView.setVisibility(GONE);
             mutualView.setContentDescription(LocaleController.getString("MutualContact", R.string.MutualContact));
             mutualView.setOnClickListener(v -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString("MutualContactDescription", R.string.MutualContactDescription)));
