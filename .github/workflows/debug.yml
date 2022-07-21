@@ -200,6 +200,7 @@ jobs:
       matrix:
         flavor:
           - MiniRelease
+          - MiniDebug
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -291,7 +292,7 @@ jobs:
           tar -xvf ghr.tar.gz
           mv ghr*linux_amd64/ghr .
           mkdir apks
-          find artifacts -name "*.apk" -exec cp {} apks \;
+          find -name "*.apk" -exec cp {} apks \;
           ./ghr -delete -t "${{ github.token }}" -b "${{ github.event.head_commit.message }}" -prerelease "$(echo $GITHUB_SHA|sed -E 's,^(.{8}).*,\1,g')" apks
   upload:
     name: Upload Release
