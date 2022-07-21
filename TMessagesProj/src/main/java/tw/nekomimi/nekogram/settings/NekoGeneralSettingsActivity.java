@@ -19,60 +19,36 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import cn.hutool.core.util.StrUtil;
+import kotlin.Unit;
 import org.openintents.openpgp.OpenPgpError;
 import org.openintents.openpgp.util.OpenPgpApi;
-import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ContactsController;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.MessagesController;
-import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.R;
-import org.telegram.messenger.SharedConfig;
-import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.*;
 import org.telegram.tgnet.ConnectionsManager;
-import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.ActionBarLayout;
-import org.telegram.ui.ActionBar.AlertDialog;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.ActionBar.ThemeDescription;
-import org.telegram.ui.Cells.EmptyCell;
-import org.telegram.ui.Cells.HeaderCell;
-import org.telegram.ui.Cells.NotificationsCheckCell;
-import org.telegram.ui.Cells.ShadowSectionCell;
-import org.telegram.ui.Cells.TextCheckCell;
-import org.telegram.ui.Cells.TextDetailSettingsCell;
-import org.telegram.ui.Cells.TextInfoPrivacyCell;
-import org.telegram.ui.Cells.TextSettingsCell;
+import org.telegram.ui.ActionBar.*;
+import org.telegram.ui.Cells.*;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.SeekBarView;
 import org.telegram.ui.Components.UndoView;
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.NekoXConfig;
+import tw.nekomimi.nekogram.config.CellGroup;
+import tw.nekomimi.nekogram.config.ConfigItem;
+import tw.nekomimi.nekogram.config.cell.*;
+import tw.nekomimi.nekogram.transtale.Translator;
+import tw.nekomimi.nekogram.transtale.TranslatorKt;
+import tw.nekomimi.nekogram.ui.BottomBuilder;
+import tw.nekomimi.nekogram.ui.PopupBuilder;
+import tw.nekomimi.nekogram.utils.AlertUtil;
+import tw.nekomimi.nekogram.utils.PGPUtil;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-
-import cn.hutool.core.util.StrUtil;
-import kotlin.Unit;
-import tw.nekomimi.nekogram.ui.BottomBuilder;
-import tw.nekomimi.nekogram.NekoXConfig;
-import tw.nekomimi.nekogram.ui.PopupBuilder;
-import tw.nekomimi.nekogram.transtale.Translator;
-import tw.nekomimi.nekogram.transtale.TranslatorKt;
-import tw.nekomimi.nekogram.utils.AlertUtil;
-import tw.nekomimi.nekogram.utils.PGPUtil;
-
-import tw.nekomimi.nekogram.config.ConfigItem;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.config.CellGroup;
-import tw.nekomimi.nekogram.config.cell.AbstractConfigCell;
-import tw.nekomimi.nekogram.config.cell.*;
 
 @SuppressLint("RtlHardcoded")
 public class NekoGeneralSettingsActivity extends BaseFragment {
@@ -162,9 +138,9 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
             (input) -> input.matches("^[A-za-z0-9.]{1,255}$") || input.isEmpty() ? input : (String) NekoConfig.customSavePath.defaultValue));
     private final AbstractConfigCell disableUndoRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableUndo));
     private final AbstractConfigCell ShowIdAndDcRow = cellGroup.appendCell(new ConfigCellSelectBox(null, NekoConfig.showIdAndDc, new String[]{
-            "Disable",
-            "MTProto Style",
-            "BotAPI Style"
+            LocaleController.getString(R.string.showIdAndDcDisabled),
+            LocaleController.getString(R.string.IdAndDcTDLibStyle),
+            LocaleController.getString(R.string.IdAndDcBotApiStyle)
     }, null));
     private final AbstractConfigCell inappCameraRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.inappCamera));
     private final AbstractConfigCell hideProxySponsorChannelRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.hideProxySponsorChannel));
@@ -430,7 +406,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
 
                     PendingIntent pi = result.getParcelableExtra(OpenPgpApi.RESULT_INTENT);
                     try {
-                        Activity act = (Activity) getParentActivity();
+                        Activity act = getParentActivity();
                         act.startIntentSenderFromChild(
                                 act, pi.getIntentSender(),
                                 114, null, 0, 0, 0);
@@ -459,8 +435,8 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     }
 
     private static class OpenPgpProviderEntry {
-        private String packageName;
-        private String simpleName;
+        private final String packageName;
+        private final String simpleName;
         private Intent intent;
 
         OpenPgpProviderEntry(String packageName, String simpleName) {
@@ -616,7 +592,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     //impl ListAdapter
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
 
-        private Context mContext;
+        private final Context mContext;
 
         public ListAdapter(Context context) {
             mContext = context;

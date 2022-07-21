@@ -4,20 +4,17 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
-
+import android.util.Base64;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
+import tw.nekomimi.nekogram.config.ConfigItem;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import android.util.Base64;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-
-import tw.nekomimi.nekogram.config.ConfigItem;
 
 import static tw.nekomimi.nekogram.config.ConfigItem.*;
 
@@ -68,7 +65,7 @@ public class NekoConfig {
     public static ConfigItem showDeleteDownloadedFile = addConfig("showDeleteDownloadedFile", configTypeBool, true);
     public static ConfigItem showMessageDetails = addConfig("showMessageDetails", configTypeBool, false);
     public static ConfigItem showTranslate = addConfig("showTranslate", configTypeBool, true);
-    public static ConfigItem showRepeat = addConfig("showRepeat", configTypeBool, false);
+    public static ConfigItem showRepeat = addConfig("showRepeat", configTypeBool, true);
     public static ConfigItem showShareMessages = addConfig("showShareMessages", configTypeBool, false);
     public static ConfigItem showMessageHide = addConfig("showMessageHide", configTypeBool, false);
 
@@ -240,7 +237,7 @@ public class NekoConfig {
                             byte[] data = Base64.decode(cv, Base64.DEFAULT);
                             ObjectInputStream ois = new ObjectInputStream(
                                     new ByteArrayInputStream(data));
-                            o.value = (HashMap<Integer, Integer>) ois.readObject();
+                            o.value = ois.readObject();
                             if (o.value == null) {
                                 o.value = new HashMap<Integer, Integer>();
                             }
@@ -375,7 +372,7 @@ public class NekoConfig {
 //        if (preferences.contains("use_default_theme"))
 //            useDefaultTheme.setConfigBool(preferences.getBoolean("use_default_theme", false));
         if (preferences.contains("show_id_and_dc"))
-            showIdAndDc.setConfigInt(Integer.parseInt(((Boolean)preferences.getBoolean("show_id_and_dc", false)).toString()));
+            showIdAndDc.setConfigInt(preferences.getBoolean("show_id_and_dc", false) ? 1 : 0);
 
         if (preferences.contains("google_cloud_translate_key"))
             googleCloudTranslateKey.setConfigString(preferences.getString("google_cloud_translate_key", null));
