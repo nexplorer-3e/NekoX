@@ -200,7 +200,6 @@ jobs:
       matrix:
         flavor:
           - MiniRelease
-          - MiniDebug
     steps:
       - name: Checkout
         uses: actions/checkout@v2
