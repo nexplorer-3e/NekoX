@@ -4,27 +4,24 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
-
+import android.util.Base64;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
+import tw.nekomimi.nekogram.config.ConfigItem;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import android.util.Base64;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-
-import tw.nekomimi.nekogram.config.ConfigItem;
 
 import static tw.nekomimi.nekogram.config.ConfigItem.*;
 
 @SuppressLint("ApplySharedPref")
 public class NekoConfig {
 
-    public static final SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nkmrcfg", Context.MODE_PRIVATE);
+    public static final SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Context.MODE_PRIVATE);
     public static final Object sync = new Object();
     public static final String channelAliasPrefix = "channelAliasPrefix_";
 
@@ -33,7 +30,7 @@ public class NekoConfig {
 
     // Configs
     public static ConfigItem migrate = addConfig("NekoConfigMigrate", configTypeBool, false);
-    public static ConfigItem largeAvatarInDrawer = addConfig("AvatarAsBackground", configTypeInt, 0); // 0:TG Default 1:NekoX Default 2:Large Avatar
+    public static ConfigItem largeAvatarInDrawer = addConfig("AvatarAsBackground", configTypeInt, 1); // 0:TG Default 1:NekoX Default 2:Large Avatar
     public static ConfigItem unreadBadgeOnBackButton = addConfig("unreadBadgeOnBackButton", configTypeBool, false);
     public static ConfigItem customPublicProxyIP = addConfig("customPublicProxyIP", configTypeString, "");
     public static ConfigItem update_download_soucre = addConfig("update_download_soucre", configTypeInt, 0); // 0: Github 1: Channel 2:CDNDrive, removed
@@ -69,7 +66,7 @@ public class NekoConfig {
     public static ConfigItem showDeleteDownloadedFile = addConfig("showDeleteDownloadedFile", configTypeBool, true);
     public static ConfigItem showMessageDetails = addConfig("showMessageDetails", configTypeBool, false);
     public static ConfigItem showTranslate = addConfig("showTranslate", configTypeBool, true);
-    public static ConfigItem showRepeat = addConfig("showRepeat", configTypeBool, false);
+    public static ConfigItem showRepeat = addConfig("showRepeat", configTypeBool, true);
     public static ConfigItem showShareMessages = addConfig("showShareMessages", configTypeBool, false);
     public static ConfigItem showMessageHide = addConfig("showMessageHide", configTypeBool, false);
 
@@ -114,8 +111,8 @@ public class NekoConfig {
     public static ConfigItem skipOpenLinkConfirm = addConfig("SkipOpenLinkConfirm", configTypeBool, false);
 
     public static ConfigItem ignoreMutedCount = addConfig("IgnoreMutedCount", configTypeBool, true);
-//    public static ConfigItem useDefaultTheme = addConfig("UseDefaultTheme", configTypeBool, false);
-    public static ConfigItem showIdAndDc = addConfig("ShowIdAndDc", configTypeBool, false);
+    //    public static ConfigItem useDefaultTheme = addConfig("UseDefaultTheme", configTypeBool, false);
+    public static ConfigItem showIdAndDc = addConfig("ShowIdAndDc", configTypeInt, 2); // 0: Disable 1:TDLib style 2:BotAPI style
 
     public static ConfigItem googleCloudTranslateKey = addConfig("GoogleCloudTransKey", configTypeString, "");
     public static ConfigItem cachePath = addConfig("cache_path", configTypeString, "");
@@ -183,7 +180,7 @@ public class NekoConfig {
 
     public static ConfigItem enableStickerPin = addConfig("EnableStickerPin", configTypeBool, false);
     public static ConfigItem useMediaStreamInVoip = addConfig("UseMediaStreamInVoip", configTypeBool, false);
-    public static ConfigItem customAudioBitrate = addConfig("customAudioBitrate", configTypeInt, 32);
+    public static ConfigItem customAudioBitrate = addConfig("customAudioBitrate", configTypeInt, 128);
     public static ConfigItem disableGroupVoipAudioProcessing = addConfig("disableGroupVoipAudioProcessing", configTypeBool, false);
     public static ConfigItem enhancedFileLoader = addConfig("enhancedFileLoader", configTypeBool, false);
     public static ConfigItem useOSMDroidMap = addConfig("useOSMDroidMap", configTypeBool, !BuildVars.isGServicesCompiled);
@@ -194,7 +191,7 @@ public class NekoConfig {
 
     static {
         loadConfig(false);
-        checkMigrate(false);
+        checkMigrate();
     }
 
     public static ConfigItem addConfig(String k, int t, Object d) {
@@ -210,48 +207,58 @@ public class NekoConfig {
             }
             for (int i = 0; i < configs.size(); i++) {
                 ConfigItem o = configs.get(i);
-
-                if (o.type == configTypeBool) {
-                    o.value = preferences.getBoolean(o.key, (boolean) o.defaultValue);
-                }
-                if (o.type == configTypeInt) {
-                    o.value = preferences.getInt(o.key, (int) o.defaultValue);
-                }
-                if (o.type == configTypeLong) {
-                    o.value = preferences.getLong(o.key, (Long) o.defaultValue);
-                }
-                if (o.type == configTypeFloat) {
-                    o.value = preferences.getFloat(o.key, (Float) o.defaultValue);
-                }
-                if (o.type == configTypeString) {
-                    o.value = preferences.getString(o.key, (String) o.defaultValue);
-                }
-                if (o.type == configTypeSetInt) {
-                    Set<String> ss = preferences.getStringSet(o.key, new HashSet<>());
-                    HashSet<Integer> si = new HashSet<>();
-                    for (String s : ss) {
-                        si.add(Integer.parseInt(s));
+                try {
+                    if (o.type == configTypeBool) {
+                        o.value = preferences.getBoolean(o.key, (boolean) o.defaultValue);
                     }
-                    o.value = si;
-                }
-                if (o.type == configTypeMapIntInt) {
-                    String cv = preferences.getString(o.key, "");
-                    // Log.e("NC", String.format("Getting pref %s val %s", o.key, cv));
-                    if (cv.length() == 0) {
-                        o.value = new HashMap<Integer, Integer>();
-                    } else {
-                        try {
-                            byte[] data = Base64.decode(cv, Base64.DEFAULT);
-                            ObjectInputStream ois = new ObjectInputStream(
-                                    new ByteArrayInputStream(data));
-                            o.value = (HashMap<Integer, Integer>) ois.readObject();
-                            if (o.value == null) {
+                    if (o.type == configTypeInt) {
+                        o.value = preferences.getInt(o.key, (int) o.defaultValue);
+                    }
+                    if (o.type == configTypeLong) {
+                        o.value = preferences.getLong(o.key, (Long) o.defaultValue);
+                    }
+                    if (o.type == configTypeFloat) {
+                        o.value = preferences.getFloat(o.key, (Float) o.defaultValue);
+                    }
+                    if (o.type == configTypeString) {
+                        o.value = preferences.getString(o.key, (String) o.defaultValue);
+                    }
+                    if (o.type == configTypeSetInt) {
+                        Set<String> ss = preferences.getStringSet(o.key, new HashSet<>());
+                        HashSet<Integer> si = new HashSet<>();
+                        for (String s : ss) {
+                            si.add(Integer.parseInt(s));
+                        }
+                        o.value = si;
+                    }
+                    if (o.type == configTypeMapIntInt) {
+                        String cv = preferences.getString(o.key, "");
+                        // Log.e("NC", String.format("Getting pref %s val %s", o.key, cv));
+                        if (cv.length() == 0) {
+                            o.value = new HashMap<Integer, Integer>();
+                        } else {
+                            try {
+                                byte[] data = Base64.decode(cv, Base64.DEFAULT);
+                                ObjectInputStream ois = new ObjectInputStream(
+                                        new ByteArrayInputStream(data));
+                                o.value = ois.readObject();
+                                if (o.value == null) {
+                                    o.value = new HashMap<Integer, Integer>();
+                                }
+                                ois.close();
+                            } catch (Exception e) {
                                 o.value = new HashMap<Integer, Integer>();
                             }
-                            ois.close();
-                        } catch (Exception e) {
-                            o.value = new HashMap<Integer, Integer>();
                         }
+                    }
+                } catch (ClassCastException e) { // fix for class casting exception from breaking changes from upgraded.
+                    if (Objects.equals(o.key, showIdAndDc.key)) { // cast from old showIdAndDc implementation : showIdAndDc(boolean) with botChatId(boolean)
+                        o.value = (preferences.getBoolean(showIdAndDc.key, false) ? (
+                                        preferences.contains("botChatId") ? (preferences.getBoolean("botChatId", false)?2:1) : 1
+                                ) : 0
+                        );
+                    } else {
+                        throw e;
                     }
                 }
             }
@@ -259,15 +266,11 @@ public class NekoConfig {
         }
     }
 
-    public static void checkMigrate(boolean force) {
+    public static void checkMigrate() {
         // TODO remove this after some versions.
-        if (migrate.Bool() || force)
-            return;
-
-        migrate.setConfigBool(true);
 
         // NekoConfig.java read & migrate
-        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
+        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nkmrcfg", Activity.MODE_PRIVATE);
 
         if (preferences.contains("typeface"))
             typeface.setConfigBool(preferences.getInt("typeface", 0) != 0);
@@ -286,22 +289,21 @@ public class NekoConfig {
         if (preferences.contains("showViewHistory"))
             showViewHistory.setConfigBool(preferences.getBoolean("showViewHistory", true));
         if (preferences.contains("showAdminActions"))
-            showAdminActions.setConfigBool(preferences.getBoolean("showAdminActions", true));
+            showAdminActions.setConfigBool(preferences.getBoolean("showAdminActions", false));
         if (preferences.contains("showChangePermissions"))
-            showChangePermissions.setConfigBool(preferences.getBoolean("showChangePermissions", true));
+            showChangePermissions.setConfigBool(preferences.getBoolean("showChangePermissions", false));
         if (preferences.contains("showDeleteDownloadedFile"))
             showDeleteDownloadedFile.setConfigBool(preferences.getBoolean("showDeleteDownloadedFile", true));
         if (preferences.contains("showMessageDetails"))
-            showMessageDetails.setConfigBool(preferences.getBoolean("showMessageDetails", false));
+            showMessageDetails.setConfigBool(preferences.getBoolean("showMessageDetails", true));
         if (preferences.contains("showTranslate"))
             showTranslate.setConfigBool(preferences.getBoolean("showTranslate", true));
         if (preferences.contains("showRepeat"))
-            showRepeat.setConfigBool(preferences.getBoolean("showRepeat", false));
+            showRepeat.setConfigBool(preferences.getBoolean("showRepeat", true));
         if (preferences.contains("showShareMessages"))
             showShareMessages.setConfigBool(preferences.getBoolean("showShareMessages", false));
         if (preferences.contains("showMessageHide"))
             showMessageHide.setConfigBool(preferences.getBoolean("showMessageHide", false));
-
         if (preferences.contains("eventType"))
             eventType.setConfigInt(preferences.getInt("eventType", 0));
         if (preferences.contains("actionBarDecoration"))
@@ -320,9 +322,10 @@ public class NekoConfig {
             disablePhotoSideAction.setConfigBool(preferences.getBoolean("disablePhotoSideAction", true));
         if (preferences.contains("openArchiveOnPull"))
             openArchiveOnPull.setConfigBool(preferences.getBoolean("openArchiveOnPull", false));
-        if (preferences.contains("showHiddenFeature"))             //showHiddenFeature.setConfigBool(preferences.getBoolean("showHiddenFeature", false));
-            if (preferences.contains("hideKeyboardOnChatScroll"))
-                hideKeyboardOnChatScroll.setConfigBool(preferences.getBoolean("hideKeyboardOnChatScroll", false));
+//        if (preferences.contains("showHiddenFeature"))
+            //showHiddenFeature.setConfigBool(preferences.getBoolean("showHiddenFeature", false));
+        if (preferences.contains("hideKeyboardOnChatScroll"))
+            hideKeyboardOnChatScroll.setConfigBool(preferences.getBoolean("hideKeyboardOnChatScroll", false));
         if (preferences.contains("avatarBackgroundBlur"))
             avatarBackgroundBlur.setConfigBool(preferences.getBoolean("avatarBackgroundBlur", false));
         if (preferences.contains("avatarBackgroundDarken"))
@@ -378,7 +381,7 @@ public class NekoConfig {
 //        if (preferences.contains("use_default_theme"))
 //            useDefaultTheme.setConfigBool(preferences.getBoolean("use_default_theme", false));
         if (preferences.contains("show_id_and_dc"))
-            showIdAndDc.setConfigBool(preferences.getBoolean("show_id_and_dc", false));
+            showIdAndDc.setConfigInt(preferences.getBoolean("show_id_and_dc", false) ? 1 : 0);
 
         if (preferences.contains("google_cloud_translate_key"))
             googleCloudTranslateKey.setConfigString(preferences.getString("google_cloud_translate_key", null));
@@ -400,7 +403,7 @@ public class NekoConfig {
         if (preferences.contains("confirmAVMessage"))
             confirmAVMessage.setConfigBool(preferences.getBoolean("confirmAVMessage", false));
         if (preferences.contains("askBeforeCall"))
-            askBeforeCall.setConfigBool(preferences.getBoolean("askBeforeCall", false));
+            askBeforeCall.setConfigBool(preferences.getBoolean("askBeforeCall", true));
         if (preferences.contains("disableNumberRounding"))
             disableNumberRounding.setConfigBool(preferences.getBoolean("disableNumberRounding", false));
 
@@ -446,13 +449,13 @@ public class NekoConfig {
         if (preferences.contains("disableTrending"))
             disableTrending.setConfigBool(preferences.getBoolean("disableTrending", true));
         if (preferences.contains("dontSendGreetingSticker"))
-            dontSendGreetingSticker.setConfigBool(preferences.getBoolean("dontSendGreetingSticker", false));
+            dontSendGreetingSticker.setConfigBool(preferences.getBoolean("dontSendGreetingSticker", true));
         if (preferences.contains("hideTimeForSticker"))
             hideTimeForSticker.setConfigBool(preferences.getBoolean("hideTimeForSticker", false));
         if (preferences.contains("takeGIFasVideo"))
             takeGIFasVideo.setConfigBool(preferences.getBoolean("takeGIFasVideo", false));
         if (preferences.contains("maxRecentStickerCount"))
-            maxRecentStickerCount.setConfigInt(preferences.getInt("maxRecentStickerCount", 20));
+            maxRecentStickerCount.setConfigInt(preferences.getInt("maxRecentStickerCount", 120));
         if (preferences.contains("disableSwipeToNext"))
             disableSwipeToNext.setConfigBool(preferences.getBoolean("disableSwipeToNext", true));
         if (preferences.contains("disableRemoteEmojiInteractions"))
@@ -468,13 +471,14 @@ public class NekoConfig {
         if (preferences.contains("enableStickerPin"))
             enableStickerPin.setConfigBool(preferences.getBoolean("enableStickerPin", false));
         if (preferences.contains("useMediaStreamInVoip"))
-            useMediaStreamInVoip.setConfigBool(preferences.getBoolean("useMediaStreamInVoip", false));
+            useMediaStreamInVoip.setConfigBool(preferences.getBoolean("useMediaStreamInVoip", true));
         if (preferences.contains("customAudioBitrate"))
-            customAudioBitrate.setConfigInt(preferences.getInt("customAudioBitrate", 32));
+            customAudioBitrate.setConfigInt(preferences.getInt("customAudioBitrate", 128));
         if (preferences.contains("disableGroupVoipAudioProcessing"))
             disableGroupVoipAudioProcessing.setConfigBool(preferences.getBoolean("disableGroupVoipAudioProcessing", false));
-    }
 
+        preferences.edit().clear().commit();
+    }
     public static boolean fixDriftingForGoogleMaps() {
         return BuildVars.isGServicesCompiled && !useOSMDroidMap.Bool() && mapDriftingFixForGoogleMaps.Bool();
     }
