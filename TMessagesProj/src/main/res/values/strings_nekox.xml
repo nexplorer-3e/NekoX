@@ -48,7 +48,6 @@
     <string name="More">More</string>
     <string name="NekoXUpdatesChannel">NekoX Updates Channel</string>
     <string name="ShowIdAndDc">Show ID / DC in profile</string>
-    <string name="BotChatId">Use Bot API style to show Chat ID</string>
     <string name="UseDefaultTheme">Use default theme *</string>
     <string name="NightMode">Night Mode</string>
     <string name="PrivacyNotice">Privacy warning</string>

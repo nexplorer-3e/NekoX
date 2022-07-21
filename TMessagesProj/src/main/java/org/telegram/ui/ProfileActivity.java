@@ -6924,13 +6924,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
             }
-            if (NekoConfig.botChatId.Bool()) {
+            if (NekoConfig.showIdAndDc.Int() == 2) {
                 if (ChatObject.isChannel(chat)) {
                     id = -1000000000000L - chat.id;
                 } else {
                     id = - chat.id;
                 }
-            } else {
+            } else if (NekoConfig.showIdAndDc.Int() == 1) {
                 id = chatId;
             }
             if (changed) {

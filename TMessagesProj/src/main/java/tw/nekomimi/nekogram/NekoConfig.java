@@ -33,7 +33,7 @@ public class NekoConfig {
 
     // Configs
     public static ConfigItem migrate = addConfig("NekoConfigMigrate", configTypeBool, false);
-    public static ConfigItem largeAvatarInDrawer = addConfig("AvatarAsBackground", configTypeInt, 0); // 0:TG Default 1:NekoX Default 2:Large Avatar
+    public static ConfigItem largeAvatarInDrawer = addConfig("AvatarAsBackground", configTypeInt, 1); // 0:TG Default 1:NekoX Default 2:Large Avatar
     public static ConfigItem unreadBadgeOnBackButton = addConfig("unreadBadgeOnBackButton", configTypeBool, false);
     public static ConfigItem customPublicProxyIP = addConfig("customPublicProxyIP", configTypeString, "");
     public static ConfigItem update_download_soucre = addConfig("update_download_soucre", configTypeInt, 0); // 0: Github 1: Channel 2:CDNDrive, removed
@@ -114,8 +114,7 @@ public class NekoConfig {
 
     public static ConfigItem ignoreMutedCount = addConfig("IgnoreMutedCount", configTypeBool, true);
 //    public static ConfigItem useDefaultTheme = addConfig("UseDefaultTheme", configTypeBool, false);
-    public static ConfigItem showIdAndDc = addConfig("ShowIdAndDc", configTypeBool, false);
-    public static ConfigItem botChatId = addConfig("BotChatId", configTypeBool, false);
+    public static ConfigItem showIdAndDc = addConfig("ShowIdAndDc", configTypeInt, 2); // 0: Disable 1:MTProto style 2:BotAPI style
 
     public static ConfigItem googleCloudTranslateKey = addConfig("GoogleCloudTransKey", configTypeString, "");
     public static ConfigItem cachePath = addConfig("cache_path", configTypeString, "");
@@ -183,7 +182,7 @@ public class NekoConfig {
 
     public static ConfigItem enableStickerPin = addConfig("EnableStickerPin", configTypeBool, false);
     public static ConfigItem useMediaStreamInVoip = addConfig("UseMediaStreamInVoip", configTypeBool, false);
-    public static ConfigItem customAudioBitrate = addConfig("customAudioBitrate", configTypeInt, 32);
+    public static ConfigItem customAudioBitrate = addConfig("customAudioBitrate", configTypeInt, 128);
     public static ConfigItem disableGroupVoipAudioProcessing = addConfig("disableGroupVoipAudioProcessing", configTypeBool, false);
 
     // priv branch changes
@@ -283,17 +282,17 @@ public class NekoConfig {
         if (preferences.contains("showViewHistory"))
             showViewHistory.setConfigBool(preferences.getBoolean("showViewHistory", true));
         if (preferences.contains("showAdminActions"))
-            showAdminActions.setConfigBool(preferences.getBoolean("showAdminActions", true));
+            showAdminActions.setConfigBool(preferences.getBoolean("showAdminActions", false));
         if (preferences.contains("showChangePermissions"))
-            showChangePermissions.setConfigBool(preferences.getBoolean("showChangePermissions", true));
+            showChangePermissions.setConfigBool(preferences.getBoolean("showChangePermissions", false));
         if (preferences.contains("showDeleteDownloadedFile"))
             showDeleteDownloadedFile.setConfigBool(preferences.getBoolean("showDeleteDownloadedFile", true));
         if (preferences.contains("showMessageDetails"))
-            showMessageDetails.setConfigBool(preferences.getBoolean("showMessageDetails", false));
+            showMessageDetails.setConfigBool(preferences.getBoolean("showMessageDetails", true));
         if (preferences.contains("showTranslate"))
             showTranslate.setConfigBool(preferences.getBoolean("showTranslate", true));
         if (preferences.contains("showRepeat"))
-            showRepeat.setConfigBool(preferences.getBoolean("showRepeat", false));
+            showRepeat.setConfigBool(preferences.getBoolean("showRepeat", true));
         if (preferences.contains("showShareMessages"))
             showShareMessages.setConfigBool(preferences.getBoolean("showShareMessages", false));
         if (preferences.contains("showMessageHide"))
@@ -317,9 +316,10 @@ public class NekoConfig {
             disablePhotoSideAction.setConfigBool(preferences.getBoolean("disablePhotoSideAction", true));
         if (preferences.contains("openArchiveOnPull"))
             openArchiveOnPull.setConfigBool(preferences.getBoolean("openArchiveOnPull", false));
-        if (preferences.contains("showHiddenFeature"))             //showHiddenFeature.setConfigBool(preferences.getBoolean("showHiddenFeature", false));
-            if (preferences.contains("hideKeyboardOnChatScroll"))
-                hideKeyboardOnChatScroll.setConfigBool(preferences.getBoolean("hideKeyboardOnChatScroll", false));
+//        if (preferences.contains("showHiddenFeature"))
+            //showHiddenFeature.setConfigBool(preferences.getBoolean("showHiddenFeature", false));
+        if (preferences.contains("hideKeyboardOnChatScroll"))
+            hideKeyboardOnChatScroll.setConfigBool(preferences.getBoolean("hideKeyboardOnChatScroll", false));
         if (preferences.contains("avatarBackgroundBlur"))
             avatarBackgroundBlur.setConfigBool(preferences.getBoolean("avatarBackgroundBlur", false));
         if (preferences.contains("avatarBackgroundDarken"))
@@ -375,7 +375,7 @@ public class NekoConfig {
 //        if (preferences.contains("use_default_theme"))
 //            useDefaultTheme.setConfigBool(preferences.getBoolean("use_default_theme", false));
         if (preferences.contains("show_id_and_dc"))
-            showIdAndDc.setConfigBool(preferences.getBoolean("show_id_and_dc", false));
+            showIdAndDc.setConfigInt(preferences.getInt("show_id_and_dc", 2));
 
         if (preferences.contains("google_cloud_translate_key"))
             googleCloudTranslateKey.setConfigString(preferences.getString("google_cloud_translate_key", null));
@@ -397,7 +397,7 @@ public class NekoConfig {
         if (preferences.contains("confirmAVMessage"))
             confirmAVMessage.setConfigBool(preferences.getBoolean("confirmAVMessage", false));
         if (preferences.contains("askBeforeCall"))
-            askBeforeCall.setConfigBool(preferences.getBoolean("askBeforeCall", false));
+            askBeforeCall.setConfigBool(preferences.getBoolean("askBeforeCall", true));
         if (preferences.contains("disableNumberRounding"))
             disableNumberRounding.setConfigBool(preferences.getBoolean("disableNumberRounding", false));
 
@@ -443,13 +443,13 @@ public class NekoConfig {
         if (preferences.contains("disableTrending"))
             disableTrending.setConfigBool(preferences.getBoolean("disableTrending", true));
         if (preferences.contains("dontSendGreetingSticker"))
-            dontSendGreetingSticker.setConfigBool(preferences.getBoolean("dontSendGreetingSticker", false));
+            dontSendGreetingSticker.setConfigBool(preferences.getBoolean("dontSendGreetingSticker", true));
         if (preferences.contains("hideTimeForSticker"))
             hideTimeForSticker.setConfigBool(preferences.getBoolean("hideTimeForSticker", false));
         if (preferences.contains("takeGIFasVideo"))
             takeGIFasVideo.setConfigBool(preferences.getBoolean("takeGIFasVideo", false));
         if (preferences.contains("maxRecentStickerCount"))
-            maxRecentStickerCount.setConfigInt(preferences.getInt("maxRecentStickerCount", 20));
+            maxRecentStickerCount.setConfigInt(preferences.getInt("maxRecentStickerCount", 120));
         if (preferences.contains("disableSwipeToNext"))
             disableSwipeToNext.setConfigBool(preferences.getBoolean("disableSwipeToNext", true));
         if (preferences.contains("disableRemoteEmojiInteractions"))
@@ -465,9 +465,9 @@ public class NekoConfig {
         if (preferences.contains("enableStickerPin"))
             enableStickerPin.setConfigBool(preferences.getBoolean("enableStickerPin", false));
         if (preferences.contains("useMediaStreamInVoip"))
-            useMediaStreamInVoip.setConfigBool(preferences.getBoolean("useMediaStreamInVoip", false));
+            useMediaStreamInVoip.setConfigBool(preferences.getBoolean("useMediaStreamInVoip", true));
         if (preferences.contains("customAudioBitrate"))
-            customAudioBitrate.setConfigInt(preferences.getInt("customAudioBitrate", 32));
+            customAudioBitrate.setConfigInt(preferences.getInt("customAudioBitrate", 128));
         if (preferences.contains("disableGroupVoipAudioProcessing"))
             disableGroupVoipAudioProcessing.setConfigBool(preferences.getBoolean("disableGroupVoipAudioProcessing", false));
     }
