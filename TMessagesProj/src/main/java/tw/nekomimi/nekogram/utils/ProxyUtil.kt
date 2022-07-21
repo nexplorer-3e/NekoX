@@ -43,14 +43,13 @@ import org.json.JSONException
 import org.telegram.messenger.*
 import org.telegram.messenger.browser.Browser
 import org.yaml.snakeyaml.Yaml
-import tw.nekomimi.nekogram.ui.BottomBuilder
 import tw.nekomimi.nekogram.proxy.ShadowsocksLoader
 import tw.nekomimi.nekogram.proxy.ShadowsocksRLoader
+import tw.nekomimi.nekogram.ui.BottomBuilder
 import tw.nekomimi.nekogram.utils.AlertUtil.showToast
 import java.io.File
 import java.net.NetworkInterface
 import java.util.*
-import kotlin.collections.HashMap
 
 
 object ProxyUtil {
@@ -118,14 +117,14 @@ object ProxyUtil {
                                 pluginStr = opts.toString(false)
                             }
                             proxies.add(
-                                ShadowsocksLoader.Bean(
-                                    proxy["server"] as String,
-                                    proxy["port"] as Int,
-                                    proxy["password"] as String,
-                                    proxy["cipher"] as String,
-                                    pluginStr,
-                                    proxy["name"] as String
-                            ).toString())
+                                    ShadowsocksLoader.Bean(
+                                            proxy["server"] as String,
+                                            proxy["port"] as Int,
+                                            proxy["password"] as String,
+                                            proxy["cipher"] as String,
+                                            pluginStr,
+                                            proxy["name"] as String
+                                    ).toString())
                         }
                         "vmess" -> {
                             val opts = AngConfig.VmessBean()
@@ -452,7 +451,7 @@ object ProxyUtil {
     @JvmStatic
     fun shareProxy(ctx: Activity, info: SharedConfig.ProxyInfo, type: Int) {
 
-        val url = info.toUrl();
+        val url = info.toUrl()
 
         if (type == 1) {
 
@@ -557,7 +556,7 @@ object ProxyUtil {
 
                                     saveTo.outputStream().use {
 
-                                        loadBitmapFromView(root).compress(Bitmap.CompressFormat.JPEG, 100, it);
+                                        loadBitmapFromView(root).compress(Bitmap.CompressFormat.JPEG, 100, it)
 
                                     }
 
@@ -611,7 +610,7 @@ object ProxyUtil {
             hints[EncodeHintType.ERROR_CORRECTION] = ErrorCorrectionLevel.M
             QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size, hints, null, null, icon)
         } catch (e: WriterException) {
-            FileLog.e(e);
+            FileLog.e(e)
             Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         }
     }

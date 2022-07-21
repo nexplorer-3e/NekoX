@@ -205,7 +205,7 @@ android {
             debuggable true
             jniDebuggable true
             multiDexEnabled true
-            zipAlignEnabled true;
+            zipAlignEnabled true
             signingConfig signingConfigs.releasePriv
             ndk.debugSymbolLevel = "FULL"
         }
@@ -232,6 +232,7 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             matchingFallbacks = ["release", "debug"]
             signingConfig signingConfigs.releasePriv
+            // TODO: After stable make it NekoZ
             versionNameSuffix "-N"
         }
 
@@ -263,7 +264,10 @@ android {
             java {
                 srcDirs "src/main/java", "src/gservcies/java"
             }
-            jni.srcDirs = ["./jni/"]
+            jni.srcDirs = []
+            jniLibs {
+                srcDir "src/main/libs"
+            }
             manifest {
                 srcFile "src/gservcies/AndroidManifest.xml"
             }
