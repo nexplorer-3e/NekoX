@@ -2,16 +2,14 @@ package tw.nekomimi.nekogram.config;
 
 import android.content.SharedPreferences;
 import android.util.Base64;
-
 import org.telegram.messenger.FileLog;
+import tw.nekomimi.nekogram.NekoConfig;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-
-import tw.nekomimi.nekogram.NekoConfig;
 
 public class ConfigItem {
     public static final int configTypeBool = 0;
@@ -45,6 +43,7 @@ public class ConfigItem {
     }
 
     public int Int() {
+        if (type == configTypeBool) return (boolean) value ? 0 : 1;
         return (int) value;
     }
 

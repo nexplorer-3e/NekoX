@@ -17,7 +17,7 @@ on:
         description: 'y, if drop artifacts'
         required: false
       publish:
-        description: 'y if not release'
+        description: 'y, if not release'
         required: false
 
 jobs:
