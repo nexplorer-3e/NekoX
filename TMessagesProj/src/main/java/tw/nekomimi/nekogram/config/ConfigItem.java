@@ -43,7 +43,6 @@ public class ConfigItem {
     }
 
     public int Int() {
-        if (type == configTypeBool) return (boolean) value ? 0 : 1;
         return (int) value;
     }
 

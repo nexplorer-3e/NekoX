@@ -11,10 +11,7 @@ import tw.nekomimi.nekogram.config.ConfigItem;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static tw.nekomimi.nekogram.config.ConfigItem.*;
 
@@ -187,8 +184,8 @@ public class NekoConfig {
     public static ConfigItem localPremium = addConfig("localPremium", configTypeBool, false);
 
     static {
-        checkMigrate(true);
         loadConfig(false);
+        checkMigrate();
     }
 
     public static ConfigItem addConfig(String k, int t, Object d) {
@@ -204,48 +201,58 @@ public class NekoConfig {
             }
             for (int i = 0; i < configs.size(); i++) {
                 ConfigItem o = configs.get(i);
-
-                if (o.type == configTypeBool) {
-                    o.value = preferences.getBoolean(o.key, (boolean) o.defaultValue);
-                }
-                if (o.type == configTypeInt) {
-                    o.value = preferences.getInt(o.key, (int) o.defaultValue);
-                }
-                if (o.type == configTypeLong) {
-                    o.value = preferences.getLong(o.key, (Long) o.defaultValue);
-                }
-                if (o.type == configTypeFloat) {
-                    o.value = preferences.getFloat(o.key, (Float) o.defaultValue);
-                }
-                if (o.type == configTypeString) {
-                    o.value = preferences.getString(o.key, (String) o.defaultValue);
-                }
-                if (o.type == configTypeSetInt) {
-                    Set<String> ss = preferences.getStringSet(o.key, new HashSet<>());
-                    HashSet<Integer> si = new HashSet<>();
-                    for (String s : ss) {
-                        si.add(Integer.parseInt(s));
+                try {
+                    if (o.type == configTypeBool) {
+                        o.value = preferences.getBoolean(o.key, (boolean) o.defaultValue);
                     }
-                    o.value = si;
-                }
-                if (o.type == configTypeMapIntInt) {
-                    String cv = preferences.getString(o.key, "");
-                    // Log.e("NC", String.format("Getting pref %s val %s", o.key, cv));
-                    if (cv.length() == 0) {
-                        o.value = new HashMap<Integer, Integer>();
-                    } else {
-                        try {
-                            byte[] data = Base64.decode(cv, Base64.DEFAULT);
-                            ObjectInputStream ois = new ObjectInputStream(
-                                    new ByteArrayInputStream(data));
-                            o.value = ois.readObject();
-                            if (o.value == null) {
+                    if (o.type == configTypeInt) {
+                        o.value = preferences.getInt(o.key, (int) o.defaultValue);
+                    }
+                    if (o.type == configTypeLong) {
+                        o.value = preferences.getLong(o.key, (Long) o.defaultValue);
+                    }
+                    if (o.type == configTypeFloat) {
+                        o.value = preferences.getFloat(o.key, (Float) o.defaultValue);
+                    }
+                    if (o.type == configTypeString) {
+                        o.value = preferences.getString(o.key, (String) o.defaultValue);
+                    }
+                    if (o.type == configTypeSetInt) {
+                        Set<String> ss = preferences.getStringSet(o.key, new HashSet<>());
+                        HashSet<Integer> si = new HashSet<>();
+                        for (String s : ss) {
+                            si.add(Integer.parseInt(s));
+                        }
+                        o.value = si;
+                    }
+                    if (o.type == configTypeMapIntInt) {
+                        String cv = preferences.getString(o.key, "");
+                        // Log.e("NC", String.format("Getting pref %s val %s", o.key, cv));
+                        if (cv.length() == 0) {
+                            o.value = new HashMap<Integer, Integer>();
+                        } else {
+                            try {
+                                byte[] data = Base64.decode(cv, Base64.DEFAULT);
+                                ObjectInputStream ois = new ObjectInputStream(
+                                        new ByteArrayInputStream(data));
+                                o.value = ois.readObject();
+                                if (o.value == null) {
+                                    o.value = new HashMap<Integer, Integer>();
+                                }
+                                ois.close();
+                            } catch (Exception e) {
                                 o.value = new HashMap<Integer, Integer>();
                             }
-                            ois.close();
-                        } catch (Exception e) {
-                            o.value = new HashMap<Integer, Integer>();
                         }
+                    }
+                } catch (ClassCastException e) { // fix for class casting exception from breaking changes from upgraded.
+                    if (Objects.equals(o.key, showIdAndDc.key)) { // cast from old showIdAndDc implementation : showIdAndDc(boolean) with botChatId(boolean)
+                        o.value = (preferences.getBoolean(showIdAndDc.key, false) ? (
+                                        preferences.contains("botChatId") ? (preferences.getBoolean("botChatId", false)?2:1) : 1
+                                ) : 0
+                        );
+                    } else {
+                        throw e;
                     }
                 }
             }
