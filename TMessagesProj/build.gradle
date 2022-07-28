@@ -195,7 +195,7 @@ android {
             jniDebuggable true
             multiDexEnabled true
             zipAlignEnabled true
-            signingConfig signingConfigs.releasePriv
+            signingConfig signingConfigs.release
             ndk.debugSymbolLevel = "FULL"
         }
 
