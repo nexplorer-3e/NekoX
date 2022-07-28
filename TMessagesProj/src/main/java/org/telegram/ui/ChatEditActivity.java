@@ -1142,7 +1142,10 @@ public class ChatEditActivity extends BaseFragment implements ImageUpdater.Image
 
     private int getChannelAdminCount() {
         if (info == null || info.participants == null || info.participants.participants == null) {
-            return 1;
+            if (realAdminCount != 0)
+                return realAdminCount;
+            getRealChannelAdminCount();
+            return 0;
         }
         int count = 0;
         for (int a = 0, N = info.participants.participants.size(); a < N; a++) {
@@ -1153,10 +1156,10 @@ public class ChatEditActivity extends BaseFragment implements ImageUpdater.Image
                 count++;
             }
         }
+        realAdminCount = count;
         return count;
     }
 
-    @Deprecated
     private void getRealChannelAdminCount() {
         TLRPC.TL_channels_getParticipants req = new TLRPC.TL_channels_getParticipants();
         req.channel = getMessagesController().getInputChannel(chatId);
@@ -1501,7 +1504,7 @@ public class ChatEditActivity extends BaseFragment implements ImageUpdater.Image
                 } else {
                     membersCell.setText(LocaleController.getString("ChannelMembers", R.string.ChannelMembers), logCell != null && logCell.getVisibility() == View.VISIBLE);
                     if (currentChat.gigagroup) {
-                        blockCell.setTextAndIcon(LocaleController.getString("ChannelBlacklist", R.string.ChannelBlacklist), R.drawable.msg_chats_remove, logCell != null && logCell.getVisibility() == View.VISIBLE);
+                        blockCell.setText(LocaleController.getString("ChannelBlacklist", R.string.ChannelBlacklist), logCell != null && logCell.getVisibility() == View.VISIBLE);
                     } else {
                         blockCell.setText(LocaleController.getString("ChannelPermissions", R.string.ChannelPermissions), true);
                     }
@@ -1522,7 +1525,7 @@ public class ChatEditActivity extends BaseFragment implements ImageUpdater.Image
         }
 
         if (stickersCell != null && info != null) {
-            stickersCell.setTextAndValueAndIcon(LocaleController.getString(R.string.GroupStickers), info.stickerset != null ? info.stickerset.title : LocaleController.getString(R.string.Add), R.drawable.msg_sticker, false);
+            stickersCell.setTextAndValue(LocaleController.getString(R.string.GroupStickers), info.stickerset != null ? info.stickerset.title : LocaleController.getString(R.string.Add), false);
         }
     }
 

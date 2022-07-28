@@ -144,15 +144,12 @@ public class NekoXConfig {
 
     public static boolean showCensoredFeatures() {
         return true;
+    }
     public static void setIgnoredUpdateTag(String ignored) {
         preferences.edit().putString("ignoredUpdateTag", ignoredUpdateTag = ignored).apply();
     }
     public static void setNextUpdateCheck(long timestamp) {
         preferences.edit().putLong("nextUpdateCheckTimestamp", nextUpdateCheck = timestamp).apply();
-    }
-
-    public static boolean showCensoredFeatures() {
-        return true;
     }
 
     public static String getOpenPGPAppName() {
