@@ -180,6 +180,9 @@ public class NekoConfig {
     public static ConfigItem useMediaStreamInVoip = addConfig("UseMediaStreamInVoip", configTypeBool, false);
     public static ConfigItem customAudioBitrate = addConfig("customAudioBitrate", configTypeInt, 128);
     public static ConfigItem disableGroupVoipAudioProcessing = addConfig("disableGroupVoipAudioProcessing", configTypeBool, false);
+    public static ConfigItem enhancedFileLoader = addConfig("enhancedFileLoader", configTypeBool, false);
+    public static ConfigItem useOSMDroidMap = addConfig("useOSMDroidMap", configTypeBool, !BuildVars.isGServicesCompiled);
+    public static ConfigItem mapDriftingFixForGoogleMaps = addConfig("mapDriftingFixForGoogleMaps", configTypeBool, true);
 
     // priv branch changes
     public static ConfigItem localPremium = addConfig("localPremium", configTypeBool, false);
@@ -471,7 +474,9 @@ public class NekoConfig {
             customAudioBitrate.setConfigInt(preferences.getInt("customAudioBitrate", 128));
         if (preferences.contains("disableGroupVoipAudioProcessing"))
             disableGroupVoipAudioProcessing.setConfigBool(preferences.getBoolean("disableGroupVoipAudioProcessing", false));
-
-        preferences.edit().clear().commit();
+	}
+    public static boolean fixDriftingForGoogleMaps() {
+        return BuildVars.isGServicesCompiled && !useOSMDroidMap.Bool() && mapDriftingFixForGoogleMaps.Bool();
     }
+
 }

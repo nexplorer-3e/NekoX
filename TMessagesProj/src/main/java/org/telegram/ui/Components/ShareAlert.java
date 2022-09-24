@@ -17,7 +17,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Outline;
 import android.graphics.Paint;
@@ -28,6 +27,7 @@ import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.text.Editable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -102,6 +102,7 @@ import org.telegram.ui.MessageStatisticActivity;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 import tw.nekomimi.nekogram.NekoConfig;
@@ -132,6 +133,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
     protected LongSparseArray<TLRPC.Dialog> selectedDialogs = new LongSparseArray<>();
     private SwitchView switchView;
     private int containerViewTop = -1;
+    private boolean fullyShown = false;
 
     private ChatActivity parentFragment;
     private Activity parentActivity;
@@ -468,6 +470,13 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         sendingText[1] = text2;
         useSmoothKeyboard = true;
 
+        super.setDelegate(new BottomSheetDelegate() {
+            @Override
+            public void onOpenAnimationEnd() {
+                fullyShown = true;
+            }
+        });
+
         if (sendingMessageObjects != null) {
             for (int a = 0, N = sendingMessageObjects.size(); a < N; a++) {
                 MessageObject messageObject = sendingMessageObjects.get(a);
@@ -596,7 +605,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
 
                 @Override
                 protected boolean heightAnimationEnabled() {
-                    if (isDismissed()) {
+                    if (isDismissed() || !fullyShown) {
                         return false;
                     }
                     return !commentTextView.isPopupVisible();
@@ -1194,7 +1203,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         containerView.addView(frameLayout2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM));
         frameLayout2.setOnTouchListener((v, event) -> true);
 
-        commentTextView = new EditTextEmoji(context, sizeNotifierFrameLayout, null, EditTextEmoji.STYLE_DIALOG, resourcesProvider) {
+        commentTextView = new EditTextEmoji(context, sizeNotifierFrameLayout, null, EditTextEmoji.STYLE_DIALOG, true, resourcesProvider) {
 
             private boolean shouldAnimateEditTextWithBounds;
             private int messageEditTextPredrawHeigth;
@@ -1315,9 +1324,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         }
         writeButtonContainer.addView(writeButton, LayoutHelper.createFrame(Build.VERSION.SDK_INT >= 21 ? 56 : 60, Build.VERSION.SDK_INT >= 21 ? 56 : 60, Gravity.LEFT | Gravity.TOP, Build.VERSION.SDK_INT >= 21 ? 2 : 0, 0, 0, 0));
         writeButton.setOnClickListener(v -> sendInternal(true));
-        writeButton.setOnLongClickListener(v -> {
-            return onSendLongClick(writeButton);
-        });
+        writeButton.setOnLongClickListener(v -> onSendLongClick(writeButton));
 
         textPaint.setTextSize(AndroidUtilities.dp(12));
         textPaint.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
@@ -1493,7 +1500,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                 showSendersNameView.setTextColor(getThemedColor(Theme.key_voipgroup_nameText));
             }
             sendPopupLayout1.addView(showSendersNameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
-            showSendersNameView.setTextAndIcon(false ? LocaleController.getString("ShowSenderNames", R.string.ShowSenderNames) : LocaleController.getString("ShowSendersName", R.string.ShowSendersName), 0);
+            showSendersNameView.setTextAndIcon(LocaleController.getString("ShowSendersName", R.string.ShowSendersName), 0);
             showSendersNameView.setChecked(showSendersName = true);
 
             ActionBarMenuSubItem hideSendersNameView = new ActionBarMenuSubItem(getContext(), true, false, true, resourcesProvider);
@@ -1501,7 +1508,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                 hideSendersNameView.setTextColor(getThemedColor(Theme.key_voipgroup_nameText));
             }
             sendPopupLayout1.addView(hideSendersNameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
-            hideSendersNameView.setTextAndIcon(false ? LocaleController.getString("HideSenderNames", R.string.HideSenderNames) : LocaleController.getString("HideSendersName", R.string.HideSendersName), 0);
+            hideSendersNameView.setTextAndIcon(LocaleController.getString("HideSendersName", R.string.HideSendersName), 0);
             hideSendersNameView.setChecked(!showSendersName);
             showSendersNameView.setOnClickListener(e -> {
                 showSendersNameView.setChecked(showSendersName = true);
@@ -1611,20 +1618,39 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             }
         }
 
+        CharSequence[] text = new CharSequence[] { commentTextView.getText() };
+        ArrayList<TLRPC.MessageEntity> entities = MediaDataController.getInstance(currentAccount).getEntities(text, true);
         if (sendingMessageObjects != null) {
+            List<Long> removeKeys = new ArrayList<>();
             for (int a = 0; a < selectedDialogs.size(); a++) {
                 long key = selectedDialogs.keyAt(a);
+                int result = 0;
                 if (NekoConfig.sendCommentAfterForward.Bool()) {
-                    SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingMessageObjects, key, false, false, true, 0);
+                    result = SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingMessageObjects, key, !showSendersName,false, withSound, 0);
                 }
                 if (frameLayout2.getTag() != null && commentTextView.length() > 0) {
-                    SendMessagesHelper.getInstance(currentAccount).sendMessage(commentTextView.getText().toString(), key, null, null, null, true, null, null, null, true, 0, null);
+                    SendMessagesHelper.getInstance(currentAccount).sendMessage(text[0] == null ? null : text[0].toString(), key, null, null, null, true, entities, null, null, withSound, 0, null);
                 }
                 if (!NekoConfig.sendCommentAfterForward.Bool()) {
-                    SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingMessageObjects, key, false, false, true, 0);
+                    result = SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingMessageObjects, key, !showSendersName,false, withSound, 0);
+                }
+                if (result != 0) {
+                    removeKeys.add(key);
+                }
+                if (selectedDialogs.size() == 1) {
+                    AlertsCreator.showSendMediaAlert(result, parentFragment, null);
+
+                    if (result != 0) {
+                        break;
+                    }
                 }
             }
-            onSend(selectedDialogs, sendingMessageObjects.size());
+            for (long key : removeKeys) {
+                selectedDialogs.remove(key);
+            }
+            if (!selectedDialogs.isEmpty()) {
+                onSend(selectedDialogs, sendingMessageObjects.size());
+            }
         } else {
             int num;
             if (switchView != null) {
@@ -1639,7 +1665,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                         SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingText[num], key, null, null, null, true, null, null, null, true, 0, null);
                     }
                     if (frameLayout2.getTag() != null && commentTextView.length() > 0) {
-                        SendMessagesHelper.getInstance(currentAccount).sendMessage(commentTextView.getText().toString(), key, null, null, null, true, null, null, null, true, 0, null);
+                        SendMessagesHelper.getInstance(currentAccount).sendMessage(text[0] == null ? null : text[0].toString(), key, null, null, null, true, entities, null, null, true, 0, null);
                     }
                     if (!NekoConfig.sendCommentAfterForward.Bool()) {
                         SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingText[num], key, null, null, null, true, null, null, null, true, 0, null);
@@ -1894,6 +1920,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         if (commentTextView != null) {
             AndroidUtilities.hideKeyboard(commentTextView.getEditText());
         }
+        fullyShown = false;
         super.dismiss();
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.dialogsNeedReload);
     }
