@@ -292,7 +292,8 @@ jobs:
           mv ghr*linux_amd64/ghr .
           mkdir apks
           find -name "*.apk" -exec cp {} apks \;
-          ./ghr -delete -t "${{ github.token }}" -b "${{ github.event.head_commit.message }}" -prerelease "$(echo $GITHUB_SHA|sed -E 's,^(.{8}).*,\1,g')" apks
+          ./ghr -delete -t "${{ github.token }}" -b `echo ${{ github.event.head_commit.message }}` -prerelease "`echo $GITHUB_SHA|sed -E 's,^(.{8}).*,\1,g'` `echo ${{github.event.head_commit.message}}|head -n1`" apks
+	  
   upload:
     name: Upload Release
     if: github.event.inputs.artifacts != 'y'
@@ -325,8 +326,7 @@ jobs:
             -X POST \
             -F chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
             -F document="@$apk" \
-            -F caption="${{ github.event.head_commit.message }}\
-            $GITHUB_SHA" \
+            -F caption=`printf "${{ github.event.head_commit.message }}\n$GITHUB_SHA`\
             --silent --show-error --fail >/dev/null
           done
           pkill telegram-bot
