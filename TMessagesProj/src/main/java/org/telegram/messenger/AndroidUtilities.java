@@ -1648,6 +1648,9 @@ public class AndroidUtilities {
                 if (assetPath.contains("mw_bold")) {
                     return Typeface.create("serif", Typeface.BOLD);
                 }
+                if (assetPath.contains("rcondensedbold")) {
+                    return Typeface.create("sans-serif-condensed", Typeface.BOLD);
+                }
                 //return Typeface.create((Typeface) null, Typeface.NORMAL);
             }
             if (!typefaceCache.containsKey(assetPath)) {
