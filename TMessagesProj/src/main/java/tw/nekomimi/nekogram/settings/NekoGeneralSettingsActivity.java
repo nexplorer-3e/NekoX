@@ -53,6 +53,9 @@ import tw.nekomimi.nekogram.ui.PopupBuilder;
 import tw.nekomimi.nekogram.utils.AlertUtil;
 import tw.nekomimi.nekogram.utils.PGPUtil;
 
+import cn.hutool.core.util.StrUtil;
+import kotlin.Unit;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -750,6 +753,9 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
             NekoConfig.useOSMDroidMap.setConfigBool(true);
             ((ConfigCellTextCheck) useOSMDroidMapRow).setEnabled(false);
             cellGroup.rows.remove(mapDriftingFixForGoogleMapsRow);
+        } else {
+            if (NekoConfig.useOSMDroidMap.Bool())
+                ((ConfigCellTextCheck) mapDriftingFixForGoogleMapsRow).setEnabled(false);
         }
 
         boolean enabled;
