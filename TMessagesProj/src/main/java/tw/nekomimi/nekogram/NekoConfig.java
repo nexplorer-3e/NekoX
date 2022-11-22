@@ -11,10 +11,7 @@ import tw.nekomimi.nekogram.config.ConfigItem;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static tw.nekomimi.nekogram.config.ConfigItem.*;
 
