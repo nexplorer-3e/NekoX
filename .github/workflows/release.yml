@@ -349,7 +349,7 @@ jobs:
           sha256sum TMessagesProj/luvletter2333.jks
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
 
-          APK=$(find TMessagesProj/build/outputs/apk -name '*arm64-v8a*.apk')
+          APK=$(find TMessagesProj/build/outputs/apk -name '*.apk')
           APK=$(dirname $APK)
           echo "APK=$APK" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v2
@@ -384,7 +384,7 @@ jobs:
       - build
       - telegram-bot-api
     steps:
-      - name: Donwload Artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
           path: artifacts
@@ -400,12 +400,10 @@ jobs:
             ./telegram-bot-api-binary --api-id=21724 --api-hash=3e0cb5efcd52300aec5994fdfc5bdc16 --local 2>&1 > /dev/null &
           }
           start
-          curl http://127.0.0.1:8081/ || start
-          curl http://127.0.0.1:8081/ || start
-          curl http://127.0.0.1:8081/ || start
+          while ! curl http://127.0.0.1:8081/; do start; sleep 1; done
           curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
            -X POST \
-           --form-string chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
+           --form-string chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
            -F text="==== ${{ github.event.inputs.tag }} ====" \
            --silent --show-error --fail >/dev/null
           mkdir apks
@@ -415,7 +413,7 @@ jobs:
               echo ">> Uploading $apk"
               curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument \
                 -X POST \
-                --form-string chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
+                --form-string chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
                 -F document="@$apk" \
                 --retry 5 \
                 --retry-delay 5 \
