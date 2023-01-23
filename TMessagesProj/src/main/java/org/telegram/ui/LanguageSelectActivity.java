@@ -17,6 +17,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 
@@ -173,7 +174,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
                     }).show();
                     return;
                 }
-                LocaleController.getInstance().applyLanguage(localeInfo, true, false, false, true, currentAccount);
+                LocaleController.getInstance().applyLanguage(localeInfo, true, false, false, true, currentAccount,()->{});
                 parentLayout.rebuildAllFragmentViews(false, false);
             }
             finishFragment();
@@ -309,26 +310,26 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
                 listView.setAdapter(listAdapter);
             }
         } else {
-//            try {
-//                if (searchTimer != null) {
-//                    searchTimer.cancel();
-//                }
-//            } catch (Exception e) {
-//                FileLog.e(e);
-//            }
-//            searchTimer = new Timer();
-//            searchTimer.schedule(new TimerTask() {
-//                @Override
-//                public void run() {
-//                try {
-//                    searchTimer.cancel();
-//                    searchTimer = null;
-//                } catch (Exception e) {
-//                    FileLog.e(e);
-//                }
-                processSearch(query);
-//                }
-//            }, 100, 300);
+            //            try {
+            //                if (searchTimer != null) {
+            //                    searchTimer.cancel();
+            //                }
+            //            } catch (Exception e) {
+            //                FileLog.e(e);
+            //            }
+            //            searchTimer = new Timer();
+            //            searchTimer.schedule(new TimerTask() {
+            //                @Override
+            //                public void run() {
+            //                try {
+            //                    searchTimer.cancel();
+            //                    searchTimer = null;
+            //                } catch (Exception e) {
+            //                    FileLog.e(e);
+            //                }
+            processSearch(query);
+            //                }
+            //            }, 100, 300);
         }
     }
 
@@ -453,20 +454,20 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
             switch (viewType) {
                 case 0: {
                     view = new LanguageCell(mContext);
-//                    view = new TextRadioCell(mContext);
+                    //                    view = new TextRadioCell(mContext);
                     view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
                     break;
                 }
-//                case 2:
-//                    TranslateSettings translateSettings = new TranslateSettings(mContext);
-//                    view = translateSettings;
-//                    break;
-//                case 3:
-//                    HeaderCell header = new HeaderCell(mContext);
-//                    header.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-//                    header.setText(LocaleController.getString("Language", R.string.Language));
-//                    view = header;
-//                    break;
+                //                case 2:
+                //                    TranslateSettings translateSettings = new TranslateSettings(mContext);
+                //                    view = translateSettings;
+                //                    break;
+                //                case 3:
+                //                    HeaderCell header = new HeaderCell(mContext);
+                //                    header.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                //                    header.setText(LocaleController.getString("Language", R.string.Language));
+                //                    view = header;
+                //                    break;
                 case 1:
                 default: {
                     view = new ShadowSectionCell(mContext);
@@ -481,7 +482,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
             switch (holder.getItemViewType()) {
                 case 0: {
                     LanguageCell textSettingsCell = (LanguageCell) holder.itemView;
-//                    TextRadioCell textSettingsCell = (TextRadioCell) holder.itemView;
+                    //                    TextRadioCell textSettingsCell = (TextRadioCell) holder.itemView;
                     LocaleController.LocaleInfo localeInfo;
                     boolean last;
                     if (search) {

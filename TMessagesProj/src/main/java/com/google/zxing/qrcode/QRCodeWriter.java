@@ -35,6 +35,7 @@ import com.google.zxing.qrcode.encoder.ByteMatrix;
 import com.google.zxing.qrcode.encoder.Encoder;
 import com.google.zxing.qrcode.encoder.QRCode;
 
+import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SvgHelper;
@@ -51,24 +52,24 @@ import java.util.function.Function;
  */
 public final class QRCodeWriter {
 
-  private static final int QUIET_ZONE_SIZE = 4;
-  private ByteMatrix input;
-  private float[] radii = new float[8];
-  private int imageBloks;
-  private int imageBlockX;
-  private int sideQuadSize;
+    private static final int QUIET_ZONE_SIZE = 4;
+    private ByteMatrix input;
+    private float[] radii = new float[8];
+    private int imageBloks;
+    private int imageBlockX;
+    private int sideQuadSize;
 
-  private int imageSize;
+    private int imageSize;
 
-  public Bitmap encode(String contents, BarcodeFormat format, int width, int height, Map<EncodeHintType, ?> hints, Bitmap bitmap, Context context) throws WriterException {
-    return encode(contents, format, width, height, hints, bitmap, context, null);
-  }
-
-  public Bitmap encode(String contents, BarcodeFormat format, int width, int height, Map<EncodeHintType, ?> hints, Bitmap bitmap, Context context, Function<Integer, Bitmap> iconF) throws WriterException {
-
-    if (contents.isEmpty()) {
-      throw new IllegalArgumentException("Found empty contents");
+    public Bitmap encode(String contents, BarcodeFormat format, int width, int height, Map<EncodeHintType, ?> hints, Bitmap bitmap, Context context) throws WriterException {
+        return encode(contents, format, width, height, hints, bitmap, context, null);
     }
+
+    public Bitmap encode(String contents, BarcodeFormat format, int width, int height, Map<EncodeHintType, ?> hints, Bitmap bitmap, Context context, Function<Integer, Bitmap> iconF) throws WriterException {
+
+        if (contents.isEmpty()) {
+            throw new IllegalArgumentException("Found empty contents");
+        }
 
         if (width < 0 || height < 0) {
             throw new IllegalArgumentException("Requested dimensions are too small: " + width + 'x' + height);
@@ -128,8 +129,8 @@ public final class QRCodeWriter {
         if (imageBloks % 2 != inputWidth % 2) {
             imageBloks++;
         }
-    imageBlockX = (inputWidth - imageBloks) / 2;
-    imageSize = imageBloks * multiple - 24;
+        imageBlockX = (inputWidth - imageBloks) / 2;
+        imageSize = imageBloks * multiple - 24;
         int imageX = (size - imageSize) / 2;
 
         for (int a = 0; a < 3; a++) {
@@ -238,15 +239,15 @@ public final class QRCodeWriter {
 
     private boolean has(int x, int y) {
         if (x >= imageBlockX && x < imageBlockX + imageBloks && y >= imageBlockX && y < imageBlockX + imageBloks) {
-          return false;
+            return false;
         }
-      if ((x < sideQuadSize || x >= input.getWidth() - sideQuadSize) && y < sideQuadSize) {
-        return false;
-      }
-      if (x < sideQuadSize && y >= input.getHeight() - sideQuadSize) {
-        return false;
-      }
-      return x >= 0 && y >= 0 && x < input.getWidth() && y < input.getHeight() && input.get(x, y) == 1;
+        if ((x < sideQuadSize || x >= input.getWidth() - sideQuadSize) && y < sideQuadSize) {
+            return false;
+        }
+        if (x < sideQuadSize && y >= input.getHeight() - sideQuadSize) {
+            return false;
+        }
+        return x >= 0 && y >= 0 && x < input.getWidth() && y < input.getHeight() && input.get(x, y) == 1;
     }
 
     public Bitmap encode(String contents, int width, int height, Map<EncodeHintType, ?> hints, Bitmap bitmap) throws WriterException {
@@ -435,8 +436,49 @@ public final class QRCodeWriter {
         return bitmap;
     }
 
+    public static void drawSideQuads(Canvas canvas, float xOffset, float yOffset, Paint blackPaint, float sideQuadSize, float multiple, int padding, float size, float radiusFactor, float[] radii, boolean isTransparentBackground) {
+        Path clipPath = new Path();
+        for (int a = 0; a < 3; a++) {
+            float x, y;
+            if (a == 0) {
+                x = padding;
+                y = padding;
+            } else if (a == 1) {
+                x = size - sideQuadSize * multiple - padding;
+                y = padding;
+            } else {
+                x = padding;
+                y = size - sideQuadSize * multiple - padding;
+            }
+
+            x += xOffset;
+            y += yOffset;
+
+            float r;
+            if (isTransparentBackground) {
+                AndroidUtilities.rectTmp.set(x + multiple, y + multiple, x + (sideQuadSize - 1) * multiple, y + (sideQuadSize - 1) * multiple);
+                r = (sideQuadSize * multiple) / 4.0f * radiusFactor;
+                clipPath.reset();
+                clipPath.addRoundRect(AndroidUtilities.rectTmp, r, r, Path.Direction.CW);
+                clipPath.close();
+                canvas.save();
+                canvas.clipPath(clipPath, Region.Op.DIFFERENCE);
+            }
+            r = (sideQuadSize * multiple) / 3.0f * radiusFactor;
+            AndroidUtilities.rectTmp.set(x, y, x + sideQuadSize * multiple, y + sideQuadSize * multiple);
+            canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, blackPaint);
+            if (isTransparentBackground) {
+                canvas.restore();
+            }
+
+            r = ((sideQuadSize - 2) * multiple) / 4.0f * radiusFactor;
+            AndroidUtilities.rectTmp.set(x + multiple * 2, y + multiple * 2, x + (sideQuadSize - 2) * multiple, y + (sideQuadSize - 2) * multiple);
+            canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, blackPaint);
+        }
+    }
+
 
     public int getImageSize() {
-    return imageSize;
-  }
+        return imageSize;
+    }
 }
