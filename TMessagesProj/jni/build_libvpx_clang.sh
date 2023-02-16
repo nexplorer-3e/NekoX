@@ -27,10 +27,11 @@ function build_one {
 	export CXXFLAGS="${CFLAGS} -std=c++11"
 	export ASFLAGS="-D__ANDROID__"
 	export LDFLAGS="-L${PLATFORM}/usr/lib"
+	
+	if [ "x86" = ${ARCH} ]; then
+		sed -i '20s/^/#define rand() ((int)lrand48())\n/' vpx_dsp/add_noise.c
+	fi
 
-  if [ "x86" = ${ARCH} ]; then
-    patch -p1 < ../patches/libvpx_x86_fix.patch
-  fi
 	echo "Cleaning..."
 	make clean || true
 
@@ -39,7 +40,7 @@ function build_one {
 
 
 	./configure \
-	--extra-cflags="-isystem ${LLVM_PREFIX}/sysroot/usr/include/${ARCH_NAME}-linux-${BIN_MIDDLE} -isystem ${LLVM_PREFIX}/sysroot/usr/include ${OPTIMIZE_CFLAGS}" \
+	--extra-cflags="-isystem ${LLVM_PREFIX}/sysroot/usr/include/${ARCH_NAME}-linux-${BIN_MIDDLE} -isystem ${LLVM_PREFIX}/sysroot/usr/include" \
 	--libc="${LLVM_PREFIX}/sysroot" \
 	--prefix=${PREFIX} \
 	--target=${TARGET} \
@@ -63,10 +64,10 @@ function build_one {
 	--disable-webm-io
 
 	make -j$COMPILATION_PROC_COUNT install
-
-  if [ "x86" = ${ARCH} ]; then
-    patch -p1 -R < ../patches/libvpx_x86_fix.patch
-  fi
+	
+	if [ "x86" = ${ARCH} ]; then
+		sed -i '20d' vpx_dsp/add_noise.c
+	fi
 }
 
 function setCurrentPlatform {
@@ -122,7 +123,6 @@ function build {
 	for arg in "$@"; do
 		case "${arg}" in
 			x86_64)
-        ANDROID_API=21
 				ARCH=x86_64
 				ARCH_NAME=x86_64
 				PREBUILT_ARCH=x86_64
@@ -132,11 +132,10 @@ function build {
 				OPTIMIZE_CFLAGS="-O3 -march=x86-64 -mtune=intel -msse4.2 -mpopcnt -m64 -fPIC"
 				TARGET="x86_64-android-gcc"
 				PREFIX=./build/$CPU
-        CPU_DETECT="--enable-runtime-cpu-detect"
+                CPU_DETECT="--enable-runtime-cpu-detect"
 				build_one
 			;;
 			x86)
-        ANDROID_API=21
 				ARCH=x86
 				ARCH_NAME=i686
 				PREBUILT_ARCH=x86
@@ -145,12 +144,11 @@ function build {
 				CPU=i686
 				OPTIMIZE_CFLAGS="-O3 -march=i686 -mtune=intel -msse3 -mfpmath=sse -m32 -fPIC"
 				TARGET="x86-android-gcc"
-				PREFIX=./build/x86
+				PREFIX=./build/$ARCH
 				CPU_DETECT="--enable-runtime-cpu-detect"
 				build_one
 			;;
 			arm64)
-        ANDROID_API=21
 				ARCH=arm64
 				ARCH_NAME=aarch64
 				PREBUILT_ARCH=aarch64
@@ -164,14 +162,13 @@ function build {
 				build_one
 			;;
 			arm)
-        ANDROID_API=21
 				ARCH=arm
 				ARCH_NAME=arm
 				PREBUILT_ARCH=arm
 				CLANG_PREFIX=armv7a
 				BIN_MIDDLE=androideabi
 				CPU=armeabi-v7a
-				OPTIMIZE_CFLAGS="-Os -D_LIBCPP_HAS_QUICK_EXIT -O3 -march=armv7-a -mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mthumb -D__thumb__"
+				OPTIMIZE_CFLAGS="-Os -march=armv7-a -mfloat-abi=softfp -mfpu=neon -mtune=cortex-a8 -mthumb -D__thumb__"
 				TARGET="armv7-android-gcc --enable-neon --disable-neon-asm"
 				PREFIX=./build/$CPU
 				CPU_DETECT="--disable-runtime-cpu-detect"
@@ -184,7 +181,7 @@ function build {
 }
 
 if (( $# == 0 )); then
-	build  x86 x86_64 arm arm64
+	build x86_64 x86 arm arm64
 else
 	build $@
 fi

@@ -19,8 +19,8 @@ function build_one {
 	CXX=${CC_PREFIX}clang++
 	CROSS_PREFIX=${PREBUILT}/bin/${ARCH_NAME}-linux-${BIN_MIDDLE}-
 	
-	INCLUDES=" -I./${LIBVPXPREFIX}/include"
-	LIBS=" -L./${LIBVPXPREFIX}/lib"
+	INCLUDES=" -I${LIBVPXPREFIX}/include"
+	LIBS=" -L${LIBVPXPREFIX}/lib"
 
 	echo "Cleaning..."
 	rm -f config.h
@@ -50,7 +50,7 @@ function build_one {
 	--sysroot="${LLVM_PREFIX}/sysroot" \
 	--extra-cflags="${INCLUDES} -Wl,-Bsymbolic -Os -DCONFIG_LINUX_PERF=0 -DANDROID $OPTIMIZE_CFLAGS -fPIE -pie --static -fPIC" \
 	--extra-cxxflags="${INCLUDES} -Wl,-Bsymbolic -Os -DCONFIG_LINUX_PERF=0 -DANDROID $OPTIMIZE_CFLAGS -fPIE -pie --static -fPIC" \
-	--extra-ldflags="${LIBS} -Wl,-Bsymbolic -Wl,-rpath-link=$PLATFORM/usr/lib -L$PLATFORM/usr/lib -lc -lm -ldl -fPIC" \
+	--extra-ldflags="${LIBS} -Wl,-Bsymbolic -Wl,-rpath-link=$PLATFORM/usr/lib -L$PLATFORM/usr/lib -nostdlib -lc -lm -ldl -fPIC" \
 	\
 	--enable-version3 \
 	--enable-gpl \
@@ -72,6 +72,7 @@ function build_one {
 	--disable-ffplay \
 	--disable-ffprobe \
 	--disable-postproc \
+	--disable-avdevice \
 	\
 	--enable-libvpx \
 	--enable-decoder=libvpx_vp9 \
@@ -164,7 +165,7 @@ function build {
 				BIN_MIDDLE=android
 				CPU=x86_64
 				PREFIX=./build/$CPU
-				LIBVPXPREFIX=../libvpx/build/x86_64
+				LIBVPXPREFIX=../libvpx/build/$ARCH_NAME
 				ADDITIONAL_CONFIGURE_FLAG="--disable-asm"
 				build_one
 			;;
@@ -180,7 +181,7 @@ function build {
 				CPU=arm64-v8a
 				OPTIMIZE_CFLAGS=
 				PREFIX=./build/$CPU
-				LIBVPXPREFIX=../libvpx/build/arm64-v8a
+				LIBVPXPREFIX=../libvpx/build/$CPU
 				ADDITIONAL_CONFIGURE_FLAG="--enable-neon --enable-optimizations"
 				build_one
 			;;
@@ -197,7 +198,7 @@ function build {
 				OPTIMIZE_CFLAGS="-marm -march=$CPU"
 				PREFIX=./build/armeabi-v7a
 				LIBVPXPREFIX=../libvpx/build/armeabi-v7a
-				ADDITIONAL_CONFIGURE_FLAG="--enable-neon"
+				ADDITIONAL_CONFIGURE_FLAG=--enable-neon
 				build_one
 			;;
 			x86)
@@ -211,8 +212,8 @@ function build {
 				BIN_MIDDLE=android
 				CPU=i686
 				OPTIMIZE_CFLAGS="-march=$CPU"
-				PREFIX=./build/x86
-				LIBVPXPREFIX=../libvpx/build/x86
+				PREFIX=./build/$ARCH
+				LIBVPXPREFIX=../libvpx/build/$ARCH
 				ADDITIONAL_CONFIGURE_FLAG="--disable-x86asm --disable-inline-asm --disable-asm"
 				build_one
 			;;

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6.0)
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -DANDROID")
-set(CMAKE_C_FLAGS "-w -std=c11 -DANDROID -D_LARGEFILE_SOURCE=1")
+set(CMAKE_CXX_FLAGS "-std=c++14 -DANDROID -g")
+set(CMAKE_C_FLAGS "-w -std=c11 -DANDROID -D_LARGEFILE_SOURCE=1 -g")
 set(CMAKE_ASM_FLAGS "${CFLAGS} -x assembler-with-cpp")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
@@ -15,15 +15,6 @@ ${CMAKE_HOME_DIRECTORY}/ffmpeg/build/${ANDROID_ABI}/lib/libswresample.a,
 ${CMAKE_HOME_DIRECTORY}/libvpx/build/${ANDROID_ABI}/lib/libvpx.a,
 ${CMAKE_HOME_DIRECTORY}/boringssl/build/${ANDROID_ABI}/ssl/libssl.a,
 ${CMAKE_HOME_DIRECTORY}/boringssl/build/${ANDROID_ABI}/crypto/libcrypto.a")
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Os -DNDEBUG")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Os -DNDEBUG")
-    set(LINKER_FLAGS "${LINKER_FLAGS} -Wl,-exclude-libs,ALL -Wl,--gc-sections -Wl,--strip-all")
-endif()
 
 if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a")
     enable_language(ASM)
@@ -88,13 +79,13 @@ if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
             mozjpeg/simd/arm/jsimd.c)
     target_compile_definitions(mozjpeg PUBLIC
             SIZEOF_SIZE_T=4)
-elseif (${ANDROID_ABI} STREQUAL "arm64-v8a")
+elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
     target_sources(mozjpeg PRIVATE
             mozjpeg/simd/arm64/jsimd_neon.S
             mozjpeg/simd/arm64/jsimd.c)
     target_compile_definitions(mozjpeg PUBLIC
             SIZEOF_SIZE_T=8)
-elseif (${ANDROID_ABI} STREQUAL "x86")
+elseif(${ANDROID_ABI} STREQUAL "x86")
     set(CMAKE_ASM_NASM_COMPILER_ARG1 "${CMAKE_ASM_NASM_COMPILER_ARG1} -DPIC")
     target_sources(mozjpeg PRIVATE
             mozjpeg/simd/i386/jsimd.c
@@ -144,7 +135,7 @@ elseif (${ANDROID_ABI} STREQUAL "x86")
             mozjpeg/simd/i386/jquanti-avx2.asm)
     target_compile_definitions(mozjpeg PUBLIC
             SIZEOF_SIZE_T=4)
-elseif (${ANDROID_ABI} STREQUAL "x86_64")
+elseif(${ANDROID_ABI} STREQUAL "x86_64")
     set(CMAKE_ASM_NASM_COMPILER_ARG1 "${CMAKE_ASM_NASM_COMPILER_ARG1} -DPIC")
     set(CMAKE_ASM_NASM_FLAGS "${CMAKE_ASM_NASM_FLAGS} -DELF")
     set(CMAKE_ASM_NASM_DEBUG_FORMAT "dwarf2")
@@ -180,7 +171,7 @@ elseif (${ANDROID_ABI} STREQUAL "x86_64")
             mozjpeg/simd/x86_64/jquanti-avx2.asm)
     target_compile_definitions(mozjpeg PUBLIC
             SIZEOF_SIZE_T=8)
-endif ()
+endif()
 
 #tgnet
 add_library(tgnet STATIC
@@ -268,14 +259,14 @@ if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
             USE_ARM_NEON)
     target_sources(rlottie PRIVATE
             rlottie/src/vector/pixman/pixman-arm-neon-asm.S)
-elseif (${ANDROID_ABI} STREQUAL "arm64-v8a")
+elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
     target_compile_options(rlottie PUBLIC
             -fno-integrated-as)
     target_compile_definitions(rlottie PUBLIC
             USE_ARM_NEON __ARM64_NEON__)
     target_sources(rlottie PRIVATE
             rlottie/src/vector/pixman/pixman-arma64-neon-asm.S)
-endif ()
+endif()
 
 #flac
 add_library(flac STATIC
@@ -498,15 +489,15 @@ if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
     target_compile_definitions(${NATIVE_LIB} PUBLIC
             ANDROID_ARM_NEON=false)
     target_sources(${NATIVE_LIB} PRIVATE
-            third_party/libyuv/source/compare_neon.cc
-            third_party/libyuv/source/rotate_neon.cc
-            third_party/libyuv/source/row_neon.cc
-            third_party/libyuv/source/scale_neon.cc)
-else ()
+        third_party/libyuv/source/compare_neon.cc
+        third_party/libyuv/source/rotate_neon.cc
+        third_party/libyuv/source/row_neon.cc
+        third_party/libyuv/source/scale_neon.cc)
+else()
     set_target_properties(${NATIVE_LIB} PROPERTIES
             ANDROID_ARM_NEON FALSE
             ANDROID_ARM_MODE arm)
-endif ()
+endif()
 
 if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a")
     target_compile_definitions(${NATIVE_LIB} PUBLIC
@@ -523,10 +514,10 @@ if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a"
             opus/silk/fixed/arm/warped_autocorrelation_FIX_neon_intr.c
             )
 
-elseif (${ANDROID_ABI} STREQUAL "x86")
+elseif(${ANDROID_ABI} STREQUAL "x86")
     target_compile_definitions(${NATIVE_LIB} PUBLIC
             x86fix)
-endif ()
+endif()
 
 target_sources(${NATIVE_LIB} PRIVATE
 
@@ -762,6 +753,11 @@ target_link_libraries(${NATIVE_LIB}
         OpenSLES
         cpufeatures)
 
+#if (${ANDROID_ABI} STREQUAL "x86" OR ${ANDROID_ABI} STREQUAL "x86_64")
+#    target_link_libraries(${NATIVE_LIB}
+#            -Wl,--whole-archive vpxasm -Wl,--no-whole-archive
+#            c)
+#endif()
 
 include(AndroidNdkModules)
 android_ndk_import_module_cpufeatures()
