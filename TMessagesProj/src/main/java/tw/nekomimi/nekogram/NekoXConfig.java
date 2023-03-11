@@ -227,8 +227,9 @@ public class NekoXConfig {
     }
     public static void saveShadowBanHM() {
         preferences.edit()
-                .putString(new Gson().toJson(shadowBannedHM))
+                .putString("shadow_banned_HM", new Gson().toJson(shadowBannedHM))
                 .apply();
+        shadowBannedJSON = preferences.getString("shadow_banned_HM", "{}");
     }
     public static HashMap<Long, String> getShadowBannedHM() {
         HashMap<Long, String> shadowBannedHM = new Gson().fromJson(shadowBannedJSON, new HashMap<Long, String>().getClass());

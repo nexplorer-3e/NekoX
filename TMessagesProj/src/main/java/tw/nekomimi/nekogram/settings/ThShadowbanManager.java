@@ -42,14 +42,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ThShadowbanManager extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
+public class ThShadowbanManager extends BaseFragment {
     private RecyclerListView listView;
 
     private ThShadowbanManager.ListAdapter adapter;
     @SuppressWarnings("FieldCanBeLocal")
     private LinearLayoutManager layoutManager;
-    private Map<Integer, Long> map;
-    private Map<Long, String> mFuckers;
+    private final Map<Integer, Long> map;
+    private final Map<Long, String> mFuckers;
 
     public ThShadowbanManager() {
         map = new HashMap<>();
@@ -66,14 +66,14 @@ public class ThShadowbanManager extends BaseFragment implements NotificationCent
 
     @Override
     public boolean onFragmentCreate() {
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.telegraherSettingsUpdated);
+//        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.telegraherSettingsUpdated);
         return super.onFragmentCreate();
     }
 
     @Override
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.telegraherSettingsUpdated);
+//        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.telegraherSettingsUpdated);
     }
 
     @Override
@@ -115,9 +115,9 @@ public class ThShadowbanManager extends BaseFragment implements NotificationCent
                 //durov relogin!
             } else if (position >= 0 && position < rowCount) {
                 if (((ThTextCheckShadowbanCell) view).isChecked()) {
-                    SharedConfig.delShadowBanned(((ThTextCheckShadowbanCell) view).getTheFuckerId());
+                    NekoXConfig.delShadowBanned(((ThTextCheckShadowbanCell) view).getTheFuckerId());
                 } else {
-                    SharedConfig.addShadowBanned(((ThTextCheckShadowbanCell) view).getTheFuckerId(), mFuckers.get((((ThTextCheckShadowbanCell) view).getTheFuckerId())));
+                    NekoXConfig.addShadowBanned(((ThTextCheckShadowbanCell) view).getTheFuckerId(), mFuckers.get((((ThTextCheckShadowbanCell) view).getTheFuckerId())));
                 }
                 ((ThTextCheckShadowbanCell) view).setChecked(!((ThTextCheckShadowbanCell) view).isChecked());
             }
@@ -134,18 +134,10 @@ public class ThShadowbanManager extends BaseFragment implements NotificationCent
 //        }
     }
 
-    @Override
-    public void didReceivedNotification(int id, int account, Object... args) {
-        if (false) {
-            //durov relogin!
-        } else if (id == NotificationCenter.telegraherSettingsUpdated) {
-            adapter.notifyDataSetChanged();
-        }
-    }
 
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
 
-        private Context mContext;
+        private final Context mContext;
 
         public ListAdapter(Context context) {
             mContext = context;
@@ -194,10 +186,6 @@ public class ThShadowbanManager extends BaseFragment implements NotificationCent
                     view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
                     break;
                 case 7:
-                    view = new ThTextDetailCell(mContext);
-                    view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-                    break;
-                case 8:
                     view = new ChatMessageCell(mContext);
                     view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
                     break;
@@ -242,10 +230,6 @@ public class ThShadowbanManager extends BaseFragment implements NotificationCent
                     break;
                 }
                 case 7: {
-                    ThTextDetailCell thTextDetailCell = (ThTextDetailCell) holder.itemView;
-                    break;
-                }
-                case 8: {
                     ChatActionCell chatMessageCell = (ChatActionCell) holder.itemView;
                     break;
                 }
@@ -307,9 +291,6 @@ public class ThShadowbanManager extends BaseFragment implements NotificationCent
         themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{ThTextCheckShadowbanCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2));
         themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{ThTextCheckShadowbanCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrack));
         themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{ThTextCheckShadowbanCell.class}, new String[]{"checkBox"}, null, null, null, Theme.key_switchTrackChecked));
-
-        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{ThTextDetailCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
-        themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{ThTextDetailCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2));
 
         themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{ChatActionCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlackText));
         themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{ChatActionCell.class}, new String[]{"valueTextView"}, null, null, null, Theme.key_windowBackgroundWhiteGrayText2));
