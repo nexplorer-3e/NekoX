@@ -56,17 +56,18 @@ import java.util.function.Consumer;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
 import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.NekoXConfig;
 import tw.nekomimi.nekogram.transtale.TranslateDb;
 
 public class MessagesStorage extends BaseController {
 
-    private DispatchQueue storageQueue;
+    private final DispatchQueue storageQueue;
     private SQLiteDatabase database;
     private File cacheFile;
     private File walCacheFile;
     private File shmCacheFile;
-    private AtomicLong lastTaskId = new AtomicLong(System.currentTimeMillis());
-    private SparseArray<ArrayList<Runnable>> tasks = new SparseArray<>();
+    private final AtomicLong lastTaskId = new AtomicLong(System.currentTimeMillis());
+    private final SparseArray<ArrayList<Runnable>> tasks = new SparseArray<>();
 
     private int lastDateValue = 0;
     private int lastPtsValue = 0;
@@ -81,23 +82,23 @@ public class MessagesStorage extends BaseController {
     private int lastSavedDate = 0;
     private int lastSavedQts = 0;
 
-    private ArrayList<MessagesController.DialogFilter> dialogFilters = new ArrayList<>();
-    private SparseArray<MessagesController.DialogFilter> dialogFiltersMap = new SparseArray<>();
-    private LongSparseArray<Boolean> unknownDialogsIds = new LongSparseArray<>();
+    private final ArrayList<MessagesController.DialogFilter> dialogFilters = new ArrayList<>();
+    private final SparseArray<MessagesController.DialogFilter> dialogFiltersMap = new SparseArray<>();
+    private final LongSparseArray<Boolean> unknownDialogsIds = new LongSparseArray<>();
     private int mainUnreadCount;
     private int archiveUnreadCount;
     private volatile int pendingMainUnreadCount;
     private volatile int pendingArchiveUnreadCount;
 
-    private CountDownLatch openSync = new CountDownLatch(1);
+    private final CountDownLatch openSync = new CountDownLatch(1);
 
-    private static SparseArray<MessagesStorage> Instance = new SparseArray();
+    private static final SparseArray<MessagesStorage> Instance = new SparseArray();
     private static final Object lockObject = new Object();
 
     private final static int LAST_DB_VERSION = 111;
     private boolean databaseMigrationInProgress;
     public boolean showClearDatabaseAlert;
-    private LongSparseIntArray dialogIsForum = new LongSparseIntArray();
+    private final LongSparseIntArray dialogIsForum = new LongSparseIntArray();
 
     public static MessagesStorage getInstance(int num) {
         MessagesStorage localInstance = Instance.get(num);
@@ -270,11 +271,8 @@ public class MessagesStorage extends BaseController {
         walCacheFile = new File(filesDir, "cache4.db-wal");
         shmCacheFile = new File(filesDir, "cache4.db-shm");
 
-        boolean createTable = false;
+        boolean createTable = !cacheFile.exists();
 
-        if (!cacheFile.exists()) {
-            createTable = true;
-        }
         try {
             database = new SQLiteDatabase(cacheFile.getPath());
             database.executeFast("PRAGMA secure_delete = ON").stepThis().dispose();
@@ -2136,15 +2134,15 @@ public class MessagesStorage extends BaseController {
         });
     }
 
-    private int[][] contacts = new int[][]{new int[2], new int[2]};
-    private int[][] nonContacts = new int[][]{new int[2], new int[2]};
-    private int[][] bots = new int[][]{new int[2], new int[2]};
-    private int[][] channels = new int[][]{new int[2], new int[2]};
-    private int[][] groups = new int[][]{new int[2], new int[2]};
-    private int[] mentionChannels = new int[2];
-    private int[] mentionGroups = new int[2];
-    private LongSparseArray<Integer> dialogsWithMentions = new LongSparseArray<>();
-    private LongSparseArray<Integer> dialogsWithUnread = new LongSparseArray<>();
+    private final int[][] contacts = new int[][]{new int[2], new int[2]};
+    private final int[][] nonContacts = new int[][]{new int[2], new int[2]};
+    private final int[][] bots = new int[][]{new int[2], new int[2]};
+    private final int[][] channels = new int[][]{new int[2], new int[2]};
+    private final int[][] groups = new int[][]{new int[2], new int[2]};
+    private final int[] mentionChannels = new int[2];
+    private final int[] mentionGroups = new int[2];
+    private final LongSparseArray<Integer> dialogsWithMentions = new LongSparseArray<>();
+    private final LongSparseArray<Integer> dialogsWithUnread = new LongSparseArray<>();
 
     private void calcUnreadCounters(boolean apply) {
         SQLiteCursor cursor = null;
@@ -3183,7 +3181,7 @@ public class MessagesStorage extends BaseController {
                 ArrayList<TLRPC.EncryptedChat> encryptedChats = new ArrayList<>();
                 int maxDate = 0;
                 if (ids.length() > 0) {
-                    cursor = database.queryFinalized("SELECT read_state, data, send_state, mid, date, uid, replydata FROM messages_v2 WHERE uid IN (" + ids.toString() + ") AND out = 0 AND read_state IN(0,2) ORDER BY date DESC LIMIT 50");
+                    cursor = database.queryFinalized("SELECT read_state, data, send_state, mid, date, uid, replydata FROM messages_v2 WHERE uid IN (" + ids + ") AND out = 0 AND read_state IN(0,2) ORDER BY date DESC LIMIT 50");
                     while (cursor.next()) {
                         NativeByteBuffer data = cursor.byteBufferValue(1);
                         if (data != null) {
@@ -3331,7 +3329,7 @@ public class MessagesStorage extends BaseController {
                     state = database.executeFast("UPDATE wallpapers2 SET data = ? WHERE uid = ?");
                 }
                 for (int a = 0, N = wallPapers.size(); a < N; a++) {
-                    TLRPC.WallPaper wallPaper = (TLRPC.WallPaper) wallPapers.get(a);
+                    TLRPC.WallPaper wallPaper = wallPapers.get(a);
                     state.requery();
                     NativeByteBuffer data = new NativeByteBuffer(wallPaper.getObjectSize());
                     wallPaper.serializeToStream(data);
@@ -4775,7 +4773,7 @@ public class MessagesStorage extends BaseController {
                     state.dispose();
                     state = null;
                     database.commitTransaction();
-                    database.executeFast(String.format(Locale.US, "UPDATE messages_v2 SET ttl = 0 WHERE mid IN(%s) AND uid = %d", mids.toString(), dialogId)).stepThis().dispose();
+                    database.executeFast(String.format(Locale.US, "UPDATE messages_v2 SET ttl = 0 WHERE mid IN(%s) AND uid = %d", mids, dialogId)).stepThis().dispose();
                     getMessagesController().didAddedNewTask(minDate, dialogId, messages);
                 }
             } catch (Exception e) {
@@ -7379,6 +7377,7 @@ public class MessagesStorage extends BaseController {
                         if (message.ttl == 0) {
                             message.ttl = cursor.intValue(6);
                         }
+                        if (NekoConfig.enableChatSBFull.Bool() && NekoXConfig.isShadowBanned(message)) continue;
                         res.messages.add(message);
 
                         addUsersAndChatsFromMessage(message, usersToLoad, chatsToLoad, animatedEmojiToLoad);
@@ -8002,6 +8001,7 @@ public class MessagesStorage extends BaseController {
                                 MessageCustomParamsHelper.readLocalParams(message, customParams);
                                 customParams.reuse();
                             }
+                            if (NekoConfig.enableChatSBFull.Bool() && NekoXConfig.isShadowBanned(message)) continue;
                             res.messages.add(message);
 
                             addUsersAndChatsFromMessage(message, usersToLoad, chatsToLoad, animatedEmojiToLoad);
