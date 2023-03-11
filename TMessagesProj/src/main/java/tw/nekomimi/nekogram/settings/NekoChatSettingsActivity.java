@@ -124,6 +124,7 @@ public class NekoChatSettingsActivity extends BaseFragment implements Notificati
     private final AbstractConfigCell dividerConfirms = cellGroup.appendCell(new ConfigCellDivider());
 
     private final AbstractConfigCell ignoreBlockedRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.ignoreBlocked, LocaleController.getString("IgnoreBlockedAbout")));
+    private final AbstractConfigCell chatSBFullRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.enableChatSBFull, LocaleController.getString("ChatSBFull")));
     private final AbstractConfigCell disableChatActionRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableChatAction));
     private final AbstractConfigCell disableChoosingStickerRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableChoosingSticker));
     private final AbstractConfigCell dividerEnd = cellGroup.appendCell(new ConfigCellDivider());

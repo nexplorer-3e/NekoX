@@ -17,10 +17,12 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
+import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +32,8 @@ import java.util.regex.Pattern;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import tw.nekomimi.nekogram.database.NitritesKt;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class NekoXConfig {
 
@@ -74,6 +78,8 @@ public class NekoXConfig {
     public static int customApi = preferences.getInt("custom_api", 0);
     public static int customAppId = preferences.getInt("custom_app_id", 0);
     public static String customAppHash = preferences.getString("custom_app_hash", "");
+    public static String shadowBannedJSON = preferences.getString("shadow_banned_HM", "{}");
+    public static HashMap<Long, String> shadowBannedHM = getShadowBannedHM();
 
     public static void toggleDeveloperMode() {
         preferences.edit().putBoolean("developer_mode", developerMode = !developerMode).apply();
@@ -235,4 +241,56 @@ public class NekoXConfig {
     public static String getChannelAlias(long channelID) {
         return preferences.getString(NekoConfig.channelAliasPrefix + channelID, null);
     }
+    public static void saveShadowBanHM() {
+        preferences.edit()
+                .putString(new Gson().toJson(shadowBannedHM))
+                .apply();
+    }
+    public static HashMap<Long, String> getShadowBannedHM() {
+        HashMap<Long, String> shadowBannedHM = new Gson().fromJson(shadowBannedJSON, new HashMap<Long, String>);
+        if (shadowBannedHM == null) shadowBannedHM = new HashMap<>();
+        return shadowBannedHM;
+    }
+
+    public static boolean isShadowBanned(TLRPC.Message m) {
+//        System.out.printf("isShadowBanned `%s`%n", "the message");
+        if (shadowBannedHM == null) {
+            shadowBannedHM = new HashMap<>();
+            return false;
+        }
+        return isShadowBanned(m.from_id.channel_id) || isShadowBanned(m.from_id.chat_id) || isShadowBanned(m.from_id.user_id);
+    }
+
+    public static boolean isShadowBanned(TLRPC.Updates m) {
+//        System.out.printf("isShadowBanned `%s`%n", "the Updates");
+        if (shadowBannedHM == null) {
+            shadowBannedHM = new HashMap<>();
+            return false;
+        }
+        return m instanceof TLRPC.TL_updateShortChatMessage ? isShadowBanned(m.from_id) : isShadowBanned(m.user_id);
+    }
+
+    public static boolean isShadowBanned(long id) {
+//        System.out.printf("isShadowBanned `%d`%n", id);
+        if (shadowBannedHM == null) {
+            shadowBannedHM = new HashMap<>();
+            return false;
+        }
+        return shadowBannedHM.containsKey(id < 0L ? -id : id);
+    }
+
+    public static void addShadowBanned(long id, String name) {
+//        System.out.printf("addShadowBanned `%d`%n", id);
+        if (shadowBannedHM == null) shadowBannedHM = new HashMap<>();
+        shadowBannedHM.put(id < 0L ? -id : id, name);
+        saveShadowBanHM();
+    }
+
+    public static void delShadowBanned(long id) {
+//        System.out.printf("delShadowBanned `%d`%n", id);
+        if (shadowBannedHM == null) shadowBannedHM = new HashMap<>();
+        shadowBannedHM.remove(id < 0L ? -id : id);
+        saveShadowBanHM();
+    }
+
 }

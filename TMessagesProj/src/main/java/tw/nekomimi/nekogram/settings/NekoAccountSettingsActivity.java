@@ -41,6 +41,7 @@ import org.telegram.ui.Components.UndoView;
 import java.util.ArrayList;
 
 import tw.nekomimi.nekogram.ui.MessageHelper;
+import tw.nekomimi.nekogram.settings.ThShadowbanManager;
 
 @SuppressLint("RtlHardcoded")
 public class NekoAccountSettingsActivity extends BaseFragment {
@@ -54,6 +55,7 @@ public class NekoAccountSettingsActivity extends BaseFragment {
     private int uploadDeviceInfoRow;
     private int deleteAccountRow;
     private int account2Row;
+    private int chatSBManagerRow;
 
     private UndoView tooltip;
 
@@ -192,6 +194,8 @@ public class NekoAccountSettingsActivity extends BaseFragment {
                 if (button != null) {
                     button.setTextColor(Theme.getColor(Theme.key_dialogTextRed2));
                 }
+            } else if (position == chatSBManagerRow) {
+                presentFragment(new ThShadowbanManager());
             }
         });
 
@@ -213,9 +217,12 @@ public class NekoAccountSettingsActivity extends BaseFragment {
         rowCount = 0;
 
         accountRow = rowCount++;
-        uploadDeviceInfoRow = -1;
+        uploadDeviceInfoRow = rowCount++;
         deleteAccountRow = rowCount++;
         account2Row = rowCount++;
+
+        chatSBManagerRow = rowCount++;
+
         if (listAdapter != null) {
             listAdapter.notifyDataSetChanged();
         }

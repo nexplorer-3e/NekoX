@@ -56,6 +56,7 @@ import java.util.function.Consumer;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
 import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.NekoXConfig;
 import tw.nekomimi.nekogram.transtale.TranslateDb;
 
 public class MessagesStorage extends BaseController {
@@ -7379,6 +7380,7 @@ public class MessagesStorage extends BaseController {
                         if (message.ttl == 0) {
                             message.ttl = cursor.intValue(6);
                         }
+                        if (NekoConfig.enableChatSBFull.Bool() && NekoXConfig.isShadowBanned(message)) continue;
                         res.messages.add(message);
 
                         addUsersAndChatsFromMessage(message, usersToLoad, chatsToLoad, animatedEmojiToLoad);
@@ -8002,6 +8004,7 @@ public class MessagesStorage extends BaseController {
                                 MessageCustomParamsHelper.readLocalParams(message, customParams);
                                 customParams.reuse();
                             }
+                            if (NekoXConfig.getBoolean("EnableChatSBFull", false) && NekoXConfig.isShadowBanned(message)) continue;
                             res.messages.add(message);
 
                             addUsersAndChatsFromMessage(message, usersToLoad, chatsToLoad, animatedEmojiToLoad);

@@ -30,6 +30,8 @@ import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.collection.LongSparseArray;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -13644,6 +13646,9 @@ public class MessagesController extends BaseController implements NotificationCe
                 if (message instanceof TLRPC.TL_messageEmpty) {
                     continue;
                 }
+
+                if (NekoXConfig.isShadowBanned(message)) continue;
+
                 if (newMessageCallback != null && newMessageCallback.onMessageReceived(message)) {
                     newMessageCallback = null;
                 }
