@@ -7,6 +7,7 @@ import android.content.res.Configuration;
 import android.graphics.Typeface;
 import cn.hutool.core.util.StrUtil;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.telegram.messenger.*;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
@@ -14,6 +15,7 @@ import tw.nekomimi.nekogram.database.NitritesKt;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -232,7 +234,8 @@ public class NekoXConfig {
         shadowBannedJSON = preferences.getString("shadow_banned_HM", "{}");
     }
     public static HashMap<Long, String> getShadowBannedHM() {
-        HashMap<Long, String> shadowBannedHM = new Gson().fromJson(shadowBannedJSON, new HashMap<Long, String>().getClass());
+        HashMap<Long, String> shadowBannedHM = new Gson().fromJson(shadowBannedJSON, new TypeToken<HashMap<Long, String>>() {
+        }.getType());
         if (shadowBannedHM == null) shadowBannedHM = new HashMap<>();
         return shadowBannedHM;
     }
