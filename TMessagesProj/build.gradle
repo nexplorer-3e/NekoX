@@ -3,7 +3,7 @@ import cn.hutool.core.util.RuntimeUtil
 apply plugin: "com.android.application"
 apply plugin: "kotlin-android"
 
-def verName = "9.3.3-preview01"
+def verName = "9.3.3"
 def verCode = 700
 
 if (System.getenv("DEBUG_BUILD") == "true") {
@@ -15,7 +15,7 @@ def officialCode = 3026
 
 def serviceAccountCredentialsFile = rootProject.file("service_account_credentials.json")
 
-def beta = verName.contains("preview")
+def beta = verName.contains("pre") || System.getenv("DEBUG_BUILD") == "true"
 
 if (serviceAccountCredentialsFile.isFile()) {
     setupPlay(beta)
