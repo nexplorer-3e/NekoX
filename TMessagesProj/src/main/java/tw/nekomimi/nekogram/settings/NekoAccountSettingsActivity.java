@@ -9,38 +9,19 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ChatObject;
-import org.telegram.messenger.FileLog;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.R;
-import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.*;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.AlertDialog;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.ActionBar.ThemeDescription;
-import org.telegram.ui.Cells.EmptyCell;
-import org.telegram.ui.Cells.HeaderCell;
-import org.telegram.ui.Cells.NotificationsCheckCell;
-import org.telegram.ui.Cells.ShadowSectionCell;
-import org.telegram.ui.Cells.TextCheckCell;
-import org.telegram.ui.Cells.TextDetailSettingsCell;
-import org.telegram.ui.Cells.TextInfoPrivacyCell;
-import org.telegram.ui.Cells.TextSettingsCell;
+import org.telegram.ui.ActionBar.*;
+import org.telegram.ui.Cells.*;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.UndoView;
+import tw.nekomimi.nekogram.ui.MessageHelper;
 
 import java.util.ArrayList;
-
-import tw.nekomimi.nekogram.ui.MessageHelper;
 
 @SuppressLint("RtlHardcoded")
 public class NekoAccountSettingsActivity extends BaseFragment {
@@ -54,6 +35,7 @@ public class NekoAccountSettingsActivity extends BaseFragment {
     private int uploadDeviceInfoRow;
     private int deleteAccountRow;
     private int account2Row;
+    private int chatSBManagerRow;
 
     private UndoView tooltip;
 
@@ -192,6 +174,8 @@ public class NekoAccountSettingsActivity extends BaseFragment {
                 if (button != null) {
                     button.setTextColor(Theme.getColor(Theme.key_dialogTextRed2));
                 }
+            } else if (position == chatSBManagerRow) {
+                presentFragment(new ThShadowbanManager());
             }
         });
 
@@ -213,9 +197,11 @@ public class NekoAccountSettingsActivity extends BaseFragment {
         rowCount = 0;
 
         accountRow = rowCount++;
-        uploadDeviceInfoRow = -1;
+        uploadDeviceInfoRow = rowCount++;
         deleteAccountRow = rowCount++;
         account2Row = rowCount++;
+        chatSBManagerRow = rowCount++;
+
         if (listAdapter != null) {
             listAdapter.notifyDataSetChanged();
         }
@@ -265,7 +251,7 @@ public class NekoAccountSettingsActivity extends BaseFragment {
 
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
 
-        private Context mContext;
+        private final Context mContext;
 
         public ListAdapter(Context context) {
             mContext = context;
@@ -278,6 +264,7 @@ public class NekoAccountSettingsActivity extends BaseFragment {
 
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+            FileLog.d(String.format("case %d, position %d", holder.getItemViewType(), position));
             switch (holder.getItemViewType()) {
                 case 1: {
                     if (position == account2Row) {
@@ -308,13 +295,20 @@ public class NekoAccountSettingsActivity extends BaseFragment {
                     }
                     break;
                 }
+                case 5: {
+                    TextSettingsCell textCell = (TextSettingsCell) holder.itemView;
+                    textCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                    if (position == chatSBManagerRow) {
+                        textCell.setText(LocaleController.getString("THChatSBManager", R.string.THChatSBManager), false);
+                    }
+                }
             }
         }
 
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int type = holder.getItemViewType();
-            return type == 2 || type == 3;
+            return type == 2 || type == 3 || type == 5;
         }
 
         @Override
@@ -360,6 +354,8 @@ public class NekoAccountSettingsActivity extends BaseFragment {
                 return 1;
             } else if (position == deleteAccountRow) {
                 return 2;
+            } else if (position == chatSBManagerRow) {
+                return 5;
             } else if (position == accountRow) {
                 return 4;
             }
