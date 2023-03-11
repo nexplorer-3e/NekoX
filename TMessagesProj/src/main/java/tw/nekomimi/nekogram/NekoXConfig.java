@@ -1,39 +1,23 @@
 package tw.nekomimi.nekogram;
 
-import android.Manifest;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Typeface;
-import android.os.Build;
-
-import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.BuildConfig;
-import org.telegram.messenger.BuildVars;
-import org.telegram.messenger.FileLog;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.R;
-import org.telegram.messenger.UserConfig;
+import cn.hutool.core.util.StrUtil;
+import com.google.gson.Gson;
+import org.telegram.messenger.*;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
+import tw.nekomimi.nekogram.database.NitritesKt;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.StrUtil;
-import tw.nekomimi.nekogram.database.NitritesKt;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 public class NekoXConfig {
 
@@ -247,7 +231,7 @@ public class NekoXConfig {
                 .apply();
     }
     public static HashMap<Long, String> getShadowBannedHM() {
-        HashMap<Long, String> shadowBannedHM = new Gson().fromJson(shadowBannedJSON, new HashMap<Long, String>);
+        HashMap<Long, String> shadowBannedHM = new Gson().fromJson(shadowBannedJSON, new HashMap<Long, String>().getClass());
         if (shadowBannedHM == null) shadowBannedHM = new HashMap<>();
         return shadowBannedHM;
     }
