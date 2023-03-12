@@ -1645,6 +1645,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private CheckBoxCell syncContactsBox;
         private CheckBoxCell testBackendCheckBox;
 
+        private CheckBoxCell uploadDeviceinfoBox;
+
         @CountryState
         private int countryState = COUNTRY_STATE_NOT_SET_OR_VALID;
         private CountrySelectActivity.Country currentCountry;
@@ -2101,38 +2103,34 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                         BulletinFactory.of(slideViewsContainer, null).createSimpleBulletin(R.raw.contacts_sync_off, LocaleController.getString("SyncContactsOff", R.string.SyncContactsOff)).show();
                     }
                 });
-            }
-
-            CheckBoxCell infoCell = new CheckBoxCell(context, 2);
-            infoCell.setText(LocaleController.getString("HideDevieInfo", R.string.HideDeviceInfo), "", !uploadDeviceInfo, false);
-            addView(infoCell, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP));
-            infoCell.setOnClickListener(new OnClickListener() {
-
-                private Toast visibleToast;
-
-                @Override
-                public void onClick(View v) {
-                    if (getParentActivity() == null) {
-                        return;
-                    }
-                    infoCell.setChecked(!(uploadDeviceInfo = !uploadDeviceInfo), true);
-                    try {
-                        if (visibleToast != null) {
-                            visibleToast.cancel();
+                uploadDeviceinfoBox = new CheckBoxCell(context, 2);
+                uploadDeviceinfoBox.setText(LocaleController.getString("HideDevieInfo", R.string.HideDeviceInfo), "", !uploadDeviceInfo, false);
+                addView(uploadDeviceinfoBox, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP, 16, 0, 16 + (LocaleController.isRTL && AndroidUtilities.isSmallScreen() ? Build.VERSION.SDK_INT >= 21 ? 56 : 60 : 0), 0));
+                uploadDeviceinfoBox.setOnClickListener(new OnClickListener() {
+                    private Toast visibleToast;
+                    @Override
+                    public void onClick(View v) {
+                        if (getParentActivity() == null) {
+                            return;
                         }
-                    } catch (Exception e) {
-                        FileLog.e(e);
+                        uploadDeviceinfoBox.setChecked(!(uploadDeviceInfo = !uploadDeviceInfo), true);
+                        try {
+                            if (visibleToast != null) {
+                                visibleToast.cancel();
+                            }
+                        } catch (Exception e) {
+                            FileLog.e(e);
+                        }
+                        if (!uploadDeviceInfo) {
+                            visibleToast = Toast.makeText(getParentActivity(), LocaleController.getString("HideDeviceInfoOn", R.string.HideDeviceInfoOn), Toast.LENGTH_SHORT);
+                            visibleToast.show();
+                        } else {
+                            visibleToast = Toast.makeText(getParentActivity(), LocaleController.getString("HideDeviceInfoOff", R.string.HideDeviceInfoOff), Toast.LENGTH_SHORT);
+                            visibleToast.show();
+                        }
                     }
-                    if (!uploadDeviceInfo) {
-                        visibleToast = Toast.makeText(getParentActivity(), LocaleController.getString("HideDeviceInfoOn", R.string.HideDeviceInfoOn), Toast.LENGTH_SHORT);
-                        visibleToast.show();
-                    } else {
-                        visibleToast = Toast.makeText(getParentActivity(), LocaleController.getString("HideDeviceInfoOff", R.string.HideDeviceInfoOff), Toast.LENGTH_SHORT);
-                        visibleToast.show();
-                    }
-                }
-            });
-
+                });
+            }
             if (activityMode == MODE_LOGIN) {
                 testBackendCheckBox = new CheckBoxCell(context, 2);
                 testBackendCheckBox.setText(LocaleController.getString(R.string.DebugTestBackend), "", testBackend, false);
