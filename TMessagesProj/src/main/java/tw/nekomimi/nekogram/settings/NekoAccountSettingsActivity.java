@@ -279,6 +279,9 @@ public class NekoAccountSettingsActivity extends BaseFragment {
                 case 2: {
                     TextSettingsCell textCell = (TextSettingsCell) holder.itemView;
                     textCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                    if (position == chatSBManagerRow) {
+                        textCell.setText(LocaleController.getString("THChatSBManager", R.string.THChatSBManager), false);
+                    }
                     if (position == deleteAccountRow) {
                         textCell.setText(LocaleController.getString("DeleteAccount", R.string.DeleteAccount), false);
                         textCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteRedText));
@@ -300,20 +303,13 @@ public class NekoAccountSettingsActivity extends BaseFragment {
                     }
                     break;
                 }
-                case 5: {
-                    TextSettingsCell textCell = (TextSettingsCell) holder.itemView;
-                    textCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                    if (position == chatSBManagerRow) {
-                        textCell.setText(LocaleController.getString("THChatSBManager", R.string.THChatSBManager), false);
-                    }
-                }
             }
         }
 
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int type = holder.getItemViewType();
-            return type == 2 || type == 3 || type == 5;
+            return type == 2 || type == 3;
         }
 
         @Override
@@ -357,10 +353,8 @@ public class NekoAccountSettingsActivity extends BaseFragment {
         public int getItemViewType(int position) {
             if (position == account2Row) {
                 return 1;
-            } else if (position == deleteAccountRow) {
+            } else if (position == deleteAccountRow || position == chatSBManagerRow) {
                 return 2;
-            } else if (position == chatSBManagerRow) {
-                return 5;
             } else if (position == accountRow) {
                 return 4;
             }
