@@ -313,7 +313,7 @@ public class NekoAccountSettingsActivity extends BaseFragment {
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int type = holder.getItemViewType();
-            return type == 2 || type == 3 || type == 4;
+            return type == 2 || type == 3 || type == 5;
         }
 
         @Override
