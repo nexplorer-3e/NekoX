@@ -2103,7 +2103,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 });
             }
 
-            infoCell = new CheckBoxCell(context, 2);
+            CheckBoxCell infoCell = new CheckBoxCell(context, 2);
             infoCell.setText(LocaleController.getString("HideDevieInfo", R.string.HideDeviceInfo), "", !uploadDeviceInfo, false);
             addView(infoCell, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP));
             infoCell.setOnClickListener(new OnClickListener() {
