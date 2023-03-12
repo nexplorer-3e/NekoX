@@ -9,12 +9,7 @@
 package org.telegram.ui;
 
 import android.Manifest;
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
-import android.animation.StateListAnimator;
-import android.animation.ValueAnimator;
+import android.animation.*;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
@@ -24,161 +19,54 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Outline;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.Typeface;
+import android.graphics.*;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.telephony.PhoneNumberUtils;
-//import android.telephony.TelephonyManager;
-import android.text.Editable;
-import android.text.InputFilter;
-import android.text.InputType;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.Spanned;
-import android.text.TextPaint;
-import android.text.TextUtils;
-import android.text.TextWatcher;
+import android.text.*;
 import android.text.method.PasswordTransformationMethod;
 import android.text.style.ClickableSpan;
-import android.text.style.ImageSpan;
 import android.text.style.ReplacementSpan;
 import android.util.Base64;
 import android.util.TypedValue;
-import android.view.Gravity;
-import android.view.HapticFeedbackConstants;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewOutlineProvider;
+import android.view.*;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
-import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.Space;
-import android.widget.TextView;
-import android.widget.ViewSwitcher;
-
+import android.widget.*;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
-
-//import com.google.android.gms.auth.api.signin.GoogleSignIn;
-//import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-//import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-//import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-//import com.google.android.gms.common.api.ApiException;
-
-import org.telegram.PhoneFormat.PhoneFormat;
-import org.telegram.messenger.AccountInstance;
-import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.BuildVars;
-import org.telegram.messenger.ContactsController;
-import org.telegram.messenger.Emoji;
-import org.telegram.messenger.FileLog;
-import org.telegram.messenger.ImageLocation;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.MediaDataController;
-import org.telegram.messenger.MessageObject;
-import org.telegram.messenger.MessagesController;
-import org.telegram.messenger.MessagesStorage;
-import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.PushListenerController;
-import org.telegram.messenger.R;
-import org.telegram.messenger.SRPHelper;
-import org.telegram.messenger.SharedConfig;
-import org.telegram.messenger.UserConfig;
-import org.telegram.messenger.Utilities;
-import org.telegram.tgnet.ConnectionsManager;
-import org.telegram.tgnet.RequestDelegate;
-import org.telegram.tgnet.SerializedData;
-import org.telegram.tgnet.TLObject;
-import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.ActionBarMenu;
-import org.telegram.ui.ActionBar.ActionBarMenuItem;
-import org.telegram.ui.ActionBar.AlertDialog;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.ActionBar.ThemeDescription;
-import org.telegram.ui.Cells.CheckBoxCell;
-import org.telegram.ui.Components.AlertsCreator;
-import org.telegram.ui.Components.AnimatedPhoneNumberEditText;
-import org.telegram.ui.Components.AvatarDrawable;
-import org.telegram.ui.Components.BackupImageView;
-import org.telegram.ui.Components.Bulletin;
-import org.telegram.ui.Components.BulletinFactory;
-import org.telegram.ui.Components.CombinedDrawable;
-import org.telegram.ui.Components.CubicBezierInterpolator;
-import org.telegram.ui.Components.CustomPhoneKeyboardView;
-import org.telegram.ui.Components.Easings;
-import org.telegram.ui.Components.EditTextBoldCursor;
-import org.telegram.ui.Components.ImageUpdater;
-import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.LoginOrView;
-import org.telegram.ui.Components.OutlineTextContainerView;
-import org.telegram.ui.Components.RLottieDrawable;
-import org.telegram.ui.Components.RLottieImageView;
-import org.telegram.ui.Components.RadialProgressView;
-import org.telegram.ui.Components.SimpleThemeDescription;
-import org.telegram.ui.Components.SizeNotifierFrameLayout;
-import org.telegram.ui.Components.SlideView;
-import org.telegram.ui.Components.TextStyleSpan;
-import org.telegram.ui.Components.TextViewSwitcher;
-import org.telegram.ui.Components.TransformableLoginButtonView;
-import org.telegram.ui.Components.URLSpanNoUnderline;
-import org.telegram.ui.Components.VerticalPositionAutoAnimator;
-import org.telegram.ui.Components.spoilers.SpoilersTextView;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
 import kotlin.Unit;
+import org.telegram.PhoneFormat.PhoneFormat;
+import org.telegram.messenger.*;
+import org.telegram.tgnet.*;
+import org.telegram.ui.ActionBar.*;
+import org.telegram.ui.Cells.CheckBoxCell;
+import org.telegram.ui.Components.*;
+import org.telegram.ui.Components.spoilers.SpoilersTextView;
 import tw.nekomimi.nekogram.NekoXConfig;
 import tw.nekomimi.nekogram.ui.BottomBuilder;
 import tw.nekomimi.nekogram.ui.EditTextAutoFill;
 import tw.nekomimi.nekogram.utils.AlertUtil;
 import tw.nekomimi.nekogram.utils.ProxyUtil;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressLint("HardwareIds")
 public class LoginActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
@@ -268,7 +156,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     @ViewNumber
     private int currentViewNum;
-    private SlideView[] views = new SlideView[16];
+    private final SlideView[] views = new SlideView[16];
     private CustomPhoneKeyboardView keyboardView;
     private ValueAnimator keyboardAnimator;
 
@@ -276,8 +164,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     private Dialog permissionsDialog;
     private Dialog permissionsShowDialog;
-    private ArrayList<String> permissionsItems = new ArrayList<>();
-    private ArrayList<String> permissionsShowItems = new ArrayList<>();
+    private final ArrayList<String> permissionsItems = new ArrayList<>();
+    private final ArrayList<String> permissionsShowItems = new ArrayList<>();
     private boolean checkPermissions = true;
     private boolean checkShowPermissions = true;
     private boolean newAccount;
@@ -292,14 +180,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private TLRPC.TL_auth_sentCode cancelDeletionCode;
 
     private int currentDoneType;
-    private AnimatorSet[] showDoneAnimation = new AnimatorSet[2];
+    private final AnimatorSet[] showDoneAnimation = new AnimatorSet[2];
     private AnimatorSet doneItemAnimation;
     private TransformableLoginButtonView floatingButtonIcon;
     private FrameLayout floatingButtonContainer;
     private VerticalPositionAutoAnimator floatingAutoAnimator;
     private RadialProgressView floatingProgressView;
     private int progressRequestId;
-    private boolean[] doneButtonVisible = new boolean[]{true, false};
+    private final boolean[] doneButtonVisible = new boolean[]{true, false};
 
     private AlertDialog cancelDeleteProgressDialog;
 
@@ -331,9 +219,9 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     private Runnable emailChangeFinishCallback;
 
-    private boolean[] doneProgressVisible = new boolean[2];
-    private Runnable[] editDoneCallback = new Runnable[2];
-    private boolean[] postedEditDoneCallback = new boolean[2];
+    private final boolean[] doneProgressVisible = new boolean[2];
+    private final Runnable[] editDoneCallback = new Runnable[2];
+    private final boolean[] postedEditDoneCallback = new boolean[2];
 
     // NekoX Definitions
 
@@ -343,8 +231,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private static final int menu_language = 3;
     private static final int menu_bot_login = 4;
     private static final int menu_other = 5;
-    private int menu_custom_api = 6;
-    private int menu_custom_dc = 7;
+    private final int menu_custom_api = 6;
+    private final int menu_custom_dc = 7;
     private static final int menu_qr_login = 8;
 
     TLRPC.TL_auth_exportLoginToken exportLoginTokenRequest = null;
@@ -1645,30 +1533,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         onAuthSuccess(res, false);
     }
 
-    private void onAuthSuccess(TLRPC.TL_auth_authorization res, boolean afterSignup) {
-        MessagesController.getInstance(currentAccount).cleanup();
-        ConnectionsManager.getInstance(currentAccount).setUserId(res.user.id);
-        UserConfig.getInstance(currentAccount).clearConfig();
-        MessagesController.getInstance(currentAccount).cleanup();
-        UserConfig.getInstance(currentAccount).syncContacts = syncContacts;
-        UserConfig.getInstance(currentAccount).setCurrentUser(res.user);
-        UserConfig.getInstance(currentAccount).saveConfig(true);
-        MessagesStorage.getInstance(currentAccount).cleanup(true);
-        ArrayList<TLRPC.User> users = new ArrayList<>();
-        users.add(res.user);
-        MessagesStorage.getInstance(currentAccount).putUsersAndChats(users, null, true, true);
-        MessagesController.getInstance(currentAccount).putUser(res.user, false);
-        ContactsController.getInstance(currentAccount).checkAppAccount();
-        MessagesController.getInstance(currentAccount).checkPromoInfo(true);
-        ConnectionsManager.getInstance(currentAccount).updateDcSettings();
-
-        if (afterSignup) {
-            MessagesController.getInstance(currentAccount).putDialogsEndReachedAfterRegistration();
-        }
-        MediaDataController.getInstance(currentAccount).loadStickersByEmojiOrName(AndroidUtilities.STICKERS_PLACEHOLDER_PACK_NAME, false, true);
-
-        needFinishActivity(afterSignup, res.setup_password_required, res.otherwise_relogin_days);
-    }
+    private boolean uploadDeviceInfo = true;
 
     private void fillNextCodeParams(Bundle params, TLRPC.TL_account_sentEmailCode res) {
         params.putString("emailPattern", res.email_pattern);
@@ -1739,27 +1604,56 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     private TLRPC.TL_help_termsOfService currentTermsOfService;
 
+    private void onAuthSuccess(TLRPC.TL_auth_authorization res, boolean afterSignup) {
+        MessagesController.getInstance(currentAccount).cleanup();
+        ConnectionsManager.getInstance(currentAccount).setUserId(res.user.id);
+        UserConfig.getInstance(currentAccount).clearConfig();
+        MessagesController.getInstance(currentAccount).cleanup();
+        UserConfig.getInstance(currentAccount).official = NekoXConfig.currentAppId() == BuildVars.OFFICAL_APP_ID;
+        UserConfig.getInstance(currentAccount).deviceInfo = uploadDeviceInfo;
+        UserConfig.getInstance(currentAccount).syncContacts = syncContacts;
+        UserConfig.getInstance(currentAccount).setCurrentUser(res.user);
+        UserConfig.getInstance(currentAccount).saveConfig(true);
+        MessagesStorage.getInstance(currentAccount).cleanup(true);
+        ArrayList<TLRPC.User> users = new ArrayList<>();
+        users.add(res.user);
+        MessagesStorage.getInstance(currentAccount).putUsersAndChats(users, null, true, true);
+        MessagesController.getInstance(currentAccount).putUser(res.user, false);
+        ContactsController.getInstance(currentAccount).checkAppAccount();
+        MessagesController.getInstance(currentAccount).checkPromoInfo(true);
+        ConnectionsManager.getInstance(currentAccount).updateDcSettings();
+
+        if (afterSignup) {
+            MessagesController.getInstance(currentAccount).putDialogsEndReachedAfterRegistration();
+        }
+        MediaDataController.getInstance(currentAccount).loadStickersByEmojiOrName(AndroidUtilities.STICKERS_PLACEHOLDER_PACK_NAME, false, true);
+
+        needFinishActivity(afterSignup, res.setup_password_required, res.otherwise_relogin_days);
+    }
+
     public class PhoneView extends SlideView implements AdapterView.OnItemSelectedListener, NotificationCenter.NotificationCenterDelegate {
-        private AnimatedPhoneNumberEditText codeField;
+        private final AnimatedPhoneNumberEditText codeField;
         private AnimatedPhoneNumberEditText phoneField;
-        private TextView titleView;
-        private TextViewSwitcher countryButton;
-        private OutlineTextContainerView countryOutlineView;
-        private OutlineTextContainerView phoneOutlineView;
-        private TextView plusTextView;
-        private TextView subtitleView;
-        private View codeDividerView;
-        private ImageView chevronRight;
+        private final TextView titleView;
+        private final TextViewSwitcher countryButton;
+        private final OutlineTextContainerView countryOutlineView;
+        private final OutlineTextContainerView phoneOutlineView;
+        private final TextView plusTextView;
+        private final TextView subtitleView;
+        private final View codeDividerView;
+        private final ImageView chevronRight;
         private CheckBoxCell syncContactsBox;
         private CheckBoxCell testBackendCheckBox;
+
+        private CheckBoxCell uploadDeviceinfoBox;
 
         @CountryState
         private int countryState = COUNTRY_STATE_NOT_SET_OR_VALID;
         private CountrySelectActivity.Country currentCountry;
 
-        private ArrayList<CountrySelectActivity.Country> countriesArray = new ArrayList<>();
-        private HashMap<String, List<CountrySelectActivity.Country>> codesMap = new HashMap<>();
-        private HashMap<String, List<String>> phoneFormatMap = new HashMap<>();
+        private final ArrayList<CountrySelectActivity.Country> countriesArray = new ArrayList<>();
+        private final HashMap<String, List<CountrySelectActivity.Country>> codesMap = new HashMap<>();
+        private final HashMap<String, List<String>> phoneFormatMap = new HashMap<>();
 
         private boolean ignoreSelection = false;
         private boolean ignoreOnTextChange = false;
@@ -2209,8 +2103,34 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                         BulletinFactory.of(slideViewsContainer, null).createSimpleBulletin(R.raw.contacts_sync_off, LocaleController.getString("SyncContactsOff", R.string.SyncContactsOff)).show();
                     }
                 });
+                uploadDeviceinfoBox = new CheckBoxCell(context, 2);
+                uploadDeviceinfoBox.setText(LocaleController.getString("HideDevieInfo", R.string.HideDeviceInfo), "", !uploadDeviceInfo, false);
+                addView(uploadDeviceinfoBox, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP, 16, 0, 16 + (LocaleController.isRTL && AndroidUtilities.isSmallScreen() ? Build.VERSION.SDK_INT >= 21 ? 56 : 60 : 0), 0));
+                uploadDeviceinfoBox.setOnClickListener(new OnClickListener() {
+                    private Toast visibleToast;
+                    @Override
+                    public void onClick(View v) {
+                        if (getParentActivity() == null) {
+                            return;
+                        }
+                        uploadDeviceinfoBox.setChecked(!(uploadDeviceInfo = !uploadDeviceInfo), true);
+                        try {
+                            if (visibleToast != null) {
+                                visibleToast.cancel();
+                            }
+                        } catch (Exception e) {
+                            FileLog.e(e);
+                        }
+                        if (!uploadDeviceInfo) {
+                            visibleToast = Toast.makeText(getParentActivity(), LocaleController.getString("HideDeviceInfoOn", R.string.HideDeviceInfoOn), Toast.LENGTH_SHORT);
+                            visibleToast.show();
+                        } else {
+                            visibleToast = Toast.makeText(getParentActivity(), LocaleController.getString("HideDeviceInfoOff", R.string.HideDeviceInfoOff), Toast.LENGTH_SHORT);
+                            visibleToast.show();
+                        }
+                    }
+                });
             }
-
             if (activityMode == MODE_LOGIN) {
                 testBackendCheckBox = new CheckBoxCell(context, 2);
                 testBackendCheckBox.setText(LocaleController.getString(R.string.DebugTestBackend), "", testBackend, false);
@@ -2639,7 +2559,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                             boolean allowCall = getParentActivity().checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
                             boolean allowCancelCall = getParentActivity().checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED;
                             boolean allowReadCallLog = Build.VERSION.SDK_INT < Build.VERSION_CODES.P || getParentActivity().checkSelfPermission(Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED;
-                            boolean allowReadPhoneNumbers = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getParentActivity().checkSelfPermission(Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED;;
+                            boolean allowReadPhoneNumbers = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getParentActivity().checkSelfPermission(Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED;
                             if (checkPermissions) {
                                 permissionsItems.clear();
                                 if (!allowCall) {
@@ -3206,17 +3126,17 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private String requestPhone;
         private String emailPhone;
         private CodeFieldContainer codeFieldContainer;
-        private TextView confirmTextView;
-        private TextView titleTextView;
+        private final TextView confirmTextView;
+        private final TextView titleTextView;
         private ImageView blackImageView;
         private RLottieImageView blueImageView;
-        private TextView timeText;
+        private final TextView timeText;
 
         private FrameLayout bottomContainer;
         private ViewSwitcher errorViewSwitcher;
         private TextView problemText;
         private FrameLayout problemFrame;
-        private TextView wrongCode;
+        private final TextView wrongCode;
         private LinearLayout openFragmentButton;
         private RLottieImageView openFragmentImageView;
         private TextView openFragmentButtonText;
@@ -3258,7 +3178,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private String url;
 
         private boolean postedErrorColorTimeout;
-        private Runnable errorColorTimeout = () -> {
+        private final Runnable errorColorTimeout = () -> {
             postedErrorColorTimeout = false;
             for (int i = 0; i < codeFieldContainer.codeField.length; i++) {
                 codeFieldContainer.codeField[i].animateErrorProgress(0);
@@ -4556,11 +4476,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     public class LoginActivityPasswordView extends SlideView {
 
-        private EditTextBoldCursor codeField;
-        private TextView confirmTextView;
-        private TextView cancelButton;
-        private TextView titleView;
-        private RLottieImageView lockImageView;
+        private final EditTextBoldCursor codeField;
+        private final TextView confirmTextView;
+        private final TextView cancelButton;
+        private final TextView titleView;
+        private final RLottieImageView lockImageView;
 
         private Bundle currentParams;
         private boolean nextPressed;
@@ -4570,7 +4490,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private String phoneHash;
         private String phoneCode;
 
-        private OutlineTextContainerView outlineCodeField;
+        private final OutlineTextContainerView outlineCodeField;
 
         public LoginActivityPasswordView(Context context) {
             super(context);
@@ -4898,12 +4818,12 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     public class LoginActivityResetWaitView extends SlideView {
 
-        private RLottieImageView waitImageView;
-        private TextView titleView;
-        private TextView confirmTextView;
-        private TextView resetAccountButton;
-        private TextView resetAccountTime;
-        private TextView resetAccountText;
+        private final RLottieImageView waitImageView;
+        private final TextView titleView;
+        private final TextView confirmTextView;
+        private final TextView resetAccountButton;
+        private final TextView resetAccountTime;
+        private final TextView resetAccountText;
         private Runnable timeRunnable;
 
         private Bundle currentParams;
@@ -5025,7 +4945,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private void updateTimeText() {
             int timeLeft = Math.max(0, waitTime - (ConnectionsManager.getInstance(currentAccount).getCurrentTime() - startTime));
             int days = timeLeft / 86400;
-            int daysRounded = (int) Math.round(timeLeft / (float) 86400);
+            int daysRounded = Math.round(timeLeft / (float) 86400);
             int hours = timeLeft / 3600;
             int minutes = (timeLeft / 60) % 60;
             int seconds = timeLeft % 60;
@@ -5111,14 +5031,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     }
 
     public class LoginActivitySetupEmail extends SlideView {
-        private OutlineTextContainerView emailOutlineView;
-        private EditTextBoldCursor emailField;
+        private final OutlineTextContainerView emailOutlineView;
+        private final EditTextBoldCursor emailField;
 
-        private TextView titleView;
-        private TextView subtitleView;
+        private final TextView titleView;
+        private final TextView subtitleView;
 //        private TextView signInWithGoogleView;
 //        private LoginOrView loginOrView;
-        private RLottieImageView inboxImageView;
+        private final RLottieImageView inboxImageView;
 
         private Bundle currentParams;
         private boolean nextPressed;
@@ -5345,14 +5265,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     public class LoginActivityEmailCodeView extends SlideView {
 
         private CodeFieldContainer codeFieldContainer;
-        private TextView titleView;
-        private TextView confirmTextView;
+        private final TextView titleView;
+        private final TextView confirmTextView;
 //        private TextView signInWithGoogleView;
         private FrameLayout resendFrameLayout;
-        private TextView resendCodeView;
-        private TextView wrongCodeView;
+        private final TextView resendCodeView;
+        private final TextView wrongCodeView;
 //        private LoginOrView loginOrView;
-        private RLottieImageView inboxImageView;
+        private final RLottieImageView inboxImageView;
 
         private Bundle currentParams;
         private boolean nextPressed;
@@ -5362,12 +5282,12 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private String requestPhone, phoneHash;
         private boolean isFromSetup;
         private int length;
-        private boolean isSetup;
+        private final boolean isSetup;
 
         private ViewSwitcher errorViewSwitcher;
 
         private boolean postedErrorColorTimeout;
-        private Runnable errorColorTimeout = () -> {
+        private final Runnable errorColorTimeout = () -> {
             postedErrorColorTimeout = false;
             for (int i = 0; i < codeFieldContainer.codeField.length; i++) {
                 codeFieldContainer.codeField[i].animateErrorProgress(0);
@@ -5377,7 +5297,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 errorViewSwitcher.showNext();
             }
         };
-        private Runnable resendCodeTimeout = () -> showResendCodeView(true);
+        private final Runnable resendCodeTimeout = () -> showResendCodeView(true);
 
         public LoginActivityEmailCodeView(Context context, boolean setup) {
             super(context);
@@ -5653,7 +5573,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             }
 
             code = codeFieldContainer.getCode();
-            if (code.length() == 0 && true) {
+            if (code.length() == 0) {
                 onPasscodeError(false);
                 return;
             }
@@ -5886,10 +5806,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     public class LoginActivityRecoverView extends SlideView {
 
         private CodeFieldContainer codeFieldContainer;
-        private TextView titleView;
-        private TextView confirmTextView;
-        private TextView troubleButton;
-        private RLottieImageView inboxImageView;
+        private final TextView titleView;
+        private final TextView confirmTextView;
+        private final TextView troubleButton;
+        private final RLottieImageView inboxImageView;
 
         private Bundle currentParams;
         private String passwordString;
@@ -5898,7 +5818,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private String requestPhone, phoneHash, phoneCode;
 
         private boolean postedErrorColorTimeout;
-        private Runnable errorColorTimeout = () -> {
+        private final Runnable errorColorTimeout = () -> {
             postedErrorColorTimeout = false;
             for (int i = 0; i < codeFieldContainer.codeField.length; i++) {
                 codeFieldContainer.codeField[i].animateErrorProgress(0);
@@ -6181,11 +6101,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     public class LoginActivityNewPasswordView extends SlideView {
 
-        private OutlineTextContainerView[] outlineFields;
-        private EditTextBoldCursor[] codeField;
-        private TextView titleTextView;
-        private TextView confirmTextView;
-        private TextView cancelButton;
+        private final OutlineTextContainerView[] outlineFields;
+        private final EditTextBoldCursor[] codeField;
+        private final TextView titleTextView;
+        private final TextView confirmTextView;
+        private final TextView cancelButton;
         private ImageView passwordButton;
 
         private String emailCode;
@@ -6194,7 +6114,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private TLRPC.account_Password currentPassword;
         private Bundle currentParams;
         private boolean nextPressed;
-        private int currentStage;
+        private final int currentStage;
 
         private boolean isPasswordVisible;
 
@@ -6548,31 +6468,32 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     }
 
     public class LoginActivityRegisterView extends SlideView implements ImageUpdater.ImageUpdaterDelegate {
-        private OutlineTextContainerView firstNameOutlineView, lastNameOutlineView;
+        private final OutlineTextContainerView firstNameOutlineView;
+        private final OutlineTextContainerView lastNameOutlineView;
 
-        private EditTextBoldCursor firstNameField;
+        private final EditTextBoldCursor firstNameField;
         private EditTextBoldCursor lastNameField;
-        private BackupImageView avatarImage;
-        private AvatarDrawable avatarDrawable;
-        private View avatarOverlay;
+        private final BackupImageView avatarImage;
+        private final AvatarDrawable avatarDrawable;
+        private final View avatarOverlay;
         private RLottieImageView avatarEditor;
-        private RadialProgressView avatarProgressView;
+        private final RadialProgressView avatarProgressView;
         private AnimatorSet avatarAnimation;
-        private TextView descriptionTextView;
-        private TextView wrongNumber;
-        private TextView privacyView;
-        private TextView titleTextView;
-        private FrameLayout editTextContainer;
+        private final TextView descriptionTextView;
+        private final TextView wrongNumber;
+        private final TextView privacyView;
+        private final TextView titleTextView;
+        private final FrameLayout editTextContainer;
         private String requestPhone;
         private String phoneHash;
         private Bundle currentParams;
         private boolean nextPressed = false;
 
         private RLottieDrawable cameraDrawable;
-        private RLottieDrawable cameraWaitDrawable;
+        private final RLottieDrawable cameraWaitDrawable;
         private boolean isCameraWaitAnimationAllowed = true;
 
-        private ImageUpdater imageUpdater;
+        private final ImageUpdater imageUpdater;
 
         private TLRPC.FileLocation avatar;
         private TLRPC.FileLocation avatarBig;
@@ -6735,7 +6656,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             avatarEditor.addOnAttachStateChangeListener(new OnAttachStateChangeListener() {
                 private long lastRun = System.currentTimeMillis();
                 private boolean isAttached;
-                private Runnable cameraWaitCallback = () -> {
+                private final Runnable cameraWaitCallback = () -> {
                     if (isAttached) {
                         if (isCameraWaitAnimationAllowed && System.currentTimeMillis() - lastRun >= 10000) {
                             avatarEditor.setAnimation(cameraWaitDrawable);
@@ -7386,22 +7307,22 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     }
 
     private final static class PhoneNumberConfirmView extends FrameLayout {
-        private IConfirmDialogCallback callback;
-        private ViewGroup fragmentView;
-        private View fabContainer;
+        private final IConfirmDialogCallback callback;
+        private final ViewGroup fragmentView;
+        private final View fabContainer;
 
-        private View blurredView;
-        private View dimmView;
-        private TransformableLoginButtonView fabTransform;
-        private RadialProgressView floatingProgressView;
-        private FrameLayout popupFabContainer;
+        private final View blurredView;
+        private final View dimmView;
+        private final TransformableLoginButtonView fabTransform;
+        private final RadialProgressView floatingProgressView;
+        private final FrameLayout popupFabContainer;
 
-        private TextView confirmMessageView;
-        private TextView numberView;
-        private TextView editTextView;
-        private TextView confirmTextView;
+        private final TextView confirmMessageView;
+        private final TextView numberView;
+        private final TextView editTextView;
+        private final TextView confirmTextView;
 
-        private FrameLayout popupLayout;
+        private final FrameLayout popupLayout;
 
         private boolean dismissed;
 
