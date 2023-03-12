@@ -9,39 +9,19 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ChatObject;
-import org.telegram.messenger.FileLog;
-import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.R;
-import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.*;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.AlertDialog;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.ActionBar.ThemeDescription;
-import org.telegram.ui.Cells.EmptyCell;
-import org.telegram.ui.Cells.HeaderCell;
-import org.telegram.ui.Cells.NotificationsCheckCell;
-import org.telegram.ui.Cells.ShadowSectionCell;
-import org.telegram.ui.Cells.TextCheckCell;
-import org.telegram.ui.Cells.TextDetailSettingsCell;
-import org.telegram.ui.Cells.TextInfoPrivacyCell;
-import org.telegram.ui.Cells.TextSettingsCell;
+import org.telegram.ui.ActionBar.*;
+import org.telegram.ui.Cells.*;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.UndoView;
+import tw.nekomimi.nekogram.ui.MessageHelper;
 
 import java.util.ArrayList;
-
-import tw.nekomimi.nekogram.ui.MessageHelper;
-import tw.nekomimi.nekogram.settings.ThShadowbanManager;
 
 @SuppressLint("RtlHardcoded")
 public class NekoAccountSettingsActivity extends BaseFragment {
@@ -219,9 +199,10 @@ public class NekoAccountSettingsActivity extends BaseFragment {
         accountRow = rowCount++;
         uploadDeviceInfoRow = rowCount++;
         deleteAccountRow = rowCount++;
-        account2Row = rowCount++;
 
         chatSBManagerRow = rowCount++;
+
+        account2Row = rowCount++;
 
         if (listAdapter != null) {
             listAdapter.notifyDataSetChanged();
@@ -272,7 +253,7 @@ public class NekoAccountSettingsActivity extends BaseFragment {
 
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
 
-        private Context mContext;
+        private final Context mContext;
 
         public ListAdapter(Context context) {
             mContext = context;
