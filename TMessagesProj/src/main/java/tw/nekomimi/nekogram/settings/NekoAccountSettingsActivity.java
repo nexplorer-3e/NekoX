@@ -287,6 +287,9 @@ public class NekoAccountSettingsActivity extends BaseFragment {
                 case 3: {
                     TextCheckCell textCell = (TextCheckCell) holder.itemView;
                     textCell.setEnabled(true, null);
+                    if (position == uploadDeviceInfoRow) {
+                        textCell.setTextAndCheck(LocaleController.getString("HideDeviceInfo", R.string.HideDeviceInfo), !getUserConfig().deviceInfo, true);
+                    }
                     break;
                 }
                 case 4: {
