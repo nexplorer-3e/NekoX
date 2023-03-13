@@ -1,5 +1,8 @@
 name: Release Build
 on:
+  push:
+    tag:
+      - "*"
   workflow_dispatch:
     inputs:
       tag:
@@ -265,6 +268,8 @@ jobs:
   build:
     name: Gradle Build
     runs-on: ubuntu-latest
+    outputs:
+      ver_code: ${{ steps.gradle.outputs.ver_code }}
     needs:
       - native
       - v2ray
@@ -343,6 +348,7 @@ jobs:
           path: ~/.gradle
           key: gradle-${{ hashFiles('**/*.gradle') }}
       - name: Release Build
+        id: gradle
         run: |
           echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
           echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
@@ -394,18 +400,22 @@ jobs:
           name: telegram-bot-api-binary
           path: .
       - name: Release
+        env:
+          ver_code: ${{ needs.build.outputs.ver_code }}
         run: |
+          sudo apt-get update && sudo apt-get install jq -y
           chmod +x telegram-bot-api-binary
           function start() {
             ./telegram-bot-api-binary --api-id=21724 --api-hash=3e0cb5efcd52300aec5994fdfc5bdc16 --local 2>&1 > /dev/null &
           }
           start
           while ! curl http://127.0.0.1:8081/; do start; sleep 1; done
-          curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+          echo ">> Posting apk metadata"
+          apk_meta_msgid=`curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
            -X POST \
            --form-string chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
            -F text="==== ${{ github.event.inputs.tag }} ====" \
-           --silent --show-error --fail >/dev/null
+           --silent --show-error --fail | jq '.result.message_id'`
           mkdir apks
           find artifacts -name "*.apk" -exec cp {} apks \;
           function upload() {
@@ -422,7 +432,18 @@ jobs:
             done
           }
           upload apks/NekoX-*-mini-*-release.apk
+          echo ">> Posting log placeholder"
+          log_msgid=`curl http://localhost:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+            -X POST \
+            -F chat_id="{{ secrets.TELEGRAM_RCHANNEL}}" \
+            -F text="${{ github.event.head_commit.message }}" | jq ".result.message_id"`
+          echo ">> Posting metadata"
+          curl http://localhost:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+            -X POST \
+            -F chat_id="{{ secrets.TELEGRAM_RCHANNEL }}" \
+            -F text="${{ github.event.inputs.tag }},$ver_code,$apk_meta_msgid,$log_msgid"
           pkill telegram-bot
+
   telegram-bot-api:
     name: Telegram Bot API
     runs-on: ubuntu-latest

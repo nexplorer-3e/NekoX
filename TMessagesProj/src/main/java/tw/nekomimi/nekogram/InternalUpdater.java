@@ -1,19 +1,12 @@
 package tw.nekomimi.nekogram;
 
-import org.telegram.messenger.AccountInstance;
-import org.telegram.messenger.BuildConfig;
-import org.telegram.messenger.BuildVars;
-import org.telegram.messenger.FileLog;
-import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.*;
 import org.telegram.tgnet.TLRPC;
-import org.webrtc.EglBase;
+import tw.nekomimi.nekogram.utils.FileUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
-
-import tw.nekomimi.nekogram.utils.FileUtil;
 
 //TODO use UpdateAppAlertDialog / BlockingUpdateView?
 
@@ -54,9 +47,7 @@ public class InternalUpdater {
                 UpdateMetadata found = null;
                 for (UpdateMetadata metaData : metas) {
                     if (metaData.versionCode <= localVersionCode) break;
-                    if (NekoXConfig.autoUpdateReleaseChannel < 3 && metaData.versionName.contains("preview"))
-                        continue;
-                    if (NekoXConfig.autoUpdateReleaseChannel < 2 && metaData.versionName.contains("rc"))
+                    if (NekoXConfig.autoUpdateReleaseChannel < 3 && metaData.versionName.matches("v\\d+\\.\\d+\\.\\d+-"))
                         continue;
                     found = metaData;
                     break;
