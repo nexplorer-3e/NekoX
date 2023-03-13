@@ -2,7 +2,7 @@ name: Release Build
 on:
   push:
     tag:
-      - "*"
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -224,8 +224,6 @@ jobs:
         run: |
           git submodule status TMessagesProj/jni/ffmpeg > ffmpeg_status
           git submodule status TMessagesProj/jni/boringssl > boringssl_status
-          git submodule status ss-rust/src/main/rust/shadowsocks-rust > shadowsocks_status
-          git submodule status 'ssr-libev/*' > shadowsocksr_status
           git submodule status v2ray > v2ray_status
       - name: Native Cache (armeabi-v7a)
         uses: actions/cache@v2
@@ -274,9 +272,9 @@ jobs:
           sha256sum TMessagesProj/luvletter2333.jks
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
 
-          APK=$(find TMessagesProj/build/outputs/apk -name '*.apk')
+          APK=$(find TMessagesProj/ -name '*.apk')
           APK=$(dirname $APK)
-          echo "APK=$APK" >> $GITHUB_ENV
+          echo "APK=$APK" |tee $GITHUB_ENV
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.flavor }}
@@ -289,7 +287,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Donwload Artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
           path: artifacts
