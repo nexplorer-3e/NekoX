@@ -352,12 +352,12 @@ jobs:
           echo ">> Posting log placeholder"
           log_msgid=`curl http://localhost:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
             -X POST \
-            -F chat_id="{{ secrets.TELEGRAM_RCHANNEL}}" \
+            -F chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
             -F text="${{ github.event.head_commit.message }}" | jq ".result.message_id"`
           echo ">> Posting metadata"
           curl http://localhost:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
             -X POST \
-            -F chat_id="{{ secrets.TELEGRAM_RCHANNEL }}" \
+            -F chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
             -F text="${{ github.event.inputs.tag }},$ver_code,$apk_meta_msgid,$log_msgid"
           pkill telegram-bot
 
