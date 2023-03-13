@@ -273,7 +273,7 @@ jobs:
           ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
 
           APK=$(find TMessagesProj/ -name '*.apk')
-          APK=$(dirname $APK)
+          APK=`dirname $APK | head -n1`
           echo "APK=$APK" |tee $GITHUB_ENV
       - uses: actions/upload-artifact@v2
         with:
