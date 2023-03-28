@@ -20,10 +20,10 @@ VERSION_CODE = read_env("VERSION_CODE")
 COMMIT_HASH = read_env("GITHUB_SHA")
 COMMIT_MESSAGE = read_env("COMMIT_MESSAGE")
 
-APK_CHANNEL_ID = "@NekoXApks"
-UPDATE_CHANNEL_ID = "@NekogramX"
-UPDATE_METADATA_CHANNEL_ID = "@nekox_update_metadata"
-CI_CHANNEL_ID = "@NekoX_CI"
+APK_CHANNEL_ID = "@miaomiao_apks"
+UPDATE_CHANNEL_ID = "@miaomiao_apks"
+UPDATE_METADATA_CHANNEL_ID = "@miaomiao_metadata"
+CI_CHANNEL_ID = "@Haruhi_Smith"
 
 
 def addEntity(entities, origin_str, en_type, content, url = None) -> str:

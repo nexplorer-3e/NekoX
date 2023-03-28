@@ -410,7 +410,7 @@ jobs:
         run: |
           mkdir apks
           find artifacts -name "*.apk" -exec cp {} apks \;
-          curl https://raw.githubusercontent.com/NekoX-Dev/NekoX/dev/.github/scripts/upload.py -o upload.py
+          curl https://raw.githubusercontent.com/luvletter2333/NekoX/luvletter/.github/scripts/upload.py -o upload.py
           export BOT_TOKEN="${{ secrets.HELPER_BOT_TOKEN }}"
           export BOT_TARGET="${{ secrets.HELPER_BOT_TARGET }}"
           export VERSION_CODE="$(grep -E "def verCode = ([0-9]+)" TMessagesProj/build.gradle | sed "s/def verCode = //")"
