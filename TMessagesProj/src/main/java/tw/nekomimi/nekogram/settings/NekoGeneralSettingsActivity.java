@@ -19,6 +19,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,30 +36,45 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.ConnectionsManager;
-import org.telegram.ui.ActionBar.*;
-import org.telegram.ui.Cells.*;
+import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.ActionBarLayout;
+import org.telegram.ui.ActionBar.AlertDialog;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.INavigationLayout;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.ActionBar.ThemeDescription;
+import org.telegram.ui.Cells.EmptyCell;
+import org.telegram.ui.Cells.HeaderCell;
+import org.telegram.ui.Cells.NotificationsCheckCell;
+import org.telegram.ui.Cells.ShadowSectionCell;
+import org.telegram.ui.Cells.TextCheckCell;
+import org.telegram.ui.Cells.TextDetailSettingsCell;
+import org.telegram.ui.Cells.TextInfoPrivacyCell;
+import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.SeekBarView;
 import org.telegram.ui.Components.UndoView;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.NekoXConfig;
-import tw.nekomimi.nekogram.config.CellGroup;
-import tw.nekomimi.nekogram.config.ConfigItem;
-import tw.nekomimi.nekogram.config.cell.*;
-import tw.nekomimi.nekogram.transtale.Translator;
-import tw.nekomimi.nekogram.transtale.TranslatorKt;
-import tw.nekomimi.nekogram.ui.BottomBuilder;
-import tw.nekomimi.nekogram.ui.PopupBuilder;
-import tw.nekomimi.nekogram.utils.AlertUtil;
-import tw.nekomimi.nekogram.utils.PGPUtil;
-
-import cn.hutool.core.util.StrUtil;
-import kotlin.Unit;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import cn.hutool.core.util.StrUtil;
+import kotlin.Unit;
+import tw.nekomimi.nekogram.ui.BottomBuilder;
+import tw.nekomimi.nekogram.NekoXConfig;
+import tw.nekomimi.nekogram.ui.PopupBuilder;
+import tw.nekomimi.nekogram.transtale.Translator;
+import tw.nekomimi.nekogram.transtale.TranslatorKt;
+import tw.nekomimi.nekogram.utils.AlertUtil;
+import tw.nekomimi.nekogram.utils.PGPUtil;
+
+import tw.nekomimi.nekogram.config.ConfigItem;
+import tw.nekomimi.nekogram.NekoConfig;
+import tw.nekomimi.nekogram.config.CellGroup;
+import tw.nekomimi.nekogram.config.cell.AbstractConfigCell;
+import tw.nekomimi.nekogram.config.cell.*;
 
 @SuppressLint("RtlHardcoded")
 public class NekoGeneralSettingsActivity extends BaseFragment {
@@ -68,7 +84,9 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     private ValueAnimator statusBarColorAnimator;
     private DrawerProfilePreviewCell profilePreviewCell;
     private final boolean showCensoredFeatures = NekoXConfig.showCensoredFeatures();
+
     private final CellGroup cellGroup = new CellGroup(this);
+
     private final AbstractConfigCell profilePreviewRow = cellGroup.appendCell(new ConfigCellDrawerProfilePreview());
     private final AbstractConfigCell largeAvatarInDrawerRow = cellGroup.appendCell(new ConfigCellSelectBox(null, NekoConfig.largeAvatarInDrawer, LocaleController.getString("valuesLargeAvatarInDrawer"), null));
     private final AbstractConfigCell avatarBackgroundBlurRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.avatarBackgroundBlur));
@@ -121,20 +139,24 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
                     LocaleController.getString("TabTitleTypeMix", R.string.TabTitleTypeMix)
             }, null));
     private final AbstractConfigCell dividerFolder = cellGroup.appendCell(new ConfigCellDivider());
+
     private final AbstractConfigCell header_notification = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("NekoGeneralNotification")));
     private final AbstractConfigCell disableNotificationBubblesRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableNotificationBubbles));
     private final AbstractConfigCell divider_notification = cellGroup.appendCell(new ConfigCellDivider());
+
     private final AbstractConfigCell header3 = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("OpenKayChain")));
     private final AbstractConfigCell pgpAppRow = cellGroup.appendCell(new ConfigCellCustom(CellGroup.ITEM_TYPE_TEXT_SETTINGS_CELL, true));
     private final AbstractConfigCell keyRow = cellGroup.appendCell(new ConfigCellTextDetail(NekoConfig.openPGPKeyId, (view, position) -> {
         requestKey(new Intent(OpenPgpApi.ACTION_GET_SIGN_KEY_ID));
     }, "0"));
     private final AbstractConfigCell divider3 = cellGroup.appendCell(new ConfigCellDivider());
+
     private final AbstractConfigCell header4 = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("DialogsSettings")));
     private final AbstractConfigCell sortMenuRow = cellGroup.appendCell(new ConfigCellSelectBox(LocaleController.getString("SortMenu"), null, null, () -> {
         showSortMenuAlert();
     }));
     private final AbstractConfigCell divider4 = cellGroup.appendCell(new ConfigCellDivider());
+
     private final AbstractConfigCell header5 = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("Appearance")));
     private final AbstractConfigCell typefaceRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.typeface));
     private final AbstractConfigCell transparentStatusBarRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.transparentStatusBar));
@@ -150,23 +172,23 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
             LocaleController.getString("Enable", R.string.Enable),
             LocaleController.getString("Disable", R.string.Disable)
     }, null));
+
     private final AbstractConfigCell forceBlurInChatRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.forceBlurInChat));
     private final AbstractConfigCell header_chatblur = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("ChatBlurAlphaValue")));
     private final AbstractConfigCell chatBlurAlphaValueRow = cellGroup.appendCell(new ConfigCellCustom(ConfigCellCustom.CUSTOM_ITEM_CharBlurAlpha, NekoConfig.forceBlurInChat.Bool()));
+
     private final AbstractConfigCell divider5 = cellGroup.appendCell(new ConfigCellDivider());
+
     private final AbstractConfigCell header6 = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("PrivacyTitle")));
     private final AbstractConfigCell disableSystemAccountRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableSystemAccount));
     private final AbstractConfigCell divider6 = cellGroup.appendCell(new ConfigCellDivider());
+
     private final AbstractConfigCell header7 = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("General")));
     private final AbstractConfigCell customSavePathRow = cellGroup.appendCell(new ConfigCellTextInput(null, NekoConfig.customSavePath,
             LocaleController.getString("customSavePathHint", R.string.customSavePathHint), null,
             (input) -> input.matches("^[A-za-z0-9.]{1,255}$") || input.isEmpty() ? input : (String) NekoConfig.customSavePath.defaultValue));
     private final AbstractConfigCell disableUndoRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableUndo));
-    private final AbstractConfigCell ShowIdAndDcRow = cellGroup.appendCell(new ConfigCellSelectBox(null, NekoConfig.showIdAndDc, new String[]{
-            LocaleController.getString(R.string.showIdAndDcDisabled),
-            LocaleController.getString(R.string.IdAndDcTDLibStyle),
-            LocaleController.getString(R.string.IdAndDcBotApiStyle)
-    }, null));
+    private final AbstractConfigCell showIdAndDcRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.showIdAndDc));
     private final AbstractConfigCell inappCameraRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.inappCamera));
     private final AbstractConfigCell hideProxySponsorChannelRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.hideProxySponsorChannel));
     private final AbstractConfigCell hideSponsoredMessageRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.hideSponsoredMessage));
@@ -179,6 +201,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     private final AbstractConfigCell usePersianCalendarRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.usePersianCalendar, LocaleController.getString("UsePersiancalendarInfo")));
     private final AbstractConfigCell displayPersianCalendarByLatinRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.displayPersianCalendarByLatin));
     private final AbstractConfigCell divider7 = cellGroup.appendCell(new ConfigCellDivider());
+
     private final AbstractConfigCell headerAutoDownload = cellGroup.appendCell(new ConfigCellHeader(LocaleController.getString("AutoDownload")));
     private final AbstractConfigCell win32Row = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableAutoDownloadingWin32Executable));
     private final AbstractConfigCell archiveRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableAutoDownloadingArchive));
@@ -296,7 +319,8 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
                             LocaleController.getString("ProviderLingocloud", R.string.ProviderLingocloud),
                             LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderMicrosoftTranslator),
                             LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderYouDao),
-                            LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderDeepLTranslate)
+                            LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderDeepLTranslate),
+                            LocaleController.getString("ProviderTelegramAPI", R.string.ProviderTelegramAPI)
                     }, (i, __) -> {
                         boolean needReset = NekoConfig.translationProvider.Int() - 1 != i && (NekoConfig.translationProvider.Int() == 1 || i == 0);
                         NekoConfig.translationProvider.setConfigInt(i + 1);
@@ -388,6 +412,17 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
                 boolean enabled = (Boolean) newValue;
                 ((ConfigCellTextCheck) mapDriftingFixForGoogleMapsRow).setEnabled(!enabled);
                 listAdapter.notifyItemChanged(cellGroup.rows.indexOf(mapDriftingFixForGoogleMapsRow));
+            } else if (key.equals(NekoConfig.useTelegramTranslateInChat.getKey())) {
+                var cell = (TextSettingsCell) (listView.findViewHolderForAdapterPosition(cellGroup.rows.indexOf(translationProviderRow)).itemView);
+                if (NekoConfig.useTelegramTranslateInChat.Bool()) {
+                    NekoConfig.translationProvider.setConfigInt(Translator.providerTelegram);
+                    ((ConfigCellCustom) translationProviderRow).setEnabled(false);
+                    cell.setEnabled(false);
+                } else {
+                    ((ConfigCellCustom) translationProviderRow).setEnabled(true);
+                    cell.setEnabled(true);
+                }
+                listAdapter.notifyItemChanged(cellGroup.rows.indexOf(translationProviderRow));
             }
         };
 
@@ -435,7 +470,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
 
                     PendingIntent pi = result.getParcelableExtra(OpenPgpApi.RESULT_INTENT);
                     try {
-                        Activity act = getParentActivity();
+                        Activity act = (Activity) getParentActivity();
                         act.startIntentSenderFromChild(
                                 act, pi.getIntentSender(),
                                 114, null, 0, 0, 0);
@@ -464,8 +499,8 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     }
 
     private static class OpenPgpProviderEntry {
-        private final String packageName;
-        private final String simpleName;
+        private String packageName;
+        private String simpleName;
         private Intent intent;
 
         OpenPgpProviderEntry(String packageName, String simpleName) {
@@ -621,7 +656,7 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
     //impl ListAdapter
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
 
-        private final Context mContext;
+        private Context mContext;
 
         public ListAdapter(Context context) {
             mContext = context;
@@ -662,31 +697,35 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
                         if (position == cellGroup.rows.indexOf(translationProviderRow)) {
                             String value;
                             switch (NekoConfig.translationProvider.Int()) {
-                                case 1:
+                                case Translator.providerGoogle:
                                     value = LocaleController.getString("ProviderGoogleTranslate", R.string.ProviderGoogleTranslate);
                                     break;
-                                case 2:
+                                case Translator.providerGoogleCN:
                                     value = LocaleController.getString("ProviderGoogleTranslateCN", R.string.ProviderGoogleTranslateCN);
                                     break;
-                                case 3:
+                                case Translator.providerYandex:
                                     value = LocaleController.getString("ProviderYandexTranslate", R.string.ProviderYandexTranslate);
                                     break;
-                                case 4:
+                                case Translator.providerLingo:
                                     value = LocaleController.getString("ProviderLingocloud", R.string.ProviderLingocloud);
                                     break;
-                                case 5:
+                                case Translator.providerMicrosoft:
                                     value = LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderMicrosoftTranslator);
                                     break;
-                                case 6:
+                                case Translator.providerYouDao:
                                     value = LocaleController.getString("ProviderYouDao", R.string.ProviderYouDao);
                                     break;
-                                case 7:
+                                case Translator.providerDeepL:
                                     value = LocaleController.getString("ProviderDeepLTranslate", R.string.ProviderDeepLTranslate);
+                                    break;
+                                case Translator.providerTelegram:
+                                    value = LocaleController.getString("ProviderTelegramAPI", R.string.ProviderTelegramAPI);
                                     break;
                                 default:
                                     value = "Unknown";
                             }
                             textCell.setTextAndValue(LocaleController.getString("TranslationProvider", R.string.TranslationProvider), value, true);
+                            if (NekoConfig.useTelegramTranslateInChat.Bool()) textCell.setEnabled(false);
                         } else if (position == cellGroup.rows.indexOf(pgpAppRow)) {
                             textCell.setTextAndValue(LocaleController.getString("OpenPGPApp", R.string.OpenPGPApp), NekoXConfig.getOpenPGPAppName(), true);
                         } else if (position == cellGroup.rows.indexOf(translateToLangRow)) {
@@ -758,6 +797,9 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
             if (NekoConfig.useOSMDroidMap.Bool())
                 ((ConfigCellTextCheck) mapDriftingFixForGoogleMapsRow).setEnabled(false);
         }
+
+        if (NekoConfig.useTelegramTranslateInChat.Bool())
+            ((ConfigCellCustom) translationProviderRow).setEnabled(false);
 
         boolean enabled;
 

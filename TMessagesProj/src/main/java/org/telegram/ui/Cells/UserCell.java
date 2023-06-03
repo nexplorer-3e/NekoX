@@ -24,6 +24,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.Emoji;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.LocaleController;
@@ -39,12 +40,9 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedEmojiDrawable;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
-import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.CheckBox;
 import org.telegram.ui.Components.CheckBoxSquare;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.Premium.PremiumGradient;
-import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.NotificationsSettingsActivity;
 
 public class UserCell extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
@@ -57,7 +55,6 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
     private CheckBoxSquare checkBoxBig;
     private TextView adminTextView;
     private TextView addButton;
-    private ImageView mutualView;
     private Drawable premiumDrawable;
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable emojiStatus;
     private Theme.ResourcesProvider resourcesProvider;
@@ -96,16 +93,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
         this(context, padding, checkbox, admin, needAddButton, null);
     }
 
-    public UserCell(Context context, int padding, int checkbox, boolean admin, boolean needAddButton, boolean needMutualIcon) {
-        this(context, padding, checkbox, admin, needAddButton, needMutualIcon, null);
-    }
-
     public UserCell(Context context, int padding, int checkbox, boolean admin, boolean needAddButton, Theme.ResourcesProvider resourcesProvider) {
-        this(context, padding, checkbox, admin, needAddButton, false, resourcesProvider);
-    }
-
-    public UserCell(Context context, int padding, int checkbox, boolean admin, boolean needAddButton, boolean needMutualIcon, Theme.ResourcesProvider resourcesProvider) {
-
         super(context);
         this.resourcesProvider = resourcesProvider;
 
@@ -169,18 +157,6 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
             adminTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
             adminTextView.setTextColor(Theme.getColor(Theme.key_profile_creatorIcon, resourcesProvider));
             addView(adminTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.TOP, LocaleController.isRTL ? 23 : 0, 10, LocaleController.isRTL ? 0 : 23, 0));
-        }
-
-        if (needMutualIcon) {
-            mutualView = new ImageView(context);
-            mutualView.setImageResource(R.drawable.ic_round_swap_horiz_24);
-            mutualView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_player_actionBarSelector, resourcesProvider)));
-            mutualView.setScaleType(ImageView.ScaleType.CENTER);
-            mutualView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, resourcesProvider), PorterDuff.Mode.MULTIPLY));
-            mutualView.setVisibility(GONE);
-            mutualView.setContentDescription(LocaleController.getString("MutualContact", R.string.MutualContact));
-            mutualView.setOnClickListener(v -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString("MutualContactDescription", R.string.MutualContactDescription)));
-            addView(mutualView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, LocaleController.isRTL ? 8 : 0, 0, LocaleController.isRTL ? 0 : 8, 0));
         }
 
         setFocusable(true);
@@ -575,10 +551,6 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
         nameTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
         if (adminTextView != null) {
             adminTextView.setTextColor(Theme.getColor(Theme.key_profile_creatorIcon, resourcesProvider));
-        }
-
-        if (mutualView != null) {
-            mutualView.setVisibility(currentUser != null && currentUser.mutual_contact ? VISIBLE : GONE);
         }
     }
 

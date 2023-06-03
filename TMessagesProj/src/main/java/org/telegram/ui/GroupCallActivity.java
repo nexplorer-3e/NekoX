@@ -84,6 +84,7 @@ import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
@@ -1715,7 +1716,9 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         }
         groupCallInstance.parentActivity = activity;
         AndroidUtilities.runOnUIThread(() -> {
-            groupCallInstance.show();
+            if (groupCallInstance != null) {
+                groupCallInstance.show();
+            }
         });
     }
 
@@ -2054,7 +2057,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                                 ignoreTextChange = true;
                                 s.delete(40, s.length());
                                 AndroidUtilities.shakeView(editText);
-                                editText.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                                if (!NekoConfig.disableVibration.Bool())
+                                    editText.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                                 ignoreTextChange = false;
                             }
                         }
@@ -2167,7 +2171,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                         iconsArray[i] = icons.get(i);
                     }
 
-                    BottomSheet.Builder builder = new BottomSheet.Builder(context)
+                    BottomSheet.NekoXBuilder builder = new BottomSheet.NekoXBuilder(context)
                             .setTitle(LocaleController.getString("VoipSelectAudioOutput", R.string.VoipSelectAudioOutput), true)
                             .setItems(itemsArray, iconsArray, (dialog, which) -> {
                                         if (VoIPService.getSharedInstance() == null) {
@@ -3956,7 +3960,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                        // cy += translation;
                         float scale = BlobDrawable.SCALE_BIG_MIN + BlobDrawable.SCALE_BIG * amplitude * 0.5f;
                         canvas.scale(scale * showLightingProgress, scale * showLightingProgress, cx, cy);
-                        if (i == 1 && !SharedConfig.getLiteMode().enabled()) {
+                        if (i == 1 && LiteMode.isEnabled(LiteMode.FLAG_CALLS_ANIMATIONS)) {
                             float scaleLight = 0.7f + BlobDrawable.LIGHT_GRADIENT_SIZE * scheduleButtonsScale;
                             canvas.save();
                             canvas.scale(scaleLight, scaleLight, cx, cy);
@@ -4243,7 +4247,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                     if (startingGroupCall) {
                         return;
                     }
-                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                    if (!NekoConfig.disableVibration.Bool())
+                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                     startingGroupCall = true;
                     TLRPC.TL_phone_startScheduledGroupCall req = new TLRPC.TL_phone_startScheduledGroupCall();
                     req.call = call.getInputGroupCall();
@@ -4278,7 +4283,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                         }
                         playingHandAnimation = true;
                         AndroidUtilities.shakeView(muteLabel[0]);
-                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                        if (!NekoConfig.disableVibration.Bool())
+                            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                         int num = Utilities.random.nextInt(100);
                         int endFrame;
                         int startFrame;
@@ -4664,7 +4670,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         });
         fullscreenUsersListView.setOnItemLongClickListener((view, position) -> {
             if (showMenuForCell(view)) {
-                listView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                if (!NekoConfig.disableVibration.Bool())
+                    listView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
             }
             return false;
         });
@@ -4817,7 +4824,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                 containerView.invalidate();
             }
         };
-        avatarsViewPager.setImagesLayerNum(8192);
+        avatarsViewPager.setImagesLayerNum(Integer.MAX_VALUE);
         avatarsViewPager.setInvalidateWithParent(true);
         avatarPagerIndicator.setProfileGalleryView(avatarsViewPager);
         avatarPreviewContainer = new FrameLayout(context) {
@@ -5133,7 +5140,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             });
             final NumberPicker.OnValueChangeListener onValueChangeListener = (picker, oldVal, newVal) -> {
                 try {
-                    container.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                    if (!NekoConfig.disableVibration.Bool())
+                        container.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                 } catch (Exception ignore) {
 
                 }
@@ -6931,7 +6939,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             cells[num].setChecked(!cells[num].isChecked(), true);
         });
 
-        builder.setCustomViewOffset(12);
         builder.setView(linearLayout);
         builder.setDialogButtonColorKey(Theme.key_voipgroup_listeningText);
         builder.setPositiveButton(LocaleController.getString("VoipGroupLeave", R.string.VoipGroupLeave), (dialogInterface, position) -> processOnLeave(call, cells[0].isChecked(), selfId, onLeave));
@@ -7110,7 +7117,9 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             if (currentAvatarUpdater != null && currentAvatarUpdater.isUploadingImage()) {
                 return;
             }
-            currentAvatarUpdater = new ImageUpdater(true);
+            TLRPC.User user = accountInstance.getUserConfig().getCurrentUser();
+
+            currentAvatarUpdater = new ImageUpdater(true, ImageUpdater.FOR_TYPE_USER, true);
             currentAvatarUpdater.setOpenWithFrontfaceCamera(true);
             currentAvatarUpdater.setForceDarkTheme(true);
             currentAvatarUpdater.setSearchAvailable(true, true);
@@ -7118,7 +7127,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             currentAvatarUpdater.parentFragment = parentActivity.getActionBarLayout().getLastFragment();
             currentAvatarUpdater.setDelegate(avatarUpdaterDelegate = new AvatarUpdaterDelegate(peerId));
 
-            TLRPC.User user = accountInstance.getUserConfig().getCurrentUser();
+
             currentAvatarUpdater.openMenu(user.photo != null && user.photo.photo_big != null && !(user.photo instanceof TLRPC.TL_userProfilePhotoEmpty), () -> accountInstance.getMessagesController().deleteUserPhoto(null), dialog -> {
 
             }, 0);
@@ -7449,6 +7458,10 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             TLRPC.User currentUser = accountInstance.getMessagesController().getUser(peerId);
             imageLocation = ImageLocation.getForUserOrChat(currentUser, ImageLocation.TYPE_BIG);
             thumbLocation = ImageLocation.getForUserOrChat(currentUser, ImageLocation.TYPE_SMALL);
+            final TLRPC.UserFull userFull = MessagesController.getInstance(currentAccount).getUserFull(peerId);
+            if (userFull == null) {
+                MessagesController.getInstance(currentAccount).loadUserInfo(currentUser, false, 0);
+            }
         } else {
             TLRPC.Chat currentChat = accountInstance.getMessagesController().getChat(-peerId);
             imageLocation = ImageLocation.getForUserOrChat(currentChat, ImageLocation.TYPE_BIG);
@@ -7463,7 +7476,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             avatarsViewPager.setHasActiveVideo(hasAttachedRenderer);
             avatarsViewPager.setData(peerId, true);
             avatarsViewPager.setCreateThumbFromParent(true);
-            avatarsViewPager.initIfEmpty(imageLocation, thumbLocation, true);
+            avatarsViewPager.initIfEmpty(null, imageLocation, thumbLocation, true);
             if (scrimRenderer != null) {
                 scrimRenderer.setShowingAsScrimView(true, true);
             }
@@ -8364,9 +8377,9 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         }
 
         @Override
-        public void didUploadPhoto(TLRPC.InputFile photo, TLRPC.InputFile video, double videoStartTimestamp, String videoPath, TLRPC.PhotoSize bigSize, TLRPC.PhotoSize smallSize, boolean isVideo) {
+        public void didUploadPhoto(TLRPC.InputFile photo, TLRPC.InputFile video, double videoStartTimestamp, String videoPath, TLRPC.PhotoSize bigSize, TLRPC.PhotoSize smallSize, boolean isVideo, TLRPC.VideoSize emojiMarkup) {
             AndroidUtilities.runOnUIThread(() -> {
-                if (photo != null || video != null) {
+                if (photo != null || video != null || emojiMarkup != null) {
                     if (peerId > 0) {
                         TLRPC.TL_photos_uploadProfilePhoto req = new TLRPC.TL_photos_uploadProfilePhoto();
                         if (photo != null) {
@@ -8378,6 +8391,10 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                             req.flags |= 2;
                             req.video_start_ts = videoStartTimestamp;
                             req.flags |= 4;
+                        }
+                        if (emojiMarkup != null) {
+                            req.video_emoji_markup = emojiMarkup;
+                            req.flags |= 16;
                         }
 
                         accountInstance.getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
@@ -8448,7 +8465,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                                     thumb = thumbLocation;
                                 }
                                 avatarsViewPager.setCreateThumbFromParent(false);
-                                avatarsViewPager.initIfEmpty(imageLocation, thumb, true);
+                                avatarsViewPager.initIfEmpty(null, imageLocation, thumb, true);
                                 avatar = null;
                                 avatarBig = null;
                                 AndroidUtilities.updateVisibleRows(listView);
@@ -8460,7 +8477,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                             accountInstance.getUserConfig().saveConfig(true);
                         }));
                     } else {
-                        accountInstance.getMessagesController().changeChatAvatar(-peerId, null, photo, video, videoStartTimestamp, videoPath, smallSize.location, bigSize.location, () -> {
+                        accountInstance.getMessagesController().changeChatAvatar(-peerId, null, photo, video, emojiMarkup, videoStartTimestamp, videoPath, smallSize.location, bigSize.location, () -> {
                             if (uploadingImageLocation != null) {
                                 avatarsViewPager.removeUploadingImage(uploadingImageLocation);
                                 uploadingImageLocation = null;
@@ -8476,7 +8493,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                                 thumb = thumbLocation;
                             }
                             avatarsViewPager.setCreateThumbFromParent(false);
-                            avatarsViewPager.initIfEmpty(imageLocation, thumb, true);
+                            avatarsViewPager.initIfEmpty(null, imageLocation, thumb, true);
                             avatar = null;
                             avatarBig = null;
                             AndroidUtilities.updateVisibleRows(listView);

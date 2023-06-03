@@ -1,12 +1,19 @@
 package tw.nekomimi.nekogram;
 
-import org.telegram.messenger.*;
+import org.telegram.messenger.AccountInstance;
+import org.telegram.messenger.BuildConfig;
+import org.telegram.messenger.BuildVars;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.TLRPC;
-import tw.nekomimi.nekogram.utils.FileUtil;
+import org.webrtc.EglBase;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
+
+import tw.nekomimi.nekogram.utils.FileUtil;
 
 //TODO use UpdateAppAlertDialog / BlockingUpdateView?
 
@@ -14,10 +21,10 @@ public class InternalUpdater {
 
     static final int UPDATE_METADATA_START_FROM = 0;
     static final int MAX_READ_COUNT = 20;
-    static final long CHANNEL_METADATA_ID = 1454602487;
-    static final String CHANNEL_METADATA_NAME = "sodium::log";
-    static final long CHANNEL_APKS_ID = 1454602487;
-    static final String CHANNEL_APKS_NAME = "sodium::Log";
+    static final long CHANNEL_METADATA_ID = 1727327118;
+    static final String CHANNEL_METADATA_NAME = "miaomiao_metadata";
+    static final long CHANNEL_APKS_ID = 1704150685;
+    static final String CHANNEL_APKS_NAME = "miaomiao_apks";
 
     static void retrieveUpdateMetadata(retrieveUpdateMetadataCallback callback) {
         final int localVersionCode = BuildVars.BUILD_VERSION;
@@ -47,7 +54,9 @@ public class InternalUpdater {
                 UpdateMetadata found = null;
                 for (UpdateMetadata metaData : metas) {
                     if (metaData.versionCode <= localVersionCode) break;
-                    if (NekoXConfig.autoUpdateReleaseChannel < 3 && metaData.versionName.matches("v\\d+\\.\\d+\\.\\d+-"))
+                    if (NekoXConfig.autoUpdateReleaseChannel < 3 && metaData.versionName.contains("preview"))
+                        continue;
+                    if (NekoXConfig.autoUpdateReleaseChannel < 2 && metaData.versionName.contains("rc"))
                         continue;
                     found = metaData;
                     break;
@@ -113,6 +122,7 @@ public class InternalUpdater {
                 callback.apply(null, err);
                 return;
             }
+
             TLRPC.TL_messages_getHistory req = new TLRPC.TL_messages_getHistory();
             req.peer = accountInstance.getMessagesController().getInputPeer(-CHANNEL_APKS_ID);
             req.min_id = metadata.apkChannelMessageID;
@@ -214,4 +224,5 @@ public class InternalUpdater {
             UpdateLogMessageID = Integer.parseInt(split[3]);
         }
     }
+
 }
