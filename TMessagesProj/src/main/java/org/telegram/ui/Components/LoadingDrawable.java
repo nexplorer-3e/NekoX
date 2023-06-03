@@ -255,6 +255,7 @@ public class LoadingDrawable extends Drawable {
                 rectF.set(bounds);
                 rectF.inset(-strokePaint.getStrokeWidth(), -strokePaint.getStrokeWidth());
                 canvas.saveLayerAlpha(rectF, 255, Canvas.ALL_SAVE_FLAG);
+<<<<<<< HEAD
             }
 
         }
@@ -326,8 +327,89 @@ public class LoadingDrawable extends Drawable {
             canvas.restore();
             canvas.restore();
         }
+=======
+            }
+        }
+        if (appearByGradient) {
+            int appearGradientWidthNow = Math.max(AndroidUtilities.dp(200), bounds.width() / 3);
+>>>>>>> upstream/luvletter
 
-        invalidateSelf();
+            if (appearT < 1) {
+                if (appearPaint == null) {
+                    appearPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                    appearGradient = new LinearGradient(0, 0, appearGradientWidth = appearGradientWidthNow, 0, new int[]{0x00ffffff, 0xffffffff}, new float[]{0f, 1f}, Shader.TileMode.CLAMP);
+                    appearMatrix = new Matrix();
+                    appearGradient.setLocalMatrix(appearMatrix);
+                    appearPaint.setShader(appearGradient);
+                    appearPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+                } else if (appearGradientWidth != appearGradientWidthNow) {
+                    appearGradient = new LinearGradient(0, 0, appearGradientWidth = appearGradientWidthNow, 0, new int[]{0x00ffffff, 0xffffffff}, new float[]{0f, 1f}, Shader.TileMode.CLAMP);
+                    appearGradient.setLocalMatrix(appearMatrix);
+                    appearPaint.setShader(appearGradient);
+                }
+
+                rectF.set(bounds);
+                rectF.inset(-strokePaint.getStrokeWidth(), -strokePaint.getStrokeWidth());
+                canvas.saveLayerAlpha(rectF, 255, Canvas.ALL_SAVE_FLAG);
+            }
+        }
+
+        matrix.setTranslate(offset, 0);
+        gradient.setLocalMatrix(matrix);
+
+        strokeMatrix.setTranslate(offset, 0);
+        strokeGradient.setLocalMatrix(strokeMatrix);
+
+        Path drawPath;
+        if (usePath != null) {
+            drawPath = usePath;
+        } else {
+            if (lastBounds == null || !lastBounds.equals(bounds)) {
+                path.rewind();
+                rectF.set(lastBounds = bounds);
+                path.addRoundRect(rectF, radii, Path.Direction.CW);
+            }
+            drawPath = path;
+        }
+        if (backgroundPaint != null) {
+            canvas.drawPath(drawPath, backgroundPaint);
+        }
+        canvas.drawPath(drawPath, paint);
+        if (stroke) {
+            canvas.drawPath(drawPath, strokePaint);
+        }
+
+        if (isDisappearing() && disappearT < 1) {
+            canvas.save();
+            float appearOffset = disappearT * (disappearGradientWidth + bounds.width() + disappearGradientWidth) - disappearGradientWidth;
+            disappearMatrix.setTranslate(bounds.right - appearOffset, 0);
+            disappearGradient.setLocalMatrix(disappearMatrix);
+            int inset = (int) strokePaint.getStrokeWidth();
+            canvas.drawRect(bounds.left - inset, bounds.top - inset, bounds.right + inset, bounds.bottom + inset, disappearPaint);
+            canvas.restore();
+            canvas.restore();
+        }
+        if (appearByGradient && appearT < 1) {
+            canvas.save();
+            float appearOffset = appearT * (appearGradientWidth + bounds.width() + appearGradientWidth) - appearGradientWidth;
+            appearMatrix.setTranslate(bounds.left + appearOffset, 0);
+            appearGradient.setLocalMatrix(appearMatrix);
+            int inset = (int) strokePaint.getStrokeWidth();
+            canvas.drawRect(bounds.left - inset, bounds.top - inset, bounds.right + inset, bounds.bottom + inset, appearPaint);
+            canvas.restore();
+            canvas.restore();
+        }
+
+        if (!isDisappeared()) {
+            invalidateSelf();
+        }
+    }
+
+    public void updateBounds() {
+        if (usePath != null) {
+            usePath.computeBounds(AndroidUtilities.rectTmp, false);
+            setBounds(AndroidUtilities.rectTmp);
+        }
     }
 
     public void updateBounds() {

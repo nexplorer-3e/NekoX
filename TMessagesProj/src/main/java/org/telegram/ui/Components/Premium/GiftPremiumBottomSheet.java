@@ -49,8 +49,13 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GiftPremiumBottomSheet extends BottomSheetWithRecyclerListView {
+<<<<<<< HEAD
     private PremiumGradient.GradientTools gradientTools;
     private PremiumGradient.GradientTools outlineGradient;
+=======
+    private PremiumGradient.PremiumGradientTools gradientTools;
+    private PremiumGradient.PremiumGradientTools outlineGradient;
+>>>>>>> upstream/luvletter
     private PremiumButtonView premiumButtonView;
     private PremiumGiftTierCell dummyCell;
 
@@ -73,7 +78,11 @@ public class GiftPremiumBottomSheet extends BottomSheetWithRecyclerListView {
         super(fragment, false, true);
         this.user = user;
 
+<<<<<<< HEAD
         gradientTools = new PremiumGradient.GradientTools(Theme.key_premiumGradient1, Theme.key_premiumGradient2, null, null);
+=======
+        gradientTools = new PremiumGradient.PremiumGradientTools(Theme.key_premiumGradient1, Theme.key_premiumGradient2, null, null);
+>>>>>>> upstream/luvletter
         gradientTools.exactly = true;
         gradientTools.x1 = 0;
         gradientTools.y1 = 0f;
@@ -82,7 +91,11 @@ public class GiftPremiumBottomSheet extends BottomSheetWithRecyclerListView {
         gradientTools.cx = 0;
         gradientTools.cy = 0;
 
+<<<<<<< HEAD
         outlineGradient = new PremiumGradient.GradientTools(Theme.key_premiumGradient1, Theme.key_premiumGradient2, Theme.key_premiumGradient3, Theme.key_premiumGradient4);
+=======
+        outlineGradient = new PremiumGradient.PremiumGradientTools(Theme.key_premiumGradient1, Theme.key_premiumGradient2, Theme.key_premiumGradient3, Theme.key_premiumGradient4);
+>>>>>>> upstream/luvletter
         outlineGradient.paint.setStyle(Paint.Style.STROKE);
         outlineGradient.paint.setStrokeWidth(AndroidUtilities.dp(1.5f));
 
@@ -185,8 +198,16 @@ public class GiftPremiumBottomSheet extends BottomSheetWithRecyclerListView {
     }
 
     private void updateButtonText(boolean animated) {
+<<<<<<< HEAD
         if (!BuildVars.useInvoiceBilling() && (!BillingController.getInstance().isReady() || giftTiers.get(selectedTierIndex).googlePlayProductDetails == null)) {
             premiumButtonView.setButton(LocaleController.getString(R.string.Loading), v -> {}, true);
+=======
+        if (LocaleController.isRTL) {
+            animated = false;
+        }
+        if (!BuildVars.useInvoiceBilling() && (!BillingController.getInstance().isReady() || giftTiers.get(selectedTierIndex).googlePlayProductDetails == null)) {
+            premiumButtonView.setButton(LocaleController.getString(R.string.Loading), v -> {}, !LocaleController.isRTL);
+>>>>>>> upstream/luvletter
             premiumButtonView.setFlickerDisabled(true);
             return;
         }

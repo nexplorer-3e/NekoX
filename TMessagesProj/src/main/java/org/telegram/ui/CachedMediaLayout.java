@@ -99,9 +99,15 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
         this.parentFragment = parentFragment;
 
         int CacheTabChats;
+<<<<<<< HEAD
         allPages[PAGE_TYPE_CHATS] = new Page(LocaleController.getString("Chats", R.string.Chats), PAGE_TYPE_CHATS, new DialogsAdapter());
         allPages[PAGE_TYPE_MEDIA] = new Page(LocaleController.getString("Media", R.string.Media), PAGE_TYPE_MEDIA, new MediaAdapter());
         allPages[PAGE_TYPE_DOCUMENTS] = new Page(LocaleController.getString("Files", R.string.Files), PAGE_TYPE_DOCUMENTS, new DocumentsAdapter());
+=======
+        allPages[PAGE_TYPE_CHATS] = new Page(LocaleController.getString("FilterChats", R.string.FilterChats), PAGE_TYPE_CHATS, new DialogsAdapter());
+        allPages[PAGE_TYPE_MEDIA] = new Page(LocaleController.getString("MediaTab", R.string.MediaTab), PAGE_TYPE_MEDIA, new MediaAdapter());
+        allPages[PAGE_TYPE_DOCUMENTS] = new Page(LocaleController.getString("SharedFilesTab2", R.string.SharedFilesTab2), PAGE_TYPE_DOCUMENTS, new DocumentsAdapter());
+>>>>>>> upstream/luvletter
         allPages[PAGE_TYPE_MUSIC] = new Page(LocaleController.getString("Music", R.string.Music), PAGE_TYPE_MUSIC, new MusicAdapter());
         //   allPages[PAGE_TYPE_VOICE] = new Page(LocaleController.getString("Voice", R.string.Voice), PAGE_TYPE_VOICE, new VoiceAdapter());
 
@@ -750,7 +756,11 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
             holder.itemView.setTag(file);
             long date = file.file.lastModified();
 
+<<<<<<< HEAD
             cell.setTextAndValueAndTypeAndThumb(file.messageType == MessageObject.TYPE_ROUND_VIDEO ? LocaleController.getString("AttachRound", R.string.AttachRound) : file.file.getName(), LocaleController.formatDateAudio(date, true), Utilities.getExtension(file.file.getName()), null, 0, divider);
+=======
+            cell.setTextAndValueAndTypeAndThumb(file.messageType == MessageObject.TYPE_ROUND_VIDEO ? LocaleController.getString("AttachRound", R.string.AttachRound) : file.file.getName(), LocaleController.formatDateAudio(date / 1000, true), Utilities.getExtension(file.file.getName()), null, 0, divider);
+>>>>>>> upstream/luvletter
             if (!animated) {
                 cell.setPhoto(file.file.getPath());
             }
@@ -867,8 +877,17 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
                     } catch (Exception e) {
                         FileLog.e(e);
                     } finally {
+<<<<<<< HEAD
                         if (mediaMetadataRetriever != null) {
                             mediaMetadataRetriever.release();
+=======
+                        try {
+                            if (mediaMetadataRetriever != null) {
+                                mediaMetadataRetriever.release();
+                            }
+                        } catch (Throwable e) {
+
+>>>>>>> upstream/luvletter
                         }
                     }
                     String finalTitle = title;
@@ -992,7 +1011,11 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
             super(context);
             checkBox = new CheckBox2(context, 21);
             checkBox.setDrawBackgroundAsArc(14);
+<<<<<<< HEAD
             checkBox.setColor(Theme.key_radioBackground, Theme.key_radioBackground, Theme.key_checkboxCheck);
+=======
+            checkBox.setColor(Theme.key_checkbox, Theme.key_radioBackground, Theme.key_checkboxCheck);
+>>>>>>> upstream/luvletter
             addView(checkBox, LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 18, 0, 0, 0));
             View checkBoxClickableView = new View(getContext());
             checkBoxClickableView.setOnClickListener(v -> {

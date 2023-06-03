@@ -119,6 +119,7 @@ public abstract class RightSlidingDialogContainer extends FrameLayout {
                 });
                 openAnimator.setDuration(250);
                 openAnimator.setInterpolator(CubicBezierInterpolator.DEFAULT);
+<<<<<<< HEAD
                 openAnimator.setStartDelay(50);
                 openAnimator.start();
             }
@@ -129,6 +130,13 @@ public abstract class RightSlidingDialogContainer extends FrameLayout {
                     finishPreview();
                 }
             });
+=======
+                openAnimator.setStartDelay(SharedConfig.getDevicePerformanceClass() >= SharedConfig.PERFORMANCE_CLASS_HIGH ? 50 : 150);
+                openAnimator.start();
+            }
+
+            fragment.setPreviewDelegate(() -> finishPreview());
+>>>>>>> upstream/luvletter
         }
     }
 

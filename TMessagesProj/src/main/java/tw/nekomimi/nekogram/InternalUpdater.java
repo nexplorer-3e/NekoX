@@ -14,10 +14,17 @@ public class InternalUpdater {
 
     static final int UPDATE_METADATA_START_FROM = 0;
     static final int MAX_READ_COUNT = 20;
+<<<<<<< HEAD
     static final long CHANNEL_METADATA_ID = 1454602487;
     static final String CHANNEL_METADATA_NAME = "sodium::log";
     static final long CHANNEL_APKS_ID = 1454602487;
     static final String CHANNEL_APKS_NAME = "sodium::Log";
+=======
+    static final long CHANNEL_METADATA_ID = 1727327118;
+    static final String CHANNEL_METADATA_NAME = "miaomiao_metadata";
+    static final long CHANNEL_APKS_ID = 1704150685;
+    static final String CHANNEL_APKS_NAME = "miaomiao_apks";
+>>>>>>> upstream/luvletter
 
     static void retrieveUpdateMetadata(retrieveUpdateMetadataCallback callback) {
         final int localVersionCode = BuildVars.BUILD_VERSION;

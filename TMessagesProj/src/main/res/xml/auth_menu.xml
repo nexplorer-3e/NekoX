@@ -6,7 +6,11 @@
         android:title="@string/AccountSettings"
         android:summary="">
         <intent android:action="org.telegram.messenger.OPEN_ACCOUNT"
+<<<<<<< HEAD
             android:targetPackage="me.karuba.nekox"
+=======
+            android:targetPackage="me.luvletter.nekox"
+>>>>>>> upstream/luvletter
             android:targetClass="org.telegram.ui.LaunchActivity"/>
     </PreferenceScreen>
 </PreferenceScreen>

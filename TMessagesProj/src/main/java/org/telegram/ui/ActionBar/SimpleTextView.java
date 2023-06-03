@@ -36,6 +36,8 @@ import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.UserObject;
@@ -101,6 +103,10 @@ public class SimpleTextView extends View implements Drawable.Callback {
 
     private boolean rightDrawableOutside;
     private boolean ellipsizeByGradient, ellipsizeByGradientLeft;
+<<<<<<< HEAD
+=======
+    private Boolean forceEllipsizeByGradientLeft;
+>>>>>>> upstream/luvletter
     private int ellipsizeByGradientWidthDp = 16;
     private int paddingRight;
 
@@ -198,15 +204,24 @@ public class SimpleTextView extends View implements Drawable.Callback {
     }
 
     public void setEllipsizeByGradient(boolean value) {
+        setEllipsizeByGradient(value, null);
+    }
+
+    public void setEllipsizeByGradient(int value) {
+        setEllipsizeByGradient(value, null);
+    }
+
+    public void setEllipsizeByGradient(boolean value, Boolean forceLeft) {
         if (scrollNonFitText == value) {
             return;
         }
         ellipsizeByGradient = value;
+        this.forceEllipsizeByGradientLeft = forceLeft;
         updateFadePaints();
     }
 
-    public void setEllipsizeByGradient(int value) {
-        setEllipsizeByGradient(true);
+    public void setEllipsizeByGradient(int value, Boolean forceLeft) {
+        setEllipsizeByGradient(true, forceLeft);
         ellipsizeByGradientWidthDp = value;
         updateFadePaints();
     }
@@ -225,7 +240,16 @@ public class SimpleTextView extends View implements Drawable.Callback {
             fadePaintBack.setShader(new LinearGradient(0, 0, AndroidUtilities.dp(6), 0, new int[]{0, 0xffffffff}, new float[]{0f, 1f}, Shader.TileMode.CLAMP));
             fadePaintBack.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
         }
+<<<<<<< HEAD
         boolean ellipsizeLeft = getAlignment() == Layout.Alignment.ALIGN_NORMAL && LocaleController.isRTL || getAlignment() == Layout.Alignment.ALIGN_OPPOSITE && !LocaleController.isRTL;
+=======
+        boolean ellipsizeLeft;
+        if (forceEllipsizeByGradientLeft != null) {
+            ellipsizeLeft = forceEllipsizeByGradientLeft;
+        } else {
+            ellipsizeLeft = getAlignment() == Layout.Alignment.ALIGN_NORMAL && LocaleController.isRTL || getAlignment() == Layout.Alignment.ALIGN_OPPOSITE && !LocaleController.isRTL;
+        }
+>>>>>>> upstream/luvletter
         if ((fadeEllpsizePaint == null || fadeEllpsizePaintWidth != AndroidUtilities.dp(ellipsizeByGradientWidthDp) || ellipsizeByGradientLeft != ellipsizeLeft) && ellipsizeByGradient) {
             if (fadeEllpsizePaint == null) {
                 fadeEllpsizePaint = new Paint();
@@ -528,6 +552,11 @@ public class SimpleTextView extends View implements Drawable.Callback {
         if (!recreateLayoutMaybe()) {
             invalidate();
         }
+    }
+
+    @Override
+    protected boolean verifyDrawable(@NonNull Drawable who) {
+        return who == rightDrawable || who == leftDrawable || super.verifyDrawable(who);
     }
 
     public void replaceTextWithDrawable(Drawable drawable, String replacedText) {
@@ -898,7 +927,7 @@ public class SimpleTextView extends View implements Drawable.Callback {
         }
 
         if (rightDrawable != null && rightDrawableOutside) {
-            int x = Math.min(textOffsetX + textWidth + drawablePadding + (scrollingOffset == 0 ? -nextScrollX : (int) -scrollingOffset) + nextScrollX, getMaxTextWidth() - paddingRight + drawablePadding - AndroidUtilities.dp(4));
+            int x = Math.min(textOffsetX + textWidth + drawablePadding + (scrollingOffset == 0 ? -nextScrollX : (int) -scrollingOffset) + nextScrollX, getMaxTextWidth() - paddingRight + drawablePadding);
             int dw = (int) (rightDrawable.getIntrinsicWidth() * rightDrawableScale);
             int dh = (int) (rightDrawable.getIntrinsicHeight() * rightDrawableScale);
             int y;

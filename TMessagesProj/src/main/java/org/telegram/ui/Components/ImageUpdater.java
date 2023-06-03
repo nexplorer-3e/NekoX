@@ -29,6 +29,7 @@ import androidx.exifinterface.media.ExifInterface;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLoader;
@@ -37,6 +38,7 @@ import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
@@ -72,7 +74,12 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
             ID_UPLOAD_FROM_GALLERY = 1,
             ID_SEARCH_WEB = 2,
             ID_REMOVE_PHOTO = 3,
-            ID_RECORD_VIDEO = 4;
+            ID_RECORD_VIDEO = 4,
+            ID_OPEN_AVATAR = 5;
+
+    public final static int FOR_TYPE_USER = 0;
+    public final static int FOR_TYPE_CHANNEL = 1;
+    public final static int FOR_TYPE_GROUP = 2;
 
     public BaseFragment parentFragment;
     private ImageUpdaterDelegate delegate;
@@ -93,19 +100,29 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
     private boolean clearAfterUpdate;
     private boolean useAttachMenu;
     private boolean openWithFrontfaceCamera;
+    private boolean supportEmojiMarkup;
 
     private boolean searchAvailable = true;
     private boolean uploadAfterSelect = true;
     private TLRPC.User user;
+<<<<<<< HEAD
+=======
+    private boolean isUser;
+>>>>>>> upstream/luvletter
 
     private TLRPC.InputFile uploadedPhoto;
     private TLRPC.InputFile uploadedVideo;
+    private TLRPC.VideoSize vectorMarkup;
     private double videoTimestamp;
 
     private boolean canSelectVideo;
     private boolean forceDarkTheme;
     private boolean showingFromDialog;
     private boolean canceled;
+<<<<<<< HEAD
+=======
+    private boolean forUser;
+>>>>>>> upstream/luvletter
 
     private final static int attach_photo = 0;
 
@@ -114,6 +131,10 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
     public final static int TYPE_SUGGEST_PHOTO_FOR_USER = 2;
 
     private int type;
+<<<<<<< HEAD
+=======
+    public final int setForType;
+>>>>>>> upstream/luvletter
 
     public void processEntry(MediaController.PhotoEntry photoEntry) {
         String path = null;
@@ -134,6 +155,10 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
             avatarObject = new MessageObject(UserConfig.selectedAccount, message, false, false);
             avatarObject.messageOwner.attachPath = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE), SharedConfig.getLastLocalId() + "_avatar.mp4").getAbsolutePath();
             avatarObject.videoEditedInfo = photoEntry.editedInfo;
+<<<<<<< HEAD
+=======
+            avatarObject.emojiMarkup = photoEntry.emojiMarkup;
+>>>>>>> upstream/luvletter
             bitmap = ImageLoader.loadBitmap(photoEntry.thumbPath, null, 800, 800, true);
         } else {
             bitmap = ImageLoader.loadBitmap(path, null, 800, 800, true);
@@ -158,8 +183,18 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
         return canceled;
     }
 
+<<<<<<< HEAD
     public interface ImageUpdaterDelegate {
         void didUploadPhoto(TLRPC.InputFile photo, TLRPC.InputFile video, double videoStartTimestamp, String videoPath, TLRPC.PhotoSize bigSize, TLRPC.PhotoSize smallSize, boolean isVideo);
+=======
+    public void showAvatarConstructor(TLRPC.VideoSize emojiMarkup) {
+        createChatAttachView();
+        chatAttachAlert.getPhotoLayout().showAvatarConstructorFragment(null, emojiMarkup);
+    }
+
+    public interface ImageUpdaterDelegate {
+        void didUploadPhoto(TLRPC.InputFile photo, TLRPC.InputFile video, double videoStartTimestamp, String videoPath, TLRPC.PhotoSize bigSize, TLRPC.PhotoSize smallSize, boolean isVideo, TLRPC.VideoSize emojiMarkup);
+>>>>>>> upstream/luvletter
 
         default String getInitialSearchString() {
             return null;
@@ -204,9 +239,14 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
         openWithFrontfaceCamera = value;
     }
 
-    public ImageUpdater(boolean allowVideo) {
+    public ImageUpdater(boolean allowVideo, int setForType, boolean supportEmojiMarkup) {
         imageReceiver = new ImageReceiver(null);
         canSelectVideo = allowVideo;
+<<<<<<< HEAD
+=======
+        this.supportEmojiMarkup = supportEmojiMarkup;
+        this.setForType = setForType;
+>>>>>>> upstream/luvletter
     }
 
     public void setCanSelectVideo(boolean canSelectVideo) {
@@ -218,6 +258,7 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
     }
 
     public void openMenu(boolean hasAvatar, Runnable onDeleteAvatar, DialogInterface.OnDismissListener onDismiss, int type) {
+<<<<<<< HEAD
         if (parentFragment == null || parentFragment.getParentActivity() == null) {
             return;
         }
@@ -300,61 +341,103 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
     }
 
     public void openMenu(boolean hasAvatar, Runnable onDeleteAvatar, DialogInterface.OnDismissListener onDismiss) {
+=======
+>>>>>>> upstream/luvletter
         if (parentFragment == null || parentFragment.getParentActivity() == null) {
             return;
         }
-
+        canceled = false;
+        this.type = type;
         if (useAttachMenu) {
             openAttachMenu(onDismiss);
             return;
         }
+        BottomSheet.NekoXBuilder builder = new BottomSheet.NekoXBuilder(parentFragment.getParentActivity());
 
-        BottomBuilder builder = new BottomBuilder(parentFragment.getParentActivity());
+        if (type == TYPE_SET_PHOTO_FOR_USER) {
+            builder.setTitle(LocaleController.formatString("SetPhotoFor", R.string.SetPhotoFor, user.first_name), true);
+        } else if (type == TYPE_SUGGEST_PHOTO_FOR_USER) {
+            builder.setTitle(LocaleController.formatString("SuggestPhotoFor", R.string.SuggestPhotoFor, user.first_name), true);
+        } else {
+            builder.setTitle(LocaleController.getString("ChoosePhoto", R.string.ChoosePhoto), true);
+        }
+
+        ArrayList<CharSequence> items = new ArrayList<>();
+        ArrayList<Integer> icons = new ArrayList<>();
+        ArrayList<Integer> ids = new ArrayList<>();
 
         if (hasAvatar && parentFragment instanceof ProfileActivity) {
-
-            builder.addItem(LocaleController.getString("Open", R.string.Open), R.drawable.baseline_visibility_24, __ -> {
-
-                TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(UserConfig.getInstance(currentAccount).getClientUserId());
-                if (user != null && user.photo != null && user.photo.photo_big != null) {
-                    PhotoViewer.getInstance().setParentActivity(parentFragment.getParentActivity());
-                    if (user.photo.dc_id != 0) {
-                        user.photo.photo_big.dc_id = user.photo.dc_id;
-                    }
-                    PhotoViewer.getInstance().openPhoto(user.photo.photo_big, ((ProfileActivity) parentFragment).provider);
-                }
-
-                return Unit.INSTANCE;
-            });
-
+            items.add(LocaleController.getString("Open", R.string.Open));
+            icons.add(R.drawable.baseline_visibility_24);
+            ids.add(ID_OPEN_AVATAR);
         }
 
-        builder.addItem(LocaleController.getString("UploadImage", R.string.UploadImage), R.drawable.baseline_image_24, __ -> {
-            openAttachMenu(onDismiss);
-            return Unit.INSTANCE;
-        });
+        items.add(LocaleController.getString("UploadImage", R.string.UploadImage));
+        icons.add(R.drawable.baseline_image_24);
+        ids.add(ID_UPLOAD_FROM_GALLERY);
+
+        items.add(LocaleController.getString("ChooseTakePhoto", R.string.ChooseTakePhoto));
+        icons.add(R.drawable.baseline_camera_alt_24);
+        ids.add(ID_TAKE_PHOTO);
+
+        if (canSelectVideo) {
+            items.add(LocaleController.getString("ChooseRecordVideo", R.string.ChooseRecordVideo));
+            icons.add(R.drawable.baseline_videocam_24);
+            ids.add(ID_RECORD_VIDEO);
+        }
 
         if (searchAvailable) {
-
-            builder.addItem(LocaleController.getString("ChooseFromSearch", R.string.ChooseFromSearch), R.drawable.baseline_search_24, __ -> {
-                openSearch();
-                return Unit.INSTANCE;
-            });
-
+            items.add(LocaleController.getString("ChooseFromSearch", R.string.ChooseFromSearch));
+            icons.add(R.drawable.baseline_search_24);
+            ids.add(ID_SEARCH_WEB);
         }
-
         if (hasAvatar) {
-
-            builder.addItem(LocaleController.getString("DeletePhoto", R.string.DeletePhoto), R.drawable.baseline_delete_24, true, __ -> {
-                onDeleteAvatar.run();
-                return Unit.INSTANCE;
-            });
-
+            items.add(LocaleController.getString("DeletePhoto", R.string.DeletePhoto));
+            icons.add(R.drawable.baseline_delete_24);
+            ids.add(ID_REMOVE_PHOTO);
         }
 
+        int[] iconsRes = new int[icons.size()];
+        for (int i = 0, N = icons.size(); i < N; i++) {
+            iconsRes[i] = icons.get(i);
+        }
+
+        builder.setItems(items.toArray(new CharSequence[0]), iconsRes, (dialogInterface, i) -> {
+            int id = ids.get(i);
+            switch (id) {
+                case ID_OPEN_AVATAR:
+                    TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(UserConfig.getInstance(currentAccount).getClientUserId());
+                    if (user != null && user.photo != null && user.photo.photo_big != null) {
+                        PhotoViewer.getInstance().setParentActivity(parentFragment.getParentActivity());
+                        if (user.photo.dc_id != 0) {
+                            user.photo.photo_big.dc_id = user.photo.dc_id;
+                        }
+                        PhotoViewer.getInstance().openPhoto(user.photo.photo_big, ((ProfileActivity) parentFragment).provider);
+                    }
+                    break;
+                case ID_TAKE_PHOTO:
+                    openCamera();
+                    break;
+                case ID_UPLOAD_FROM_GALLERY:
+                    openGallery();
+                    break;
+                case ID_SEARCH_WEB:
+                    openSearch();
+                    break;
+                case ID_REMOVE_PHOTO:
+                    onDeleteAvatar.run();
+                    break;
+                case ID_RECORD_VIDEO:
+                    openVideoCamera();
+                    break;
+            }
+        });
         BottomSheet sheet = builder.create();
         sheet.setOnHideListener(onDismiss);
         parentFragment.showDialog(sheet);
+        if (hasAvatar) {
+            sheet.setItemColor(items.size() - 1, Theme.getColor(Theme.key_dialogTextRed), Theme.getColor(Theme.key_dialogRedIcon));
+        }
     }
 
     public void setSearchAvailable(boolean value) {
@@ -481,6 +564,10 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
         if (type != 0) {
             chatAttachAlert.avatarFor(new AvatarFor(user, type));
         }
+<<<<<<< HEAD
+=======
+        chatAttachAlert.forUser = forUser;
+>>>>>>> upstream/luvletter
         parentFragment.showDialog(chatAttachAlert);
     }
 
@@ -521,6 +608,7 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
                                 info.entities = photoEntry.entities;
                                 info.masks = photoEntry.stickers;
                                 info.ttl = photoEntry.ttl;
+                                info.emojiMarkup = photoEntry.emojiMarkup;
                             } else if (object instanceof MediaController.SearchImage) {
                                 MediaController.SearchImage searchImage = (MediaController.SearchImage) object;
                                 if (searchImage.imagePath != null) {
@@ -590,6 +678,12 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
                     openSearch();
                 }
             });
+            chatAttachAlert.setImageUpdater(this);
+        }
+        if (type == TYPE_SET_PHOTO_FOR_USER) {
+            chatAttachAlert.getSelectedTextView().setText(LocaleController.formatString("SetPhotoFor", R.string.SetPhotoFor, user.first_name));
+        } else if (type == TYPE_SUGGEST_PHOTO_FOR_USER) {
+            chatAttachAlert.getSelectedTextView().setText(LocaleController.formatString("SuggestPhotoFor", R.string.SuggestPhotoFor, user.first_name));
         }
         if (type == TYPE_SET_PHOTO_FOR_USER) {
             chatAttachAlert.getSelectedTextView().setText(LocaleController.formatString("SetPhotoFor", R.string.SetPhotoFor, user.first_name));
@@ -613,6 +707,7 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
                 avatarObject = new MessageObject(UserConfig.selectedAccount, message, false, false);
                 avatarObject.messageOwner.attachPath = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE), SharedConfig.getLastLocalId() + "_avatar.mp4").getAbsolutePath();
                 avatarObject.videoEditedInfo = info.videoEditedInfo;
+                avatarObject.emojiMarkup = info.emojiMarkup;
                 bitmap = ImageLoader.loadBitmap(info.thumbPath, null, 800, 800, true);
             } else if (info.path != null) {
                 bitmap = ImageLoader.loadBitmap(info.path, null, 800, 800, true);
@@ -859,6 +954,7 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
         uploadedPhoto = null;
         convertingVideo = null;
         videoPath = null;
+        vectorMarkup = avatarObject == null ? null : avatarObject.emojiMarkup;
         bigPhoto = ImageLoader.scaleAndSaveImage(bitmap, 800, 800, 80, false, 320, 320);
         smallPhoto = ImageLoader.scaleAndSaveImage(bitmap, 150, 150, 80, false, 150, 150);
         if (smallPhoto != null) {
@@ -876,6 +972,18 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
             uploadingImage = FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE) + "/" + bigPhoto.location.volume_id + "_" + bigPhoto.location.local_id + ".jpg";
             if (uploadAfterSelect) {
                 if (avatarObject != null && avatarObject.videoEditedInfo != null) {
+                    if (supportEmojiMarkup && !MessagesController.getInstance(currentAccount).uploadMarkupVideo) {
+                        if (delegate != null) {
+                            delegate.didStartUpload(true);
+                        }
+                        if (delegate != null) {
+                            //skip upload step
+                            delegate.didUploadPhoto(null, null, 0, null, bigPhoto, smallPhoto, isVideo, null);
+                            delegate.didUploadPhoto(null, null, videoTimestamp, videoPath, bigPhoto, smallPhoto, isVideo, vectorMarkup);
+                            cleanup();
+                        }
+                        return;
+                    }
                     convertingVideo = avatarObject;
                     long startTime = avatarObject.videoEditedInfo.startTime < 0 ? 0 : avatarObject.videoEditedInfo.startTime;
                     videoTimestamp = (avatarObject.videoEditedInfo.avatarStartTime - startTime) / 1000000.0;
@@ -903,7 +1011,11 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
                 }
             }
             if (delegate != null) {
+<<<<<<< HEAD
                 delegate.didUploadPhoto(null, null, 0, null, bigPhoto, smallPhoto, isVideo);
+=======
+                delegate.didUploadPhoto(null, null, 0, null, bigPhoto, smallPhoto, isVideo, null);
+>>>>>>> upstream/luvletter
             }
         }
     }
@@ -951,7 +1063,11 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
                 NotificationCenter.getInstance(currentAccount).removeObserver(ImageUpdater.this, NotificationCenter.fileUploadFailed);
                 if (id == NotificationCenter.fileUploaded) {
                     if (delegate != null) {
+<<<<<<< HEAD
                         delegate.didUploadPhoto(uploadedPhoto, uploadedVideo, videoTimestamp, videoPath, bigPhoto, smallPhoto, isVideo);
+=======
+                        delegate.didUploadPhoto(uploadedPhoto, uploadedVideo, videoTimestamp, videoPath, bigPhoto, smallPhoto, isVideo, vectorMarkup);
+>>>>>>> upstream/luvletter
                     }
                 }
                 cleanup();
@@ -1014,10 +1130,16 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
                 if (bitmap != null) {
                     File path = FileLoader.getInstance(currentAccount).getPathToAttach(smallPhoto, true);
                     if (path != null) {
+                        if (BuildVars.LOGS_ENABLED) {
+                            FileLog.e("delete file " + path);
+                        }
                         path.delete();
                     }
                     path = FileLoader.getInstance(currentAccount).getPathToAttach(bigPhoto, true);
                     if (path != null) {
+                        if (BuildVars.LOGS_ENABLED) {
+                            FileLog.e("delete file " + path);
+                        }
                         path.delete();
                     }
                     bigPhoto = ImageLoader.scaleAndSaveImage(bitmap, 800, 800, 80, false, 320, 320);

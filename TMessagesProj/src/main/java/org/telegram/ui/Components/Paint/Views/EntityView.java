@@ -517,7 +517,11 @@ public class EntityView extends FrameLayout {
             selectionView.animate().alpha(0f).scaleX(0.9f).scaleY(0.9f).setDuration(150).setInterpolator(CubicBezierInterpolator.DEFAULT).setListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
+<<<<<<< HEAD
                     ((ViewGroup) selectionView.getParent()).removeView(selectionView);
+=======
+                    AndroidUtilities.removeFromParent(selectionView);
+>>>>>>> upstream/luvletter
                     selectionView = null;
                 }
             }).start();
@@ -620,8 +624,10 @@ public class EntityView extends FrameLayout {
                                 delta *= -1;
                             }
 
-                            float scaleDelta = 1 + (delta * 2) / getMeasuredWidth();
-                            scale(scaleDelta);
+                            if (getMeasuredWidth() != 0) {
+                                float scaleDelta = 1 + (delta * 2) / getMeasuredWidth();
+                                scale(scaleDelta);
+                            }
 
                             int[] pos = delegate.getCenterLocation(EntityView.this);
                             float angle = 0;

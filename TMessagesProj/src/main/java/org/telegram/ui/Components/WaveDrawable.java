@@ -12,6 +12,10 @@ import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 
 import org.telegram.messenger.AndroidUtilities;
+<<<<<<< HEAD
+=======
+import org.telegram.messenger.LiteMode;
+>>>>>>> upstream/luvletter
 import org.telegram.messenger.SharedConfig;
 
 public class WaveDrawable {
@@ -167,7 +171,11 @@ public class WaveDrawable {
     }
 
     private void startFling(float delta) {
+<<<<<<< HEAD
         if (SharedConfig.getLiteMode().enabled()) {
+=======
+        if (!LiteMode.isEnabled(LiteMode.FLAG_CALLS_ANIMATIONS)) {
+>>>>>>> upstream/luvletter
             return;
         }
         if (flingAnimator != null) {
@@ -196,7 +204,11 @@ public class WaveDrawable {
     boolean wasFling;
 
     public void tick(float circleRadius) {
+<<<<<<< HEAD
         if (SharedConfig.getLiteMode().enabled()) {
+=======
+        if (!LiteMode.isEnabled(LiteMode.FLAG_CALLS_ANIMATIONS)) {
+>>>>>>> upstream/luvletter
             return;
         }
         long newTime = SystemClock.elapsedRealtime();
@@ -330,7 +342,11 @@ public class WaveDrawable {
     }
 
     public void draw(float cx, float cy, float scale, Canvas canvas) {
+<<<<<<< HEAD
         if (SharedConfig.getLiteMode().enabled()) {
+=======
+        if (!LiteMode.isEnabled(LiteMode.FLAG_CALLS_ANIMATIONS)) {
+>>>>>>> upstream/luvletter
             return;
         }
         float waveAmplitude = amplitude < 0.3f ? amplitude / 0.3f : 1f;

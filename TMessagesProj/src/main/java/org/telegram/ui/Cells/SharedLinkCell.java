@@ -93,7 +93,12 @@ public class SharedLinkCell extends FrameLayout {
         public void run() {
             if (checkingForLongPress && getParent() != null && currentPressCount == pressCount) {
                 checkingForLongPress = false;
+<<<<<<< HEAD
                 performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+=======
+                if (!NekoConfig.disableVibration.Bool())
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+>>>>>>> upstream/luvletter
                 if (pressedLinkIndex >= 0) {
                     delegate.onLinkPress(links.get(pressedLinkIndex).toString(), true);
                 }

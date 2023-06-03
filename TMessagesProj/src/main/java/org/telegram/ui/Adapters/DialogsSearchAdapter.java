@@ -57,6 +57,7 @@ import org.telegram.ui.Cells.TopicSearchCell;
 import org.telegram.ui.Components.FlickerLoadingView;
 import org.telegram.ui.Components.ForegroundColorSpanThemable;
 import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.FilteredSearchView;
 
 import java.util.ArrayList;
@@ -113,6 +114,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
     private long lastShowMoreUpdate;
     public View showMoreHeader;
     private Runnable cancelShowMoreAnimation;
+    private ArrayList<Long> filterDialogIds;
 
     private int currentAccount = UserConfig.selectedAccount;
 
@@ -127,6 +129,13 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
     private int currentItemCount;
     private int folderId;
     private ArrayList<ContactEntry> allContacts;
+<<<<<<< HEAD
+=======
+
+    public void setFilterDialogIds(ArrayList<Long> filterDialogIds) {
+        this.filterDialogIds = filterDialogIds;
+    }
+>>>>>>> upstream/luvletter
 
     public boolean isSearching() {
         return waitingResponseCount > 0;
@@ -316,6 +325,13 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
             return;
         }
 
+<<<<<<< HEAD
+=======
+        if (dialogsType == DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
+            return;
+        }
+
+>>>>>>> upstream/luvletter
         final long dialogId = delegate.getSearchForumDialogId();
 
         final TLRPC.TL_messages_search req = new TLRPC.TL_messages_search();
@@ -434,6 +450,18 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
         } else {
             filterRecent(query);
             searchAdapterHelper.mergeResults(searchResult, filtered2RecentSearchObjects);
+<<<<<<< HEAD
+=======
+        }
+
+        if (dialogsType == DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
+            waitingResponseCount--;
+            if (delegate != null) {
+                delegate.searchStateChanged(waitingResponseCount > 0, true);
+                delegate.runResultsEnterAnimation();
+            }
+            return;
+>>>>>>> upstream/luvletter
         }
 
         final TLRPC.TL_messages_searchGlobal req = new TLRPC.TL_messages_searchGlobal();
@@ -551,7 +579,18 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
     }
 
     private boolean resentSearchAvailable() {
+<<<<<<< HEAD
         return dialogsType != 2 && dialogsType != 4 && dialogsType != 5 && dialogsType != 6 && dialogsType != 11;
+=======
+        return (
+            dialogsType != DialogsActivity.DIALOGS_TYPE_ADD_USERS_TO &&
+            dialogsType != DialogsActivity.DIALOGS_TYPE_USERS_ONLY &&
+            dialogsType != DialogsActivity.DIALOGS_TYPE_CHANNELS_ONLY &&
+            dialogsType != DialogsActivity.DIALOGS_TYPE_GROUPS_ONLY &&
+            dialogsType != DialogsActivity.DIALOGS_TYPE_IMPORT_HISTORY_GROUPS &&
+            dialogsType != DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER
+        );
+>>>>>>> upstream/luvletter
     }
 
     public boolean isSearchWas() {
@@ -563,6 +602,9 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
     }
 
     public void loadRecentSearch() {
+        if (dialogsType == DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
+            return;
+        }
         loadRecentSearch(currentAccount, dialogsType, (arrayList, hashMap) -> {
             DialogsSearchAdapter.this.setRecentSearch(arrayList, hashMap);
         });
@@ -585,7 +627,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
 
                     boolean add = false;
                     if (DialogObject.isEncryptedDialog(did)) {
-                        if (dialogsType == 0 || dialogsType == 3) {
+                        if (dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT || dialogsType == DialogsActivity.DIALOGS_TYPE_FORWARD) {
                             int encryptedChatId = DialogObject.getEncryptedChatId(did);
                             if (!encryptedToLoad.contains(encryptedChatId)) {
                                 encryptedToLoad.add(encryptedChatId);
@@ -796,7 +838,12 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
             ArrayList<CharSequence> resultArrayNames = new ArrayList<>();
             ArrayList<TLRPC.User> encUsers = new ArrayList<>();
             ArrayList<ContactsController.Contact> contacts = new ArrayList<>();
+<<<<<<< HEAD
             MessagesStorage.getInstance(currentAccount).localSearch(dialogsType, q, resultArray, resultArrayNames, encUsers, -1);
+=======
+
+            MessagesStorage.getInstance(currentAccount).localSearch(dialogsType, q, resultArray, resultArrayNames, encUsers, filterDialogIds, -1);
+>>>>>>> upstream/luvletter
 //            if (allContacts == null) {
 //                allContacts = new ArrayList<>();
 //                for (ContactsController.Contact contact : ContactsController.getInstance(currentAccount).phoneBookContacts) {
@@ -880,7 +927,11 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                     }
                 }
 
+<<<<<<< HEAD
                 if (resentSearchAvailable()) {
+=======
+                if (resentSearchAvailable() && !(obj instanceof TLRPC.EncryptedChat)) {
+>>>>>>> upstream/luvletter
                     boolean foundInRecent = false;
                     if (delegate != null && delegate.getSearchForumDialogId() == dialogId) {
                         foundInRecent = true;
@@ -951,7 +1002,25 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
             searchResultNames.clear();
             searchResultHashtags.clear();
             searchAdapterHelper.mergeResults(null, null);
+<<<<<<< HEAD
             searchAdapterHelper.queryServerSearch(null, true, true, dialogsType != 11, dialogsType != 11, dialogsType == 2 || dialogsType == 11, 0, dialogsType == 0, 0, 0, delegate != null ? delegate.getSearchForumDialogId() : 0);
+=======
+            if (dialogsType != DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
+                searchAdapterHelper.queryServerSearch(
+                    null,
+                    true,
+                    true,
+                    dialogsType != DialogsActivity.DIALOGS_TYPE_IMPORT_HISTORY_GROUPS,
+                    dialogsType != DialogsActivity.DIALOGS_TYPE_IMPORT_HISTORY_GROUPS,
+                    dialogsType == DialogsActivity.DIALOGS_TYPE_ADD_USERS_TO || dialogsType == DialogsActivity.DIALOGS_TYPE_IMPORT_HISTORY_GROUPS,
+                    0,
+                    dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT,
+                    0,
+                    0,
+                    delegate != null ? delegate.getSearchForumDialogId() : 0
+                );
+            }
+>>>>>>> upstream/luvletter
             searchWas = false;
             lastSearchId = 0;
             waitingResponseCount = 0;
@@ -960,9 +1029,17 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
             if (delegate != null) {
                 delegate.searchStateChanged(false, true);
             }
+<<<<<<< HEAD
             searchTopics(null);
             searchMessagesInternal(null, 0);
             searchForumMessagesInternal(null, 0);
+=======
+            if (dialogsType != DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
+                searchTopics(null);
+                searchMessagesInternal(null, 0);
+                searchForumMessagesInternal(null, 0);
+            }
+>>>>>>> upstream/luvletter
             notifyDataSetChanged();
             localTipDates.clear();
             localTipArchive = false;
@@ -1004,17 +1081,38 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
             Utilities.searchQueue.postRunnable(searchRunnable = () -> {
                 searchRunnable = null;
                 searchDialogsInternal(query, searchId);
+                if (dialogsType == DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
+                    waitingResponseCount -= 2;
+                    return;
+                }
                 AndroidUtilities.runOnUIThread(searchRunnable2 = () -> {
                     searchRunnable2 = null;
                     if (searchId != lastSearchId) {
                         return;
                     }
+<<<<<<< HEAD
                     if (needMessagesSearch != 2) {
                         searchAdapterHelper.queryServerSearch(query, true, dialogsType != 4, true, dialogsType != 4 && dialogsType != 11, dialogsType == 2 || dialogsType == 1, 0, dialogsType == 0, 0, searchId, delegate != null ? delegate.getSearchForumDialogId() : 0);
+=======
+                    if (needMessagesSearch != 2 && dialogsType != DialogsActivity.DIALOGS_TYPE_GROUPS_ONLY && dialogsType != DialogsActivity.DIALOGS_TYPE_CHANNELS_ONLY) {
+                        searchAdapterHelper.queryServerSearch(
+                            query,
+                            true,
+                            dialogsType != DialogsActivity.DIALOGS_TYPE_USERS_ONLY,
+                            true,
+                            dialogsType != DialogsActivity.DIALOGS_TYPE_USERS_ONLY && dialogsType != DialogsActivity.DIALOGS_TYPE_IMPORT_HISTORY_GROUPS,
+                            dialogsType == DialogsActivity.DIALOGS_TYPE_ADD_USERS_TO || dialogsType == DialogsActivity.DIALOGS_TYPE_BOT_SHARE,
+                            0,
+                            dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT,
+                            0,
+                            searchId,
+                            delegate != null ? delegate.getSearchForumDialogId() : 0
+                        );
+>>>>>>> upstream/luvletter
                     } else {
                         waitingResponseCount -= 2;
                     }
-                    if (needMessagesSearch == 0) {
+                    if (needMessagesSearch == 0 || dialogsType == DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
                         waitingResponseCount--;
                     } else {
                         searchTopics(text);

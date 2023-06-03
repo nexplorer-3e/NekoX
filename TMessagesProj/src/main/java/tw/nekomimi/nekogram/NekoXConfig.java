@@ -5,11 +5,25 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Typeface;
+<<<<<<< HEAD
 import cn.hutool.core.util.StrUtil;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.telegram.messenger.*;
 import org.telegram.tgnet.TLRPC;
+=======
+import android.os.Build;
+
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildConfig;
+import org.telegram.messenger.BuildVars;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
+>>>>>>> upstream/luvletter
 import org.telegram.ui.ActionBar.Theme;
 import tw.nekomimi.nekogram.database.NitritesKt;
 
@@ -64,8 +78,11 @@ public class NekoXConfig {
     public static int customApi = preferences.getInt("custom_api", 0);
     public static int customAppId = preferences.getInt("custom_app_id", 0);
     public static String customAppHash = preferences.getString("custom_app_hash", "");
+<<<<<<< HEAD
     public static String shadowBannedJSON = preferences.getString("shadow_banned_HM", "{}");
     public static HashMap<Long, String> shadowBannedHM = getShadowBannedHM();
+=======
+>>>>>>> upstream/luvletter
 
     public static void toggleDeveloperMode() {
         preferences.edit().putBoolean("developer_mode", developerMode = !developerMode).apply();

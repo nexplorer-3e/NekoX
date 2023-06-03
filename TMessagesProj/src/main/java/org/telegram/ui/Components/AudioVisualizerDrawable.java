@@ -5,6 +5,10 @@ import android.graphics.Paint;
 import android.view.View;
 
 import org.telegram.messenger.AndroidUtilities;
+<<<<<<< HEAD
+=======
+import org.telegram.messenger.LiteMode;
+>>>>>>> upstream/luvletter
 import org.telegram.messenger.SharedConfig;
 import org.telegram.ui.ActionBar.Theme;
 
@@ -52,7 +56,11 @@ public class AudioVisualizerDrawable {
 
 
     public void setWaveform(boolean playing, boolean animate, float[] waveform) {
+<<<<<<< HEAD
         if (SharedConfig.getLiteMode().enabled()) {
+=======
+        if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
+>>>>>>> upstream/luvletter
             return;
         }
         if (!playing && !animate) {
@@ -114,7 +122,11 @@ public class AudioVisualizerDrawable {
     float rotation;
 
     public void draw(Canvas canvas, float cx, float cy, boolean outOwner, float alpha, Theme.ResourcesProvider resourcesProvider) {
+<<<<<<< HEAD
         if (SharedConfig.getLiteMode().enabled()) {
+=======
+        if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
+>>>>>>> upstream/luvletter
             return;
         }
         if (outOwner) {
@@ -128,7 +140,11 @@ public class AudioVisualizerDrawable {
     }
 
     public void draw(Canvas canvas, float cx, float cy, boolean outOwner, Theme.ResourcesProvider resourcesProvider) {
+<<<<<<< HEAD
         if (SharedConfig.getLiteMode().enabled()) {
+=======
+        if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
+>>>>>>> upstream/luvletter
             return;
         }
         if (outOwner) {
@@ -142,7 +158,11 @@ public class AudioVisualizerDrawable {
     }
 
     public void draw(Canvas canvas, float cx, float cy) {
+<<<<<<< HEAD
         if (SharedConfig.getLiteMode().enabled()) {
+=======
+        if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
+>>>>>>> upstream/luvletter
             return;
         }
         for (int i = 0; i < 8; i++) {

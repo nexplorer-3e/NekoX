@@ -191,7 +191,10 @@ public class NekoConfig {
 
     // priv branch changes
     public static ConfigItem localPremium = addConfig("localPremium", configTypeBool, false);
+<<<<<<< HEAD
     public static ConfigItem enableChatSBFull = addConfig("EnableChatSBFull", configTypeBool, false);
+=======
+>>>>>>> upstream/luvletter
 
     static {
         loadConfig(false);

@@ -307,6 +307,8 @@ jobs:
       - build
       - telegram-bot-api
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
@@ -316,49 +318,28 @@ jobs:
         with:
           name: telegram-bot-api-binary
           path: .
-      - name: Release
+      - name: Prepare Upload
         env:
           ver_code: ${{ needs.build.outputs.ver_code }}
         run: |
           sudo apt-get update && sudo apt-get install jq -y
           chmod +x telegram-bot-api-binary
           function start() {
-            ./telegram-bot-api-binary --api-id=21724 --api-hash=3e0cb5efcd52300aec5994fdfc5bdc16 --local 2>&1 > /dev/null &
+            ./telegram-bot-api-binary -p 38118 --api-id=21724 --api-hash=3e0cb5efcd52300aec5994fdfc5bdc16 --local 2>&1 > /dev/null &
+            sleep 5
           }
           start
-          while ! curl http://127.0.0.1:8081/; do start; sleep 1; done
-          echo ">> Posting apk metadata"
-          apk_meta_msgid=`curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
-           -X POST \
-           --form-string chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
-           -F text="==== ${{ github.event.inputs.tag }} ====" \
-           --silent --show-error --fail | jq '.result.message_id'`
+          curl http://127.0.0.1:38118/ || start
+      - name: Upload
+        run: |
           mkdir apks
           find artifacts -name "*.apk" -exec cp {} apks \;
-          function upload() {
-            for apk in $@; do
-              echo ">> Uploading $apk"
-              curl http://127.0.0.1:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument \
-                -X POST \
-                --form-string chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
-                -F document="@$apk" \
-                --retry 5 \
-                --retry-delay 5 \
-                --silent --show-error --fail >/dev/null
-              sleep 1
-            done
-          }
-          upload apks/NekoX-*-mini-*-release.apk
-          echo ">> Posting log placeholder"
-          log_msgid=`curl http://localhost:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
-            -X POST \
-            -F chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
-            -F text="${{ github.event.head_commit.message }}" | jq ".result.message_id"`
-          echo ">> Posting metadata"
-          curl http://localhost:8081/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
-            -X POST \
-            -F chat_id="${{ secrets.TELEGRAM_RCHANNEL }}" \
-            -F text="${{ github.event.inputs.tag }},$ver_code,$apk_meta_msgid,$log_msgid"
+          curl https://raw.githubusercontent.com/luvletter2333/NekoX/luvletter/.github/scripts/upload.py -o upload.py
+          export BOT_TOKEN="${{ secrets.TELEGRAM_TOKEN }}"
+          export BOT_TARGET="${{ secrets.TELEGRAM_RCHANNEL }}"
+          export VERSION_CODE="$(grep -E "def verCode = ([0-9]+)" TMessagesProj/build.gradle | sed "s/def verCode = //")"
+          export VERSION_NAME="$(grep -E "def verName = " TMessagesProj/build.gradle | sed "s/def verName = //" | sed "s/\"//g")"
+          python3 upload.py release
           pkill telegram-bot
 
   telegram-bot-api:

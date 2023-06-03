@@ -215,7 +215,7 @@ class BottomBuilder(val ctx: Context, val needFocus: Boolean = true, val bgColor
     }
 
     @JvmOverloads
-    fun addItem(text: String, icon: Int = 0, red: Boolean = false, listener: ((cell: TextCell) -> Unit)?): TextCell {
+    fun addItem(text: CharSequence, icon: Int = 0, red: Boolean = false, listener: ((cell: TextCell) -> Unit)?): TextCell {
         return TextCell(ctx).apply {
             background = Theme.getSelectorDrawable(false)
             setTextAndIcon(text, icon, false)
@@ -230,7 +230,7 @@ class BottomBuilder(val ctx: Context, val needFocus: Boolean = true, val bgColor
         }
     }
 
-    fun addItems(text: Array<String?>, icon: IntArray?, listener: (index: Int, text: String, cell: TextCell) -> Unit): List<TextCell> {
+    fun addItems(text: Array<CharSequence?>, icon: IntArray?, listener: (index: Int, text: CharSequence, cell: TextCell) -> Unit): List<TextCell> {
         val list = mutableListOf<TextCell>()
         text.forEachIndexed { index, textI ->
             list.add(addItem(textI ?: return@forEachIndexed, icon?.get(index) ?: 0) { cell ->
@@ -253,6 +253,10 @@ class BottomBuilder(val ctx: Context, val needFocus: Boolean = true, val bgColor
 
             this@BottomBuilder.rootView.addView(this, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, -2, rtl, AndroidUtilities.dp(6F), 0, 0, 0))
         }
+    }
+
+    fun setTitleMultipleLines(multilines: Boolean) {
+        builder.setTitleMultipleLines(multilines)
     }
 
     fun create() = builder.create()

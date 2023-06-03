@@ -80,6 +80,33 @@ public class Utilities {
     public static native void drawDitheredGradient(Bitmap bitmap, int[] colors, int startX, int startY, int endX, int endY);
     public static native int saveProgressiveJpeg(Bitmap bitmap, int width, int height, int stride, int quality, String path);
     public static native void generateGradient(Bitmap bitmap, boolean unpin, int phase, float progress, int width, int height, int stride, int[] colors);
+    public static native void setupNativeCrashesListener(String path);
+
+    public static Bitmap stackBlurBitmapMax(Bitmap bitmap) {
+        int w = AndroidUtilities.dp(20);
+        int h = (int) (AndroidUtilities.dp(20) * (float) bitmap.getHeight() / bitmap.getWidth());
+        Bitmap scaledBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(scaledBitmap);
+        canvas.save();
+        canvas.scale((float) scaledBitmap.getWidth() / bitmap.getWidth(), (float) scaledBitmap.getHeight() / bitmap.getHeight());
+        canvas.drawBitmap(bitmap, 0, 0, null);
+        canvas.restore();
+        Utilities.stackBlurBitmap(scaledBitmap, Math.max(10, Math.max(w, h) / 150));
+        return scaledBitmap;
+    }
+
+    public static Bitmap stackBlurBitmapWithScaleFactor(Bitmap bitmap, float scaleFactor) {
+        int w = (int) Math.max(AndroidUtilities.dp(20), bitmap.getWidth() / scaleFactor);
+        int h = (int) Math.max(AndroidUtilities.dp(20) * (float) bitmap.getHeight() / bitmap.getWidth(), bitmap.getHeight() / scaleFactor);
+        Bitmap scaledBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(scaledBitmap);
+        canvas.save();
+        canvas.scale((float) scaledBitmap.getWidth() / bitmap.getWidth(), (float) scaledBitmap.getHeight() / bitmap.getHeight());
+        canvas.drawBitmap(bitmap, 0, 0, null);
+        canvas.restore();
+        Utilities.stackBlurBitmap(scaledBitmap, Math.max(10, Math.max(w, h) / 150));
+        return scaledBitmap;
+    }
 
     public static Bitmap stackBlurBitmapMax(Bitmap bitmap) {
         int w = AndroidUtilities.dp(20);
@@ -511,15 +538,59 @@ public class Utilities {
         public void run(T arg);
     }
 
+<<<<<<< HEAD
+=======
+    public static interface CallbackReturn<Arg, ReturnType> {
+        public ReturnType run(Arg arg);
+    }
+
+>>>>>>> upstream/luvletter
     public static interface Callback2<T, T2> {
         public void run(T arg, T2 arg2);
     }
 
+<<<<<<< HEAD
+=======
+    public static interface Callback3<T, T2, T3> {
+        public void run(T arg, T2 arg2, T3 arg3);
+    }
+
+>>>>>>> upstream/luvletter
     public static <Key, Value> Value getOrDefault(HashMap<Key, Value> map, Key key, Value defaultValue) {
         Value v = map.get(key);
         if (v == null) {
             return defaultValue;
         }
         return v;
+    }
+
+    public static void doCallbacks(Utilities.Callback<Runnable> ...actions) {
+        doCallbacks(0, actions);
+    }
+    private static void doCallbacks(int i, Utilities.Callback<Runnable> ...actions) {
+        if (actions != null && actions.length > i) {
+            actions[i].run(() -> doCallbacks(i + 1, actions));
+        }
+    }
+
+    public static void raceCallbacks(Runnable onFinish, Utilities.Callback<Runnable> ...actions) {
+        if (actions == null || actions.length == 0) {
+            if (onFinish != null) {
+                onFinish.run();
+            }
+            return;
+        }
+        final int[] finished = new int[] { 0 };
+        Runnable checkFinish = () -> {
+            finished[0]++;
+            if (finished[0] == actions.length) {
+                if (onFinish != null) {
+                    onFinish.run();
+                }
+            }
+        };
+        for (int i = 0; i < actions.length; ++i) {
+            actions[i].run(checkFinish);
+        }
     }
 }

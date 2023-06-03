@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.ImageReceiver;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
@@ -730,7 +731,11 @@ public class AnimatedEmojiSpan extends ReplacementSpan {
         }
 
         private void checkBackgroundRendering() {
+<<<<<<< HEAD
             if (allowBackgroundRendering && holders.size() >= 10 && backgroundThreadDrawable == null && !SharedConfig.getLiteMode().enabled()) {
+=======
+            if (allowBackgroundRendering && holders.size() >= 10 && backgroundThreadDrawable == null && LiteMode.isEnabled(LiteMode.FLAG_ANIMATED_EMOJI_KEYBOARD)) {
+>>>>>>> upstream/luvletter
                 backgroundThreadDrawable = new DrawingInBackgroundThreadDrawable() {
 
                     private final ArrayList<AnimatedEmojiHolder> backgroundHolders = new ArrayList<>();
@@ -798,8 +803,7 @@ public class AnimatedEmojiSpan extends ReplacementSpan {
                 };
                 backgroundThreadDrawable.padding = AndroidUtilities.dp(3);
                 backgroundThreadDrawable.onAttachToWindow();
-            }
-            else if (holders.size() < 10 && backgroundThreadDrawable != null) {
+            } else if (holders.size() < 10 && backgroundThreadDrawable != null) {
                 backgroundThreadDrawable.onDetachFromWindow();
                 backgroundThreadDrawable = null;
             }

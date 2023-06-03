@@ -144,7 +144,7 @@ object AlertUtil {
     @JvmStatic
     fun showProgress(ctx: Context, text: String = LocaleController.getString("Loading", R.string.Loading)): AlertDialog {
 
-        return AlertDialog.Builder(ctx, 1).apply {
+        return AlertDialog.Builder(ctx, AlertDialog.ALERT_TYPE_MESSAGE).apply {
 
             setMessage(text)
 
@@ -245,7 +245,8 @@ object AlertUtil {
                     LocaleController.getString("ProviderLingocloud", R.string.ProviderLingocloud),
                     LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderMicrosoftTranslator),
                     LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderYouDao),
-                    LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderDeepLTranslate)
+                    LocaleController.getString("ProviderMicrosoftTranslator", R.string.ProviderDeepLTranslate),
+                    LocaleController.getString("ProviderTelegramAPI", R.string.ProviderTelegramAPI)
             ))
 
             popup.setItems(items.toTypedArray()) { item, _ ->

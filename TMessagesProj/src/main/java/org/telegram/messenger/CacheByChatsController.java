@@ -41,7 +41,11 @@ public class CacheByChatsController {
         } else if (type == KEEP_MEDIA_TYPE_GROUP) {
             return KEEP_MEDIA_ONE_MONTH;
         } else if (type == KEEP_MEDIA_TYPE_CHANNEL) {
+<<<<<<< HEAD
             return KEEP_MEDIA_ONE_MONTH;
+=======
+            return KEEP_MEDIA_ONE_WEEK;
+>>>>>>> upstream/luvletter
         }
         return SharedConfig.keepMedia;
     }
@@ -61,16 +65,27 @@ public class CacheByChatsController {
 
     public static long getDaysInSeconds(int keepMedia) {
         long seconds;
+<<<<<<< HEAD
         if (keepMedia == CacheByChatsController.KEEP_MEDIA_FOREVER) {
             seconds = Long.MAX_VALUE;
         } else if (keepMedia == CacheByChatsController.KEEP_MEDIA_ONE_WEEK) {
+=======
+        if (keepMedia == CacheByChatsController.KEEP_MEDIA_ONE_WEEK) {
+>>>>>>> upstream/luvletter
             seconds =  60L * 60L * 24L * 7L;
         } else if (keepMedia == CacheByChatsController.KEEP_MEDIA_ONE_MONTH) {
             seconds = 60L * 60L * 24L * 30L;
         } else if (keepMedia == CacheByChatsController.KEEP_MEDIA_ONE_DAY) {
             seconds = 60L * 60L * 24L;
+<<<<<<< HEAD
         } else { //one min
             seconds = 60L;
+=======
+        } else if (keepMedia == CacheByChatsController.KEEP_MEDIA_ONE_MINUTE && BuildVars.DEBUG_PRIVATE_VERSION) { //one min
+            seconds = 60L;
+        } else {
+            seconds = Long.MAX_VALUE;
+>>>>>>> upstream/luvletter
         }
         return seconds;
     }
@@ -125,12 +140,20 @@ public class CacheByChatsController {
         SharedConfig.getPreferences().edit().putInt("keep_media_type_" + type, keepMedia).apply();
     }
 
+<<<<<<< HEAD
     public void lookupFiles(ArrayList<KeepMediaFile> keepMediaFiles) {
+=======
+    public void lookupFiles(ArrayList<? extends KeepMediaFile> keepMediaFiles) {
+>>>>>>> upstream/luvletter
         LongSparseArray<ArrayList<KeepMediaFile>> filesByDialogId = FileLoader.getInstance(currentAccount).getFileDatabase().lookupFiles(keepMediaFiles);
         LongSparseArray<KeepMediaException> exceptionsByType = getKeepMediaExceptionsByDialogs();
         for (int i = 0; i < filesByDialogId.size(); i++) {
             long dialogId = filesByDialogId.keyAt(i);
+<<<<<<< HEAD
             ArrayList<KeepMediaFile> files = filesByDialogId.valueAt(i);
+=======
+            ArrayList<? extends KeepMediaFile> files = filesByDialogId.valueAt(i);
+>>>>>>> upstream/luvletter
             int type;
             if (dialogId >= 0) {
                 type = KEEP_MEDIA_TYPE_USER;

@@ -43,8 +43,11 @@ import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.CheckBox;
 import org.telegram.ui.Components.CheckBoxSquare;
 import org.telegram.ui.Components.LayoutHelper;
+<<<<<<< HEAD
 import org.telegram.ui.Components.Premium.PremiumGradient;
 import org.telegram.ui.ActionBar.SimpleTextView;
+=======
+>>>>>>> upstream/luvletter
 import org.telegram.ui.NotificationsSettingsActivity;
 
 public class UserCell extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {

@@ -150,7 +150,12 @@
     <string name="enhancedFileLoader">Enhance Download speed</string>
     <string name="mapDriftingFixForGoogleMaps">Fix Google Maps drifting in China</string>
     <string name="useOSMDroidMap">Use OSMDroid Map</string>
+<<<<<<< HEAD
     <string name="useTelegramTranslateInChat">Use Telegram Translate in Chat</string>
     <string name="MutualContact">Mutual contact</string>
     <string name="MutualContactDescription">This contact is a mutual contact.</string>
+=======
+    <string name="useTelegramTranslateInChat">Use Telegram Translate UI in Chat</string>
+    <string name="ProviderTelegramAPI">Telegram API</string>
+>>>>>>> upstream/luvletter
 </resources>

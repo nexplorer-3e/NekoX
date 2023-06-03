@@ -303,21 +303,33 @@ public abstract class BaseFragment {
         } else {
             finishFragment(true);
         }
+<<<<<<< HEAD
+    }
+
+    public void setFinishing(boolean finishing) {
+        this.finishing = finishing;
+=======
+>>>>>>> upstream/luvletter
     }
 
     public void setFinishing(boolean finishing) {
         this.finishing = finishing;
     }
 
-    public void finishFragment(boolean animated) {
+    public boolean finishFragment(boolean animated) {
         if (isFinished || parentLayout == null) {
-            return;
+            return false;
         }
         finishing = true;
         parentLayout.closeLastFragment(animated);
+        return true;
     }
 
     public void removeSelfFromStack() {
+        removeSelfFromStack(false);
+    }
+
+    public void removeSelfFromStack(boolean immediate) {
         if (isFinished || parentLayout == null) {
             return;
         }
@@ -325,7 +337,11 @@ public abstract class BaseFragment {
             parentDialog.dismiss();
             return;
         }
-        parentLayout.removeFragmentFromStack(this);
+        parentLayout.removeFragmentFromStack(this, immediate);
+    }
+
+    public boolean allowFinishFragmentInsteadOfRemoveFromStack() {
+        return true;
     }
 
     protected boolean isFinishing() {

@@ -45,6 +45,10 @@ import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
+<<<<<<< HEAD
+=======
+import org.telegram.messenger.LiteMode;
+>>>>>>> upstream/luvletter
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
@@ -142,7 +146,7 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
         }
 
         @Override
-        public boolean needSend() {
+        public boolean needSend(int contentType) {
             return false;
         }
 
@@ -988,7 +992,11 @@ public class StickerMasksAlert extends BottomSheet implements NotificationCenter
             if (imageViewEmojis == null) {
                 return;
             }
+<<<<<<< HEAD
             boolean drawInUi = imageViewEmojis.size() <= 4 || SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW || SharedConfig.getLiteMode().enabled();
+=======
+            boolean drawInUi = imageViewEmojis.size() <= 4 || SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW || !LiteMode.isEnabled(LiteMode.FLAG_ANIMATED_EMOJI_KEYBOARD);
+>>>>>>> upstream/luvletter
             if (!drawInUi) {
 //                boolean animatedExpandIn = animateExpandStartTime > 0 && (SystemClock.elapsedRealtime() - animateExpandStartTime) < animateExpandDuration();
                 for (int i = 0; i < imageViewEmojis.size(); i++) {

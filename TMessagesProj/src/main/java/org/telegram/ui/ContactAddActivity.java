@@ -113,13 +113,21 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
 
     public ContactAddActivity(Bundle args) {
         super(args);
+<<<<<<< HEAD
         imageUpdater = new ImageUpdater(true);
+=======
+        imageUpdater = new ImageUpdater(true, ImageUpdater.FOR_TYPE_USER, true);
+>>>>>>> upstream/luvletter
     }
 
     public ContactAddActivity(Bundle args, Theme.ResourcesProvider resourcesProvider) {
         super(args);
         this.resourcesProvider = resourcesProvider;
+<<<<<<< HEAD
         imageUpdater = new ImageUpdater(true);
+=======
+        imageUpdater = new ImageUpdater(true, ImageUpdater.FOR_TYPE_USER, true);
+>>>>>>> upstream/luvletter
     }
 
     @Override
@@ -450,7 +458,11 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
                         LocaleController.formatString("ResetToOriginalPhotoMessage", R.string.ResetToOriginalPhotoMessage, user.first_name),
                         LocaleController.getString("Reset", R.string.Reset), () -> {
                             avatar = null;
+<<<<<<< HEAD
                             sendPhotoChangedRequest(null, null,null, null, 0, TYPE_SET);
+=======
+                            sendPhotoChangedRequest(null, null,null, null, null, 0, TYPE_SET);
+>>>>>>> upstream/luvletter
 
                             TLRPC.User user1 = getMessagesController().getUser(user_id);
                             user1.photo.personal = false;
@@ -670,7 +682,11 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
     }
 
     @Override
+<<<<<<< HEAD
     public void didUploadPhoto(TLRPC.InputFile photo, TLRPC.InputFile video, double videoStartTimestamp, String videoPath, TLRPC.PhotoSize bigSize, TLRPC.PhotoSize smallSize, boolean isVideo) {
+=======
+    public void didUploadPhoto(TLRPC.InputFile photo, TLRPC.InputFile video, double videoStartTimestamp, String videoPath, TLRPC.PhotoSize bigSize, TLRPC.PhotoSize smallSize, boolean isVideo, TLRPC.VideoSize emojiMarkup) {
+>>>>>>> upstream/luvletter
         AndroidUtilities.runOnUIThread(() -> {
             if (imageUpdater.isCanceled()) {
                 return;
@@ -701,7 +717,11 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
                     getNotificationCenter().postNotificationName(NotificationCenter.reloadDialogPhotos);
                     getNotificationCenter().postNotificationName(NotificationCenter.updateInterfaces, MessagesController.UPDATE_MASK_AVATAR);
                 }
+<<<<<<< HEAD
                 sendPhotoChangedRequest(avatar, bigSize.location, photo, video, videoStartTimestamp, photoSelectedTypeFinal);
+=======
+                sendPhotoChangedRequest(avatar, bigSize.location, photo, video, emojiMarkup, videoStartTimestamp, photoSelectedTypeFinal);
+>>>>>>> upstream/luvletter
                 showAvatarProgress(false, true);
             } else {
                 avatarImage.setImage(ImageLocation.getForLocal(avatar), "50_50", avatarDrawable, getMessagesController().getUser(user_id));
@@ -761,7 +781,11 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
         getMessagesController().photoSuggestion.put(message.local_id, imageUpdater);
     }
 
+<<<<<<< HEAD
     private void sendPhotoChangedRequest(TLRPC.FileLocation avatar, TLRPC.FileLocation bigAvatar, TLRPC.InputFile photo, TLRPC.InputFile video, double videoStartTimestamp, int photoSelectedTypeFinal) {
+=======
+    private void sendPhotoChangedRequest(TLRPC.FileLocation avatar, TLRPC.FileLocation bigAvatar, TLRPC.InputFile photo, TLRPC.InputFile video, TLRPC.VideoSize emojiMarkup, double videoStartTimestamp, int photoSelectedTypeFinal) {
+>>>>>>> upstream/luvletter
         TLRPC.TL_photos_uploadContactProfilePhoto req = new TLRPC.TL_photos_uploadContactProfilePhoto();
         req.user_id = getMessagesController().getInputUser(user_id);
 
@@ -775,6 +799,13 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
             req.video_start_ts = videoStartTimestamp;
             req.flags |= 4;
         }
+<<<<<<< HEAD
+=======
+        if (emojiMarkup != null) {
+            req.flags |= 32;
+            req.video_emoji_markup = emojiMarkup;
+        }
+>>>>>>> upstream/luvletter
         if (photoSelectedTypeFinal == TYPE_SUGGEST) {
             req.suggest = true;
             req.flags |= 8;

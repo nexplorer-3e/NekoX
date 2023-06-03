@@ -18,7 +18,11 @@ public abstract class AdapterWithDiffUtils extends RecyclerListView.SelectionAda
         DiffUtil.calculateDiff(callback).dispatchUpdatesTo(this);
     }
 
+<<<<<<< HEAD
     public static class Item {
+=======
+    public static abstract class Item {
+>>>>>>> upstream/luvletter
         public final int viewType;
         public boolean selectable;
 
