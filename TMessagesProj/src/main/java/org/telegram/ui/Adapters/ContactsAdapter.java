@@ -357,7 +357,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
         View view;
         switch (viewType) {
             case 0:
-                view = new UserCell(mContext, 58, 1, false, false, true);
+                view = new UserCell(mContext, 58, 1, false, false);
                 break;
             case 1:
                 view = new TextCell(mContext);

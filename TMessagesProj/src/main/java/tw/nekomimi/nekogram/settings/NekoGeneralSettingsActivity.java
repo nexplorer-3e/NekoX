@@ -188,7 +188,11 @@ public class NekoGeneralSettingsActivity extends BaseFragment {
             LocaleController.getString("customSavePathHint", R.string.customSavePathHint), null,
             (input) -> input.matches("^[A-za-z0-9.]{1,255}$") || input.isEmpty() ? input : (String) NekoConfig.customSavePath.defaultValue));
     private final AbstractConfigCell disableUndoRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.disableUndo));
-    private final AbstractConfigCell showIdAndDcRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.showIdAndDc));
+    private final AbstractConfigCell ShowIdAndDcRow = cellGroup.appendCell(new ConfigCellSelectBox(null, NekoConfig.showIdAndDc, new String[]{
+            LocaleController.getString(R.string.showIdAndDcDisabled),
+            LocaleController.getString(R.string.IdAndDcTDLibStyle),
+            LocaleController.getString(R.string.IdAndDcBotApiStyle)
+    }, null));
     private final AbstractConfigCell inappCameraRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.inappCamera));
     private final AbstractConfigCell hideProxySponsorChannelRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.hideProxySponsorChannel));
     private final AbstractConfigCell hideSponsoredMessageRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.hideSponsoredMessage));

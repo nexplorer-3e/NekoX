@@ -74,13 +74,12 @@ if (nativeTarget == null) nativeTarget = ""
 
 android {
     compileSdkVersion 33
-    buildToolsVersion "33.0.0"
+    buildToolsVersion rootProject.ext.buildToolsVersion
     ndkVersion rootProject.ext.ndkVersion
 
     defaultConfig.applicationId = "me.karuba.nekox"
 
     splits {
-
         abi {
             if (targetTask.contains("fdroid")) {
                 enable false
@@ -170,7 +169,7 @@ android {
 
     signingConfigs {
         release {
-            storeFile project.file("release.keystore")
+            storeFile project.file('release.keystore')
             storePassword keystorePwd
             keyAlias alias
             keyPassword pwd

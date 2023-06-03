@@ -39,9 +39,8 @@ static String detectNdkVersion() {
 }
 
 ext {
-
     ndkVersion = detectNdkVersion()
-
+    buildToolsVersion = "33.0.2"
 }
 
 allprojects {
