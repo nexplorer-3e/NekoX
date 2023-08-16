@@ -2,8 +2,10 @@ name: Debug build
 
 on:
   push:
+    branches:
+      - '**'
     tags-ignore:
-      - "*"
+      - '*'
     paths-ignore:
       - '**.md'
       - '.github/**'
@@ -27,13 +29,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Fetch Status
         run: |
           git submodule status TMessagesProj/jni/ffmpeg > ffmpeg_status
           git submodule status TMessagesProj/jni/libvpx > libvpx_status
           git submodule status TMessagesProj/jni/boringssl > boringssl_status
       - name: FFmpeg Cache
-        id: cache
         uses: actions/cache@v2
         with:
           path: |
@@ -41,7 +44,6 @@ jobs:
             TMessagesProj/jni/libvpx/build
           key: ${{ hashFiles('ffmpeg_status', 'libvpx_status', 'TMessagesProj/jni/*ffmpeg*.sh', 'TMessagesProj/jni/*libvpx*.sh', 'TMessagesProj/jni/patches/ffmpeg/*') }}
       - name: BoringSSL Cache
-        id: cache
         uses: actions/cache@v2
         with:
           path: |
@@ -124,9 +126,17 @@ jobs:
         run: |
           cd TMessagesProj/jni
           ./patch_boringssl.sh
+      - uses: actions/setup-java@v3
+        name: Setup Java
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
+          echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
+          sha256sum TMessagesProj/luvletter2333.jks
           ./run libs native
   v2ray:
     name: Native Build (V2ray)
@@ -134,6 +144,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Fetch Status
         run: git submodule status v2ray > v2ray_status
       - name: V2ray Cache
@@ -153,10 +165,10 @@ jobs:
           echo "sdk.dir=${ANDROID_HOME}" > local.properties
           echo "ndk.dir=${ANDROID_HOME}/ndk/21.4.7075529" >> local.properties
       - name: Install Golang
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         if: steps.cache.outputs.cache-hit != 'true'
         with:
-          go-version: 1.16
+          go-version: 'stable'
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
@@ -169,10 +181,6 @@ jobs:
       - native
       - v2ray
       - telegram-bot-api
-    strategy:
-      matrix:
-        flavor:
-          - FullRelease
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -231,18 +239,18 @@ jobs:
           sed -i -e "s/16384/6144/g" gradle.properties
           echo "sdk.dir=${ANDROID_HOME}" >> local.properties
 #          echo "ndk.dir=${ANDROID_HOME}/ndk-bundle" >> local.properties
-      - name: Gradle cache
-        uses: actions/cache@v2
+      - uses: actions/setup-java@v3
+        name: Setup Java
         with:
-          path: ~/.gradle
-          key: gradle-${{ hashFiles('**/*.gradle') }}
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
       - name: Debug Build
         run: |
           echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
           echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
           sha256sum TMessagesProj/luvletter2333.jks
-          export DEBUG_BUILD=true
-          ./gradlew TMessagesProj:assemble${{ matrix.flavor }}
+          ./gradlew TMessagesProj:assemble
       - name: Upload artifacts
         uses: actions/upload-artifact@master
         if: github.event.inputs.upload != 'y'

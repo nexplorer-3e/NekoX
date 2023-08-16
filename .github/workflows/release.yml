@@ -1,8 +1,8 @@
 name: Release Build
 on:
   push:
-    tag:
-      - "v*"
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -153,6 +153,12 @@ jobs:
         run: |
           cd TMessagesProj/jni
           ./patch_boringssl.sh
+      - uses: actions/setup-java@v3
+        name: Setup Java
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'      
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
@@ -187,10 +193,10 @@ jobs:
           echo "sdk.dir=${ANDROID_HOME}" > local.properties
           echo "ndk.dir=${ANDROID_HOME}/ndk/21.4.7075529" >> local.properties
       - name: Install Golang
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         if: steps.cache.outputs.cache-hit != 'true'
         with:
-          go-version: 1.16
+          go-version: 'latest'
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
@@ -209,7 +215,7 @@ jobs:
     strategy:
       matrix:
         flavor:
-          - MiniRelease
+          - Release
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -259,6 +265,12 @@ jobs:
         run: |
           sed -i -e "s/16384/6144/g" gradle.properties
 #          echo "ndk.dir=${ANDROID_HOME}/ndk-bundle" > local.properties
+      - uses: actions/setup-java@v3
+        name: Setup Java
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
       - name: Gradle cache
         uses: actions/cache@v2
         with:
