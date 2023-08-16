@@ -172,7 +172,6 @@ jobs:
     strategy:
       matrix:
         flavor:
-          - MiniRelease
           - FullRelease
     steps:
       - name: Checkout
