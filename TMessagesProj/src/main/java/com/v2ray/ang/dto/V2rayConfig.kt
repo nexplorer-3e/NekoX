@@ -54,8 +54,10 @@ data class V2rayConfig(
             data class ServersBean(var address: String,
                                    var password: String,
                                    var port: Int,
-                                   var email: String)
-
+                                   var email: String?,
+                                   var method: String?,
+                                   var ota: Boolean?,
+                                   var level: Int?)
         }
 
         data class StreamSettingsBean(var network: String,

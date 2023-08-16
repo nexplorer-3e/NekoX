@@ -249,7 +249,7 @@ android {
                 srcDirs "src/main/java", "src/gservcies/java"
             }
             jniLibs {
-                srcDir "src/main/libs"
+                srcDirs "src/main/libs", "jni"
             }
             manifest {
                 srcFile "src/gservcies/AndroidManifest.xml"

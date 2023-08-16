@@ -65,6 +65,9 @@ object V2RayConfig {
         @JvmField
         val Trojan = 2
 
+        @JvmField
+        val Shadowsocks = 3
+
     }
 
 }

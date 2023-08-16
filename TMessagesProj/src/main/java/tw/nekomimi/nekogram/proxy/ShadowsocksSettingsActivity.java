@@ -36,6 +36,7 @@ import com.github.shadowsocks.plugin.PluginContract;
 import com.github.shadowsocks.plugin.PluginList;
 import com.github.shadowsocks.plugin.PluginManager;
 import com.github.shadowsocks.plugin.PluginOptions;
+import com.v2ray.ang.dto.AngConfig;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
@@ -69,8 +70,6 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
     private EditTextBoldCursor portField;
     private EditTextBoldCursor passwordField;
     private TextSettingsCell methodField;
-    private TextSettingsCell pluginField;
-    private TextSettingsCell pluginOptsField;
     private EditTextBoldCursor remarksField;
 
     private ScrollView scrollView;
@@ -80,12 +79,13 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
     private TextInfoPrivacyCell bottomCell;
 
     private SharedConfig.ShadowsocksProxy currentProxyInfo;
-    private ShadowsocksLoader.Bean currentBean;
+    private AngConfig.VmessBean currentBean;
     private PluginConfiguration plugin;
 
     private boolean ignoreOnTextChange;
 
     private static final int done_button = 1;
+    private static String[] securitySet = { "chacha20-poly1305","chacha20-ietf-poly1305","aes-128-gcm","aes-256-gcm","none","plain" };
 
     public class TypeCell extends FrameLayout {
 
@@ -140,7 +140,7 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
 
     public ShadowsocksSettingsActivity() {
         super();
-        currentBean = new ShadowsocksLoader.Bean();
+        currentBean = new AngConfig.VmessBean();
         plugin = new PluginConfiguration("");
     }
 
@@ -148,7 +148,6 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
         super();
         currentProxyInfo = proxyInfo;
         currentBean = proxyInfo.bean;
-        plugin = new PluginConfiguration(currentBean.getPlugin());
     }
 
 
@@ -205,11 +204,10 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
 
                     }
 
-                    currentBean.setHost(ipField.getText().toString());
-                    currentBean.setRemotePort(Utilities.parseInt(portField.getText().toString()));
-                    currentBean.setPassword(passwordField.getText().toString());
-                    currentBean.setMethod(methodField.getValueTextView().getText().toString());
-                    currentBean.setPlugin(plugin.toString());
+                    currentBean.setAddress(ipField.getText().toString());
+                    currentBean.setPort(Utilities.parseInt(portField.getText().toString()));
+                    currentBean.setId(passwordField.getText().toString());
+                    currentBean.setSecurity(methodField.getValueTextView().getText().toString());
                     currentBean.setRemarks(remarksField.getText().toString());
 
                     if (currentProxyInfo == null) {
@@ -268,19 +266,19 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
                     ipField = cursor;
                     cursor.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
                     cursor.setHintText(LocaleController.getString("UseProxyAddress", R.string.UseProxyAddress));
-                    cursor.setText(currentBean.getHost());
+                    cursor.setText(currentBean.getAddress());
                     break;
                 case 1:
                     portField = cursor;
                     cursor.setInputType(InputType.TYPE_CLASS_NUMBER);
                     cursor.setHintText(LocaleController.getString("UseProxyPort", R.string.UseProxyPort));
-                    cursor.setText("" + currentBean.getRemotePort());
+                    cursor.setText("" + currentBean.getPort());
                     break;
                 case 2:
                     passwordField = cursor;
                     cursor.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
                     cursor.setHintText(LocaleController.getString("UseProxyPassword", R.string.UseProxyPassword));
-                    cursor.setText(currentBean.getPassword());
+                    cursor.setText(currentBean.getId());
                     break;
                 case 3:
                     remarksField = cursor;
@@ -304,7 +302,7 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
 
         methodField = new TextSettingsCell(context);
         methodField.setBackground(Theme.getSelectorDrawable(false));
-        methodField.setTextAndValue(LocaleController.getString("SSMethod", R.string.SSMethod), currentBean.getMethod(), false);
+        methodField.setTextAndValue(LocaleController.getString("SSMethod", R.string.SSMethod), currentBean.getSecurity(), false);
         container.addView(methodField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP, 0, 0, 0, 0));
         inputFieldsContainer.addView(container, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 64));
 
@@ -312,7 +310,7 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
 
             PopupBuilder select = new PopupBuilder(v);
 
-            select.setItems(ShadowsocksLoader.Companion.getMethods(), (__, value) -> {
+            select.setItems(securitySet, (__, value) -> {
 
                 methodField.getValueTextView().setText(value);
 
@@ -323,68 +321,6 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
             select.show();
 
         });
-
-        container = new FrameLayout(context);
-        pluginField = new TextSettingsCell(context);
-        pluginField.setBackground(Theme.getSelectorDrawable(false));
-        pluginField.setTextAndValue(LocaleController.getString("SSPlugin", R.string.SSPlugin), plugin.getSelectedName(), false);
-        container.addView(pluginField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP, 0, 0, 0, 0));
-        inputFieldsContainer.addView(container, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 64));
-
-        pluginField.setOnClickListener((v) -> {
-
-            PluginList plugins = PluginManager.fetchPlugins();
-
-            PopupBuilder select = new PopupBuilder(v);
-
-            try {
-
-                select.setItems(plugins.getLookupNames(), (index, __) -> {
-
-                    String pluginId = plugins.get(index).getId();
-
-                    plugin.setSelected(pluginId);
-
-                    ((View) pluginOptsField.getParent()).setVisibility(StrUtil.isBlank(pluginId) ? View.GONE : View.VISIBLE);
-
-                    pluginField.getValueTextView().setText(plugin.getSelectedName());
-                    pluginOptsField.getValueTextView().setText(plugin.getOptions(pluginId).toString());
-
-                    return Unit.INSTANCE;
-
-                });
-
-                select.show();
-
-            } catch (Exception e) {
-
-                AlertUtil.showSimpleAlert(getParentActivity(),e.getMessage());
-
-            }
-
-        });
-
-        container = new FrameLayout(context);
-        pluginOptsField = new TextSettingsCell(context);
-        pluginOptsField.setBackground(Theme.getSelectorDrawable(false));
-        pluginOptsField.setTextAndValue(LocaleController.getString("SSPluginOpts", R.string.SSPluginOpts), plugin.getOptions().toString(), false);
-        container.addView(pluginOptsField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.TOP, 0, 0, 0, 0));
-        inputFieldsContainer.addView(container, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 64));
-
-        pluginOptsField.setOnClickListener((v) -> {
-
-            Intent intent = PluginManager.buildIntent(plugin.getSelected(), PluginContract.ACTION_CONFIGURE);
-            intent.putExtra(PluginContract.EXTRA_OPTIONS, plugin.getOptions().toString());
-
-            if (intent.resolveActivity(getParentActivity().getPackageManager()) == null) {
-                showPluginEditor();
-            } else {
-                startActivityForResult(intent, 1919);
-            }
-
-        });
-
-        ((View) pluginOptsField.getParent()).setVisibility(StrUtil.isBlank(plugin.getSelected()) ? View.GONE : View.VISIBLE);
 
         inputFieldsContainer.addView((View) remarksField.getParent(), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 64));
 
@@ -399,25 +335,7 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
 
     @Override public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
 
-        if (requestCode == 1919) {
-
-            if (resultCode == Activity.RESULT_OK) {
-
-                String options = data.getStringExtra(PluginContract.EXTRA_OPTIONS);
-
-                if (options != null) {
-
-                    onPreferenceChange(options);
-
-                }
-
-            } else if (resultCode == PluginContract.RESULT_FALLBACK) {
-
-                showPluginEditor();
-
-            }
-
-        } else if (requestCode == 810) {
+        if (requestCode == 810) {
 
             if (resultCode == Activity.RESULT_OK) {
 
@@ -439,56 +357,6 @@ public class ShadowsocksSettingsActivity extends BaseFragment {
 
         }
 
-    }
-
-    private void showPluginEditor() {
-
-        BottomBuilder builder = new BottomBuilder(getParentActivity());
-
-        builder.addTitle(LocaleController.getString("SSPluginOpts", R.string.SSPluginOpts));
-
-        EditText options = builder.addEditText();
-        options.setSingleLine(false);
-        options.setGravity(Gravity.TOP | LocaleController.generateFlagStart());
-        options.setMinLines(3);
-        options.setText(plugin.getOptions().toString());
-
-        Intent intent = PluginManager.buildIntent(plugin.getSelected(), PluginContract.ACTION_HELP);
-        intent.putExtra(PluginContract.EXTRA_OPTIONS, plugin.getOptions().toString());
-        if (intent.resolveActivity(getParentActivity().getPackageManager()) != null) {
-
-            builder.addButton(LocaleController.getString("BotHelp", R.string.BotHelp), false,true, (it) -> {
-
-                getParentActivity().startActivityForResult(intent, 810);
-
-                return Unit.INSTANCE;
-
-            });
-
-            builder.addCancelButton(false);
-
-        } else {
-
-            builder.addCancelButton();
-
-        }
-
-        builder.addOkButton((it) -> {
-
-            onPreferenceChange(options.getText().toString());
-
-            return Unit.INSTANCE;
-
-        });
-
-        builder.show();
-
-    }
-
-    private void onPreferenceChange(String newValue) {
-        String selected = plugin.getSelected();
-        plugin.getPluginsOptions().put(selected, new PluginOptions(selected, newValue));
-        pluginOptsField.getValueTextView().setText(newValue);
     }
 
     EditTextBoldCursor mkCursor() {

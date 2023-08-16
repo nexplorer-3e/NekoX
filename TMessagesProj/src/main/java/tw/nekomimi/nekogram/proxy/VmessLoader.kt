@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.v2ray.ang.V2RayConfig
 import com.v2ray.ang.V2RayConfig.SOCKS_PROTOCOL
 import com.v2ray.ang.V2RayConfig.TROJAN_PROTOCOL
+import com.v2ray.ang.V2RayConfig.SS_PROTOCOL
 import com.v2ray.ang.V2RayConfig.VMESS1_PROTOCOL
 import com.v2ray.ang.V2RayConfig.VMESS_PROTOCOL
 import com.v2ray.ang.dto.AngConfig.VmessBean
@@ -131,6 +132,38 @@ class VmessLoader {
                 } else if (server.startsWith(VMESS1_PROTOCOL)) {
 
                     return parseVmess1Link(server)
+
+                } else if (server.startsWith(SS_PROTOCOL)) {
+                    var result = server.replace(SS_PROTOCOL, "")
+                    val indexSplit = result.indexOf("#")
+                    if (indexSplit > 0) {
+                        try {
+                            vmess.remarks = Utils.urlDecode(result.substring(indexSplit + 1, result.length))
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+
+                        result = result.substring(0, indexSplit)
+                    }
+
+                    //part decode
+                    val indexS = result.indexOf("@")
+                    if (indexS > 0) {
+                        result = Base64.decodeStr(result.substring(0, indexS)) + result.substring(indexS, result.length)
+                    } else {
+                        result = Base64.decodeStr(result)
+                    }
+
+                    val legacyPattern = "^(.+?):(.*)@(.+?):(\\d+?)$".toRegex()
+                    val match = legacyPattern.matchEntire(result) ?: error("invalid protocol")
+                    vmess.security = match.groupValues[1].lowercase()
+                    vmess.id = match.groupValues[2]
+                    vmess.address = match.groupValues[3]
+                    if (vmess.address.firstOrNull() == '[' && vmess.address.lastOrNull() == ']')
+                        vmess.address = vmess.address.substring(1, vmess.address.length - 1)
+                    vmess.port = match.groupValues[4].toInt()
+
+                    return vmess
 
                 } else if (server.startsWith(TROJAN_PROTOCOL)) {
 

@@ -65,7 +65,6 @@ import cn.hutool.core.util.StrUtil;
 import okhttp3.HttpUrl;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.proxy.ProxyManager;
-import tw.nekomimi.nekogram.proxy.ShadowsocksLoader;
 import tw.nekomimi.nekogram.proxy.ShadowsocksRLoader;
 import tw.nekomimi.nekogram.proxy.VmessLoader;
 import tw.nekomimi.nekogram.proxy.tcp2ws.WsLoader;
@@ -723,83 +722,32 @@ public class SharedConfig {
 
     }
 
-    public static class ShadowsocksProxy extends ExternalSocks5Proxy {
+    public static class ShadowsocksProxy extends VmessProxy {
 
-        public ShadowsocksLoader.Bean bean;
-        public ShadowsocksLoader loader;
+        public AngConfig.VmessBean bean;
+        public VmessLoader loader;
 
         public ShadowsocksProxy(String ssLink) {
-
-            this(ShadowsocksLoader.Bean.Companion.parse(ssLink));
-
+            this(VmessLoader.Companion.parseVmessLink(ssLink));
         }
 
-        public ShadowsocksProxy(ShadowsocksLoader.Bean bean) {
-
+        public ShadowsocksProxy(AngConfig.VmessBean bean) {
             this.bean = bean;
-
-            if (BuildVars.isMini) {
-
-                throw new RuntimeException(LocaleController.getString("MiniVersionAlert", R.string.MiniVersionAlert));
-
-            }
-
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-
-                throw new RuntimeException(LocaleController.getString("MinApi21Required", R.string.MinApi21Required));
-
-            }
-
-        }
-
-        @Override
-        public String getAddress() {
-            return bean.getHost() + ":" + bean.getRemotePort();
         }
 
         @Override
         public boolean isStarted() {
-
             return loader != null;
-
         }
 
         @Override
         public void start() {
-
-            if (loader != null) return;
-
-            port = ProxyManager.mkPort();
-            ShadowsocksLoader loader = new ShadowsocksLoader();
-            loader.initConfig(bean, port);
-
-            loader.start();
-
-            this.loader = loader;
-
-            if (SharedConfig.proxyEnabled && SharedConfig.currentProxy == this) {
-
-                ConnectionsManager.setProxySettings(true, address, port, username, password, secret);
-
-            }
-
+            super.start();
         }
 
         @Override
         public void stop() {
-
-            if (loader != null) {
-
-                FileLog.d(getTitle() + " stopped");
-
-                ShadowsocksLoader loader = this.loader;
-
-                loader.stop();
-
-                this.loader = null;
-
-            }
-
+            super.stop();
         }
 
         @Override
@@ -835,14 +783,12 @@ public class SharedConfig {
 
         @Override
         public int hashCode() {
-
-            return (bean.getHost() + bean.getRemotePort() + bean.getMethod()).hashCode();
-
+            return super.hashCode();
         }
 
         @Override
         public boolean equals(@Nullable Object obj) {
-            return super.equals(obj) || (obj instanceof ShadowsocksProxy && bean.equals(((ShadowsocksProxy) obj).bean));
+            return super.equals(obj);
         }
 
     }

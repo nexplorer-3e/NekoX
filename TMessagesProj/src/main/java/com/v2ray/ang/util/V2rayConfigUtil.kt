@@ -124,6 +124,22 @@ object V2rayConfigUtil {
 
                     outbound.protocol = "vmess"
                 }
+                V2RayConfig.EConfigType.Shadowsocks -> {
+                    outbound.settings?.vnext = null
+
+                    val server = outbound.settings?.servers?.get(0)
+                    server?.address = vmess.address
+                    server?.method = vmess.security
+                    server?.ota = false
+                    server?.password = vmess.id
+                    server?.port = vmess.port
+                    server?.level = 8
+
+                    //Mux
+                    outbound.mux?.enabled = false
+
+                    outbound.protocol = "shadowsocks"
+                }
                 V2RayConfig.EConfigType.Trojan -> {
 
                     outbound.streamSettings = V2rayConfig.OutboundBean.StreamSettingsBean(
@@ -137,7 +153,7 @@ object V2rayConfigUtil {
                             vmess.address,
                             vmess.id,
                             vmess.port,
-                            "user@neko.gram"
+                            "user@neko.gram", null, null, null
                     )))
 
                     //Mux

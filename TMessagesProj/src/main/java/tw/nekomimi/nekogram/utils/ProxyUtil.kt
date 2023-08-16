@@ -44,7 +44,6 @@ import org.telegram.messenger.*
 import org.telegram.messenger.browser.Browser
 import org.yaml.snakeyaml.Yaml
 import tw.nekomimi.nekogram.ui.BottomBuilder
-import tw.nekomimi.nekogram.proxy.ShadowsocksLoader
 import tw.nekomimi.nekogram.proxy.ShadowsocksRLoader
 import tw.nekomimi.nekogram.utils.AlertUtil.showToast
 import java.io.File
@@ -88,15 +87,6 @@ object ProxyUtil {
         val proxies = mutableListOf<String>()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            try {
-                // sip008
-                val ssArray = JSONArray(text)
-                for (index in 0 until ssArray.length()) {
-                    proxies.add(ShadowsocksLoader.Bean.parseJson(ssArray.getJSONObject(index)).toString())
-                }
-                return proxies
-            } catch (ignored: JSONException) {
-            }
 
             if (text.contains("proxies:")) {
 
@@ -110,22 +100,17 @@ object ProxyUtil {
                     val type = proxy["type"] as String
                     when (type) {
                         "ss" -> {
-                            var pluginStr = ""
-                            if (proxy.contains("plugin")) {
-                                val opts = PluginOptions()
-                                opts.id = proxy["plugin"] as String
-                                opts.putAll(proxy["plugin-opts"] as Map<String, String?>)
-                                pluginStr = opts.toString(false)
+                            val opts = AngConfig.VmessBean()
+                            for (opt in proxy) {
+                                when (opt.key) {
+                                    "server" -> opts.address = opt.value as String
+                                    "port" -> opts.port = opt.value as Int
+                                    "password" -> opts.id = opt.value as String
+                                    "cipher" -> opts.security = opt.value as String
+                                    "name" -> opts.remarks = opt.value as String
+                                }
                             }
-                            proxies.add(
-                                ShadowsocksLoader.Bean(
-                                    proxy["server"] as String,
-                                    proxy["port"] as Int,
-                                    proxy["password"] as String,
-                                    proxy["cipher"] as String,
-                                    pluginStr,
-                                    proxy["name"] as String
-                            ).toString())
+                            proxies.add(opts.toString())
                         }
                         "vmess" -> {
                             val opts = AngConfig.VmessBean()

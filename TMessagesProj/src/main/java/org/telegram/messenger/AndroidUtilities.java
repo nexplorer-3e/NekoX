@@ -3969,16 +3969,16 @@ public class AndroidUtilities {
                 String text = null;
                 String detail = null;
                 if (a == 0) {
-                    text = info.bean.getHost();
+                    text = info.bean.getAddress();
                     detail = LocaleController.getString("UseProxyAddress", R.string.UseProxyAddress);
                 } else if (a == 1) {
-                    text = "" + info.bean.getRemotePort();
+                    text = "" + info.bean.getPort();
                     detail = LocaleController.getString("UseProxyPort", R.string.UseProxyPort);
                 } else if (a == 2) {
-                    text = info.bean.getPassword();
+                    text = info.bean.getId();
                     detail = LocaleController.getString("UseProxyPassword", R.string.UseProxyPassword);
                 } else if (a == 3) {
-                    text = info.bean.getMethod();
+                    text = info.bean.getSecurity();
                     detail = LocaleController.getString("SSMethod", R.string.SSMethod);
                 } else {
                     text = LocaleController.getString("Checking", R.string.Checking);
