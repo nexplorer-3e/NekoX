@@ -199,17 +199,7 @@ android {
             ndk.debugSymbolLevel = "FULL"
         }
 
-        releaseNoGcm {
-            debuggable false
-            jniDebuggable false
-            minifyEnabled true
-            shrinkResources true
-            multiDexEnabled true
-            zipAlignEnabled true
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-            matchingFallbacks = ["release", "debug"]
-            signingConfig keystorePwd == null ? signingConfigs.debug : signingConfigs.release
-        }
+//            signingConfig keystorePwd == null ? signingConfigs.debug : signingConfigs.release
 
         release {
             debuggable false
@@ -219,7 +209,6 @@ android {
             multiDexEnabled true
             zipAlignEnabled true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-            matchingFallbacks = ["release", "debug"]
             signingConfig signingConfigs.releasePriv
             versionNameSuffix "-n"
         }
@@ -234,17 +223,11 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             matchingFallbacks = ["release", "debug"]
         }
-
-        fdroidRelease {
-            initWith foss
-            matchingFallbacks = ["release", "debug"]
-        }
     }
 
     sourceSets {
 
         main {
-            jni.srcDirs = []
             assets.srcDirs = ["src/main/assets", "src/emojis/twitter"]
         }
 
@@ -252,24 +235,19 @@ android {
             java {
                 srcDirs "src/main/java", "src/gservcies/java"
             }
-            jni.srcDirs = ["./jni/"]
+            jniLibs {
+                srcDir "jni"
+            }
             manifest {
                 srcFile "src/gservcies/AndroidManifest.xml"
             }
         }
 
-        releaseNoGcm {
-            jni.srcDirs = []
-            jniLibs {
-                srcDir "src/main/libs"
-            }
-        }
 
         release {
             java {
                 srcDirs "src/main/java", "src/gservcies/java"
             }
-            jni.srcDirs = []
             jniLibs {
                 srcDir "src/main/libs"
             }
@@ -278,16 +256,8 @@ android {
             }
         }
 
-        foss {
-            jni {
-                srcDirs = ["./jni/"]
-            }
-        }
 
-        fdroidRelease {
-            jni {
-                srcDirs = ["./jni/"]
-            }
+        foss {
             jniLibs.srcDirs = []
         }
 
@@ -303,10 +273,19 @@ android {
         full {
             manifestPlaceholders = [is_full_version: "true"]
         }
-        miniPlay {
+        play {
             versionNameSuffix "-play"
             versionCode verCode - 2
             manifestPlaceholders = [is_full_version: "false"]
+        }
+    }
+
+    variantFilter { variant ->
+        def names = variant.flavors*.name
+        // To check for a certain build type, use variant.buildType.name == "<buildType>"
+        if (names.contains("play") && names.contains("foss")) {
+            // Gradle ignores any variants that satisfy the conditions above.
+            setIgnore(true)
         }
     }
 
@@ -320,7 +299,7 @@ android {
 
     tasks.all { task ->
         if (((task.name.endsWith("Ndk") || task.name.startsWith("generateJsonModel") || task.name.startsWith("externalNativeBuild"))) && !(task.name.contains("Debug") || task.name.contains("Foss") || task.name.contains("Fdroid"))) {
-            task.enabled = false
+            enabled = false
         }
         if (task.name.contains("uploadCrashlyticsMappingFile")) {
             enabled = false
@@ -429,9 +408,9 @@ android {
     tasks.all { task ->
         if (task.name.startsWith("uploadCrashlyticsMappingFile")) {
             task.enabled = false
-        } else if (task.name.contains("Crashlytics") && task.name.contains("NoGcm")) {
+        } else if (task.name.contains("Crashlytics") && task.name.contains("Foss")) {
             task.enabled = false
-        } else if (task.name.endsWith("GoogleServices") && task.name.contains("NoGcm")) {
+        } else if (task.name.endsWith("GoogleServices") && task.name.contains("Foss")) {
             task.enabled = false
         }
     }
