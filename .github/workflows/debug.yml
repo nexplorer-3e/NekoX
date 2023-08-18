@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: 'recursive'
       - name: Fetch Status
@@ -37,14 +37,14 @@ jobs:
           git submodule status TMessagesProj/jni/libvpx > libvpx_status
           git submodule status TMessagesProj/jni/boringssl > boringssl_status
       - name: FFmpeg Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/jni/ffmpeg/build
             TMessagesProj/jni/libvpx/build
           key: ${{ hashFiles('ffmpeg_status', 'libvpx_status', 'TMessagesProj/jni/*ffmpeg*.sh', 'TMessagesProj/jni/*libvpx*.sh', 'TMessagesProj/jni/patches/ffmpeg/*') }}
       - name: BoringSSL Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/jni/boringssl/build
@@ -80,7 +80,7 @@ jobs:
           - x86_64
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Fetch Status
         run: |
           git submodule status TMessagesProj/jni/ffmpeg > ffmpeg_status
@@ -88,7 +88,7 @@ jobs:
           git submodule status TMessagesProj/jni/boringssl > boringssl_status
       - name: Native Cache
         id: cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/src/main/libs
@@ -98,7 +98,7 @@ jobs:
         run: |
           git submodule update --init 'TMessagesProj/jni/*'
       - name: FFmpeg Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: steps.cache.outputs.cache-hit != 'true'
         with:
           path: |
@@ -106,7 +106,7 @@ jobs:
             TMessagesProj/jni/libvpx/build
           key: ${{ hashFiles('ffmpeg_status', 'libvpx_status', 'TMessagesProj/jni/*ffmpeg*.sh', 'TMessagesProj/jni/*libvpx*.sh', 'TMessagesProj/jni/patches/ffmpeg/*') }}
       - name: BoringSSL Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: steps.cache.outputs.cache-hit != 'true'
         with:
           path: |
@@ -137,20 +137,21 @@ jobs:
           echo "${{ secrets.B64_SIGNING_KEY }}" | base64 --decode - > TMessagesProj/luvletter2333.jks
           echo "${{ secrets.KEYSTORE_PASS }}" > TMessagesProj/priv-signing.properties
           sha256sum TMessagesProj/luvletter2333.jks
+          export NATIVE_TARGET="${{ matrix.flavor }}"
           ./run libs native
   v2ray:
     name: Native Build (V2ray)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: 'recursive'
       - name: Fetch Status
         run: git submodule status v2ray > v2ray_status
       - name: V2ray Cache
         id: cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/libs/libv2ray.aar
@@ -183,7 +184,7 @@ jobs:
       - telegram-bot-api
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Android SDK Tools
         uses: android-actions/setup-android@v2
       - name: Install NDK
@@ -197,31 +198,31 @@ jobs:
           git submodule status TMessagesProj/jni/boringssl > boringssl_status
           git submodule status v2ray > v2ray_status
       - name: Native Cache (armeabi-v7a)
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/src/main/libs
           key: ${{ hashFiles('TMessagesProj/jni/**', 'ffmpeg_status', 'boringssl_status') }}-armeabi-v7a
       - name: Native Cache (arm64-v8a)
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/src/main/libs
           key: ${{ hashFiles('TMessagesProj/jni/**', 'ffmpeg_status', 'boringssl_status') }}-arm64-v8a
       - name: Native Cache (x86)
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/src/main/libs
           key: ${{ hashFiles('TMessagesProj/jni/**', 'ffmpeg_status', 'boringssl_status') }}-x86
       - name: Native Cache (x86_64)
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/src/main/libs
           key: ${{ hashFiles('TMessagesProj/jni/**', 'ffmpeg_status', 'boringssl_status') }}-x86_64
       - name: V2ray Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             TMessagesProj/libs/libv2ray.aar
@@ -265,7 +266,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
@@ -327,14 +328,14 @@ jobs:
     if: github.event.inputs.artifacts != 'y'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Clone Telegram Bot API
         run: |
           git clone --recursive https://github.com/tdlib/telegram-bot-api.git
           git status telegram-bot-api >> telegram-bot-api-status
       - name: Cache Bot API Binary
         id: cache-bot-api
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: telegram-bot-api-binary
           key: CI-telegram-bot-api-${{ hashFiles('telegram-bot-api-status') }}
