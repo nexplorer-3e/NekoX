@@ -62,10 +62,14 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get install yasm -y
-          ./run init libs libvpx
-          ./run init libs ffmpeg
-          ./run init action boringssl
-          ./run init libs boringssl
+          sudo apt-get install bison gcc make curl ninja-build -y
+          . buildenv.sh
+          cd TMessagesProj/jni
+          ./build_libvpx_clang.sh
+          ./build_ffmpeg_clang.sh
+          ./patch_ffmpeg.sh
+          ./patch_boringssl.sh
+          ./build_boringssl.sh
   native:
     name: Native Build (Telegram)
     runs-on: ubuntu-latest
@@ -81,6 +85,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
       - name: Fetch Status
         run: |
           git submodule status TMessagesProj/jni/ffmpeg > ffmpeg_status
@@ -105,6 +111,7 @@ jobs:
             TMessagesProj/jni/ffmpeg/build
             TMessagesProj/jni/libvpx/build
           key: ${{ hashFiles('ffmpeg_status', 'libvpx_status', 'TMessagesProj/jni/*ffmpeg*.sh', 'TMessagesProj/jni/*libvpx*.sh', 'TMessagesProj/jni/patches/ffmpeg/*') }}
+          fail-on-cache-miss: 'true'
       - name: BoringSSL Cache
         uses: actions/cache@v3
         if: steps.cache.outputs.cache-hit != 'true'
@@ -112,6 +119,7 @@ jobs:
           path: |
             TMessagesProj/jni/boringssl/build
           key: ${{ hashFiles('boringssl_status') }}
+          fail-on-cache-miss: 'true'
       - name: Setup Android SDK Tools
         uses: android-actions/setup-android@v2
         if: steps.cache.outputs.cache-hit != 'true'
@@ -121,11 +129,6 @@ jobs:
           echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;21.4.7075529" --sdk_root=${ANDROID_SDK_ROOT} &> /dev/null
           echo "sdk.dir=${ANDROID_HOME}" > local.properties
           echo "ndk.dir=${ANDROID_HOME}/ndk/21.4.7075529" >> local.properties
-      - name: Fix BoringSSL
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          cd TMessagesProj/jni
-          ./patch_boringssl.sh
       - uses: actions/setup-java@v3
         name: Setup Java
         with:
@@ -173,7 +176,11 @@ jobs:
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          ./run libs v2ray
+          . buildenv.sh
+          cd v2ray
+          make all
+          make downloadGoMobile
+          make BuildMobile
   build:
     name: Gradle Build
     runs-on: ubuntu-latest
@@ -185,6 +192,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
       - name: Setup Android SDK Tools
         uses: android-actions/setup-android@v2
       - name: Install NDK
